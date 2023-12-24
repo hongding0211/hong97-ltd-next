@@ -19,6 +19,21 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         script: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" 
+          nvm -v
+          nvm use 20
+          node -v
           cd ${{ secrets.PATH }}
-          touch a.txt
-
+          ${{ secrets.CLASH }}
+          docker stop ${{ secrets.DOCKER_IMG }}
+          export https_proxy='127.0.0.1:7890'
+          git reset --hard origin/main
+          pnpm i
+          pnpm build
+          docker start ${{ secrets.DOCKER_IMG }}
+          docker exec -itd ${{ secrets.DOCKER_IMG }} /bin/sh -c "cd /app && pnpm start"
+          kill $(cat pid.txt) || true
+          rm pid.txt
+          
