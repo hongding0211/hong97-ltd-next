@@ -1,0 +1,11 @@
+{
+  "contact": "Contact Me",
+  "myProject": "My Projects",
+  "xhs": "Xiaohongshu",
+  "nav": {
+    "blog": "Blog",
+    "doc": "Documents",
+    "projects": "Projects",
+    "about": "About"
+  }
+}
