@@ -29,7 +29,7 @@ jobs:
           ${{ secrets.CLASH }}
           docker stop ${{ secrets.DOCKER_IMG }}
           export https_proxy='127.0.0.1:7890'
-          git reset --hard origin/main
+          git pull
           pnpm i
           pnpm build
           docker start ${{ secrets.DOCKER_IMG }}
