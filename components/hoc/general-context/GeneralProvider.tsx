@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { GeneralContext } from './GeneralContext'
 import useDarkMode from 'use-dark-mode'
 import { NextRouter } from 'next/router'
