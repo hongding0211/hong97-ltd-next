@@ -7,13 +7,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { animated, useSpring } from '@react-spring/web'
 import { useTranslation } from 'next-i18next'
 import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
-import useDarkMode from 'use-dark-mode'
+import React, { useContext, useEffect, useState } from 'react'
 
 import { footerConfig, menuConfig } from '../../config/config'
 import Divider from '../common/Divider'
 import Logo from '../common/Logo'
 import NavButtons from './NavButtons'
+import { GeneralContext } from '../hoc/general-context/GeneralContext'
 
 interface IAppLayout {
   children?: React.ReactNode
@@ -22,19 +22,15 @@ interface IAppLayout {
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
 
-  const darkMode = useDarkMode(false, {
-    onChange: (val) => {
-      if (val) {
-        document.documentElement.className = 'dark'
-      } else {
-        document.documentElement.className = 'light'
-      }
-    },
-  })
   const [menuContainerStyle, menuContainerApi] = useSpring(() => {})
   const [lineStyle, lineApi] = useSpring(() => {})
   const [menuItemStyle, menuItemApi] = useSpring(() => {})
   const { t } = useTranslation('common')
+
+  const generalContext = useContext(GeneralContext)
+  const { darkModeEnabled, setDarkModeEnabled, router } = generalContext
+
+  const currentPath = router?.pathname || ''
 
   useEffect(() => {
     function resize() {
@@ -53,9 +49,9 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
 
   function handleChangeDarkMode(isDarkMode: boolean) {
     if (isDarkMode) {
-      darkMode.enable()
+      setDarkModeEnabled(true)
     } else {
-      darkMode.disable()
+      setDarkModeEnabled(false)
     }
   }
 
@@ -89,7 +85,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
 
   return (
     <div className="text-neutral-900 dark:text-neutral-50">
-      <nav className="sticky top-0 z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.5]">
+      <nav className="sticky top-0 z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.8]">
         <Logo width={20} className="fill-neutral-800 dark:fill-neutral-100" />
         <FontAwesomeIcon
           icon={showMenu ? faXmark : faEllipsisVertical}
@@ -104,15 +100,29 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 key={m.key}
                 href={m.path}
                 target={m.externalLink ? '_blank' : ''}
-                className="cursor-pointer hover:font-medium"
+                className={`relative cursor-pointer ${
+                  currentPath.startsWith(m.path)
+                    ? 'text-neutral-900'
+                    : 'text-neutral-500'
+                } hover:text-neutral-900 ${
+                  currentPath.startsWith(m.path)
+                    ? 'dark:text-neutral-100'
+                    : 'dark:text-neutral-400'
+                } dark:hover:text-neutral-100`}
               >
                 {t(`nav.${m.key}`)}
+                {m.icon && (
+                  <FontAwesomeIcon
+                    icon={m.icon}
+                    className="absolute h-[10px] w-[10px] pl-[2px]"
+                  />
+                )}
               </Link>
             ))}
           </div>
           <div className="mx-[30px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
           <NavButtons
-            darkMode={darkMode.value}
+            darkMode={darkModeEnabled}
             onDarkModeChange={handleChangeDarkMode}
           />
         </div>
@@ -128,9 +138,23 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 <animated.span style={{ ...menuItemStyle }}>
                   <Link
                     href={m.path}
-                    className="my-4 block cursor-pointer hover:font-medium"
+                    className={`relative my-4 block cursor-pointer ${
+                      currentPath.startsWith(m.path)
+                        ? 'text-neutral-900'
+                        : 'text-neutral-500'
+                    } hover:text-neutral-900 ${
+                      currentPath.startsWith(m.path)
+                        ? 'dark:text-neutral-100'
+                        : 'dark:text-neutral-400'
+                    } hover:text-neutral-900 dark:hover:text-neutral-100`}
                   >
                     {t(`nav.${m.key}`)}
+                    {m.icon && (
+                      <FontAwesomeIcon
+                        icon={m.icon}
+                        className="absolute top-1 h-[10px] w-[10px] pl-[4px]"
+                      />
+                    )}
                   </Link>
                 </animated.span>
                 <animated.div style={{ ...lineStyle }}>
@@ -143,7 +167,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
               className="flex w-full justify-end pt-5"
             >
               <NavButtons
-                darkMode={darkMode.value}
+                darkMode={darkModeEnabled}
                 onDarkModeChange={handleChangeDarkMode}
               />
             </animated.div>

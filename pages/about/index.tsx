@@ -11,6 +11,7 @@ import Autoplay from 'embla-carousel-autoplay'
 
 import AppLayout from '../../components/app-layout/AppLayout'
 import AnimatedGradientText from '../../components/magicui/animated-gradient-text'
+import BlurFade from '@/components/magicui/blur-fade'
 import { cn } from '@/lib/utils'
 
 const CatsImgs = [
@@ -41,20 +42,29 @@ function About() {
       <AppLayout>
         <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12">
           <img src="/img/cover.jpeg" alt="me" className="rounded" />
+
           <div className="mb-6 mt-12 sm:mb-12 sm:mt-24">
-            <AnimatedGradientText>
-              <h1
-                className={cn(
-                  'animate-gradient inline bg-gradient-to-r from-[#007BFF] via-[#00fbff] to-[#007BFF] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent',
-                )}
-              >
-                {t('title')}
-              </h1>
-            </AnimatedGradientText>
+            <BlurFade inView>
+              <AnimatedGradientText>
+                <h1
+                  className={cn(
+                    'animate-gradient inline bg-gradient-to-r from-[#007BFF] via-[#00fbff] to-[#007BFF] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent',
+                  )}
+                >
+                  {t('title')}
+                </h1>
+              </AnimatedGradientText>
+            </BlurFade>
           </div>
-          <h2>{t('p1')}</h2>
-          <h2>{t('p2')}</h2>
-          <h2>{t('p3')}</h2>
+          <BlurFade delay={0.25}>
+            <h2>{t('p1')}</h2>
+          </BlurFade>
+          <BlurFade delay={0.5}>
+            <h2>{t('p2')}</h2>
+          </BlurFade>
+          <BlurFade delay={0.75}>
+            <h2>{t('p3')}</h2>
+          </BlurFade>
           <figure>
             <Carousel
               opts={{

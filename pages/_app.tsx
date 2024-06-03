@@ -3,12 +3,20 @@ import type { AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
 import '../styles/globals.css'
+import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
 
-function App({ Component, pageProps }: AppProps) {
+function App(props: AppProps) {
+  const { Component, pageProps, router } = props
+
   useEffect(() => {
     localStorage.removeItem('darkMode')
   }, [])
-  return <Component {...pageProps} />
+
+  return (
+    <GeneralProvider router={router}>
+      <Component {...pageProps} />
+    </GeneralProvider>
+  )
 }
 
 export default appWithTranslation(App)

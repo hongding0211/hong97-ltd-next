@@ -7,5 +7,9 @@
     "doc": "Documents",
     "projects": "Projects",
     "about": "About"
-  }
+  },
+  "error": "Error",
+  "back": "Back",
+  "optional": "Optional",
+  "noBlog": "Nothing here yet..."
 }
