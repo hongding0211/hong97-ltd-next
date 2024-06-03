@@ -1,0 +1,18 @@
+{
+  "contact": "Contact Me",
+  "myProject": "My Projects",
+  "xhs": "Xiaohongshu",
+  "nav": {
+    "blog": "Blog",
+    "doc": "Documents",
+    "projects": "Projects",
+    "about": "About"
+  },
+  "error": "Error",
+  "back": "Back",
+  "optional": "Optional",
+  "noBlog": "Nothing here yet...",
+  "unauthorized": "Login session has expired.",
+  "ratelimited": "Request too frequent, please try again later.",
+  "commonError": "Network exception, please try again later."
+}
