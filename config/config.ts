@@ -17,10 +17,6 @@ export const menuConfig: IMenuItem[] = [
     externalLink: true,
   },
   {
-    key: 'projects',
-    path: '/projects',
-  },
-  {
     key: 'about',
     path: '/about',
   },
@@ -28,18 +24,13 @@ export const menuConfig: IMenuItem[] = [
 
 export const footerConfig: IFooterItem[] = [
   {
+    key: 'collections',
+    title: 'Collections',
+    path: 'https://github.com/hongding0211/collections',
+  },
+  {
     key: 'walkingCalc',
     title: 'Walking Calculator',
     path: 'https://github.com/hongding0211/walkingcalc',
-  },
-  {
-    key: 'sso',
-    title: 'Single Sign On',
-    path: 'https://hong97.ltd/sso/login',
-  },
-  {
-    key: 'wishlist',
-    title: 'Wishlist (Working in Progress)',
-    path: 'https://github.com/hongding0211/wishlist',
   },
 ]

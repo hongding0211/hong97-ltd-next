@@ -155,21 +155,10 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
       <div className="app-layout-content flex flex-col justify-between">
         <div className="p-5">{props.children}</div>
 
-        <footer className="w-full bg-black p-5 text-xs font-light text-neutral-200">
+        <footer className="w-full bg-neutral-50 p-5 text-xs font-light text-neutral-800 dark:bg-black dark:text-neutral-300">
           <div className="flex flex-col gap-x-10 gap-y-3 sm:flex-row">
             <div className="flex flex-col gap-y-1">
               <span className="font-medium">{t('contact')}</span>
-              <span>
-                <FontAwesomeIcon
-                  icon={faEnvelope}
-                  className="mr-1 text-[10px]"
-                />
-                keith.dh@hotmail.com
-              </span>
-              <span>
-                <FontAwesomeIcon icon={faWeixin} className="mr-1 text-[10px]" />
-                1479224723
-              </span>
               <span className="flex items-center">
                 <img
                   src="https://www.xiaohongshu.com/favicon.ico"
@@ -183,6 +172,13 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   {t('xhs')} @弘
                 </a>
               </span>
+              <span>
+                <FontAwesomeIcon
+                  icon={faEnvelope}
+                  className="mr-1 text-[10px]"
+                />
+                keith.dh@hotmail.com
+              </span>
             </div>
 
             <div className="flex flex-col gap-y-1">
@@ -192,7 +188,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   href={i.path}
                   target="_blank"
                   rel="noreferrer"
-                  className="cursor-pointer text-neutral-200 hover:underline"
+                  className="cursor-pointer text-neutral-800 hover:underline dark:text-neutral-300"
                   key={i.key}
                 >
                   {i.title}
@@ -201,9 +197,9 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
             </div>
           </div>
 
-          <div className="my-3 h-[1px] bg-neutral-300" />
+          <div className="my-3 h-[1px] bg-neutral-200 dark:bg-neutral-800" />
 
-          <p>
+          <p className="text-neutral-600 dark:text-neutral-400">
             <span>Copyright © {new Date().getFullYear()} hong97.ltd. </span>
             <a
               href="https://beian.miit.gov.cn/#/Integrated/index"

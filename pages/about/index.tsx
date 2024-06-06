@@ -7,8 +7,16 @@ import {
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel'
+import Autoplay from 'embla-carousel-autoplay'
 
 import AppLayout from '../../components/app-layout/AppLayout'
+
+const CatsImgs = [
+  '/img/cat0.jpeg',
+  '/img/cat1.jpeg',
+  '/img/cat2.jpeg',
+  '/img/cat3.jpeg',
+]
 
 function About() {
   const { t } = useTranslation('about')
@@ -37,9 +45,32 @@ function About() {
           <p>{t('p1')}</p>
           <p>{t('p2')}</p>
           <figure>
-            <img src="/img/img_8908.jpeg" alt="cats" className="rounded" />
+            <Carousel
+              opts={{
+                loop: true,
+              }}
+              plugins={[
+                Autoplay({
+                  delay: 3000,
+                }),
+              ]}
+            >
+              <CarouselContent>
+                {CatsImgs.map((src, index) => (
+                  <CarouselItem key={src}>
+                    <img
+                      src={src}
+                      alt={`cat-${index}`}
+                      className="!my-0 rounded"
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
             <figcaption>{t('c1')}</figcaption>
           </figure>
+          <h3>{'🛠️ ' + t('h2')}</h3>
+          <p>{t('p3')}</p>
         </article>
       </AppLayout>
     </>

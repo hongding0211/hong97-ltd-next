@@ -1,10 +1,12 @@
 {
   "title": "About Me",
-  "p1": "🏳️‍🌈 Front-End developer. Enjoy design and coding.",
+  "p1": "🏳️‍🌈 Front-End developer @ Xiaohongshu. Enjoy design and coding.",
   "p2": "Own two cats, a Model 3 without brakes.",
-  "c1": "LinMeihua(Left), a bitchy American Shorthair. LinMiaoka(Right), a domestic short-haired cat.",
+  "p3": "React Native, React, Vue, Node.js, TypeScript",
+  "c1": "LinMeihua, a bitchy American Shorthair. LinMiaoka, a domestic short-haired cat.",
   "email": "Email",
   "wechat": "WeChat",
   "h1": "About This Website",
+  "h2": "Tech Stack",
   "design": "Design"
 }
