@@ -8,7 +8,7 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-  background-color: white;
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
 }
 
 a {
@@ -16,10 +16,10 @@ a {
   text-decoration: none;
 }
 
-.dark body {
-  background-color: black;
+.light, html {
+  background-color: white
 }
 
-body {
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+.dark,html {
+  background-color: black;
 }

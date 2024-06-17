@@ -1,4 +1,3 @@
-import { faWeixin } from '@fortawesome/free-brands-svg-icons'
 import {
   faEllipsisVertical,
   faEnvelope,
