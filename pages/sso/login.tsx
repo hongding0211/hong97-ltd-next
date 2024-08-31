@@ -18,6 +18,7 @@ import { Label } from '@radix-ui/react-label'
 import { useLoginStore } from './store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
+import { ContextToggle } from '../../components/common/ContextToggle'
 
 const InputWithLabel: React.FC<
   InputProps & {
@@ -88,7 +89,7 @@ function Login() {
               <InputWithLabel
                 value={account}
                 onInput={(e) => setAccount(e.currentTarget.value)}
-                label={t('email')}
+                label={t('account')}
                 placeholder={t('email') + ''}
               />
               <InputWithLabel
@@ -100,14 +101,17 @@ function Login() {
               />
             </CardContent>
             <CardFooter>
-              <div className="flex-col">
+              <div className="w-full flex-col">
                 <div className="mb-4 flex gap-2">
                   <Button onClick={login}>{t('login')}</Button>
                   <Button variant="ghost">{t('signup')}</Button>
                 </div>
-                <CardDescription>
-                  Copyright © {new Date().getFullYear()} hong97.ltd
-                </CardDescription>
+                <div className="mt-6 flex w-full items-center justify-between">
+                  <CardDescription className="text-xs">
+                    Copyright © {new Date().getFullYear()} hong97.ltd
+                  </CardDescription>
+                  <ContextToggle />
+                </div>
               </div>
             </CardFooter>
           </Card>

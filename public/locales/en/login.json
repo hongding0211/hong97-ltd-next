@@ -1,6 +1,7 @@
 {
   "login": "Login",
   "signup": "Sign Up",
+  "account": "Account",
   "email": "Email / Phone",
   "password": "Password",
   "commonLoginFailed": "Login failed",
