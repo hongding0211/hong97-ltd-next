@@ -8,5 +8,7 @@
     "projects": "Projects",
     "about": "About"
   },
-  "error": "Error"
+  "error": "Error",
+  "back": "Back",
+  "optional": "Optional"
 }

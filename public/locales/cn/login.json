@@ -3,6 +3,7 @@
   "signup": "注册",
   "account": "账号",
   "email": "邮箱 / 手机",
+  "avatar": "头像",
   "password": "密码",
   "commonLoginFailed": "登录失败",
   "accountNotExist": "账号不存在",

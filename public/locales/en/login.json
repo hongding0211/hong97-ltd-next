@@ -3,6 +3,7 @@
   "signup": "Sign Up",
   "account": "Account",
   "email": "Email / Phone",
+  "avatar": "Avatar",
   "password": "Password",
   "commonLoginFailed": "Login failed",
   "accountNotExist": "Account does not exist",

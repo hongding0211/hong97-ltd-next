@@ -12,7 +12,10 @@ const ERR_MAP = {
 export type LoginStoreState = {
   account: string
   password: string
+  registerAccount: string
+  registerPassword: string
   msg: string
+  tab: 'login' | 'signup'
 }
 
 export type LoginStoreAction = {
@@ -20,12 +23,16 @@ export type LoginStoreAction = {
   setPassword: (password: string) => void
   login: () => void
   cleanUp: () => void
+  changeTab: (tab: 'login' | 'signup') => void
 }
 
 const initialState: LoginStoreState = {
   msg: '',
   account: '',
   password: '',
+  registerAccount: '',
+  registerPassword: '',
+  tab: 'login',
 }
 
 export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
@@ -99,6 +106,7 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           })
       },
       cleanUp: () => set(initialState),
+      changeTab: (tab: 'login' | 'signup') => set({ tab }),
     }
   },
 )
