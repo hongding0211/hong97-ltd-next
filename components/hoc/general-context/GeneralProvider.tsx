@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { DarkModeContext } from './DarkModeContext'
+import { GeneralContext } from './GeneralContext'
 import useDarkMode from 'use-dark-mode'
 
-interface IDarkModeProviderProps {
+interface IGeneralProviderProps {
   children: React.ReactNode
 }
 
-export const DarkModeProvider: React.FC<IDarkModeProviderProps> = (props) => {
+export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
   const { children } = props
 
   const [darkModeEnabled, setDarkModeEnabled] = useState(false)
@@ -23,10 +23,10 @@ export const DarkModeProvider: React.FC<IDarkModeProviderProps> = (props) => {
 
   const value = useMemo(
     () => ({
-      currentValue: darkModeEnabled,
-      setValue: setDarkModeEnabled,
+      darkModeEnabled,
+      setDarkModeEnabled,
     }),
-    [],
+    [darkModeEnabled],
   )
 
   useEffect(() => {
@@ -35,11 +35,9 @@ export const DarkModeProvider: React.FC<IDarkModeProviderProps> = (props) => {
     } else {
       darkMode.disable()
     }
-  }, [darkModeEnabled])
+  }, [darkModeEnabled, darkMode])
 
   return (
-    <DarkModeContext.Provider value={value}>
-      {children}
-    </DarkModeContext.Provider>
+    <GeneralContext.Provider value={value}>{children}</GeneralContext.Provider>
   )
 }

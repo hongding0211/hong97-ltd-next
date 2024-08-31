@@ -1,3 +1,6 @@
 {
-  "title": "Login in"
+  "login": "Login",
+  "signup": "Sign Up",
+  "email": "Email / Phone",
+  "password": "Password"
 }

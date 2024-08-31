@@ -1,3 +1,6 @@
 {
-  "title": "Login in"
+  "login": "登录",
+  "signup": "注册",
+  "email": "邮箱 / 手机",
+  "password": "密码"
 }
