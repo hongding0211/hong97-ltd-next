@@ -24,6 +24,7 @@ export type LoginStoreAction = {
   login: () => void
   cleanUp: () => void
   changeTab: (tab: 'login' | 'signup') => void
+  init: (payload?: { redirect?: string }) => void
 }
 
 const initialState: LoginStoreState = {
@@ -104,6 +105,9 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           .finally(() => {
             loading = false
           })
+      },
+      init: (payload) => {
+        const { redirect } = payload || {}
       },
       cleanUp: () => set(initialState),
       changeTab: (tab: 'login' | 'signup') => set({ tab }),

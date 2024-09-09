@@ -24,7 +24,7 @@ export const ContextToggle: React.FC<IContextToggle> = (props) => {
   return (
     <div className="flex gap-x-[8px]">
       <FontAwesomeIcon
-        icon={darkModeEnabled ? faMoon : faSun}
+        icon={!darkModeEnabled ? faMoon : faSun}
         className="h-[16px] w-[16px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={() => setDarkModeEnabled(!darkModeEnabled)}
       />

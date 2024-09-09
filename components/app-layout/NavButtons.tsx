@@ -37,7 +37,7 @@ const NavButtons: React.FC<INavButtons> = (props) => {
         />
       </a>
       <FontAwesomeIcon
-        icon={darkMode ? faSun : faMoon}
+        icon={!darkMode ? faSun : faMoon}
         className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={() => props.onDarkModeChange(!props.darkMode)}
       />

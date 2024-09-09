@@ -19,6 +19,7 @@ import { useLoginStore } from './store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { ContextToggle } from '../../components/common/ContextToggle'
+import { useRouter } from 'next/router'
 
 const InputWithLabel: React.FC<
   InputProps & {
@@ -43,6 +44,11 @@ function Login() {
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
 
+  const router = useRouter()
+  const { query } = router
+
+  console.log(query)
+
   const {
     msg,
     account,
@@ -53,6 +59,7 @@ function Login() {
     cleanUp,
     tab,
     changeTab,
+    init,
   } = useLoginStore((state) => ({
     msg: state.msg,
     account: state.account,
@@ -63,6 +70,7 @@ function Login() {
     cleanUp: state.cleanUp,
     tab: state.tab,
     changeTab: state.changeTab,
+    init: state.init,
   }))
 
   const loginComponent = useMemo(
@@ -116,8 +124,9 @@ function Login() {
   )
 
   useEffect(() => {
+    init()
     return cleanUp
-  }, [cleanUp])
+  }, [init, cleanUp])
 
   return (
     <>
