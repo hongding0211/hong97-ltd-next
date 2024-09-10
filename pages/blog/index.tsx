@@ -1,6 +1,6 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import AppLayout from '../../components/app-layout/AppLayout'
-import { BlogConfig, IBlogConfig } from './config'
+import { BlogConfig, IBlogConfig } from '../../config/blog'
 import dayjs from 'dayjs'
 import { useRouter } from 'next/router'
 import { useTranslation } from 'react-i18next'
