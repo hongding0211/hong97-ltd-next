@@ -1,0 +1,25 @@
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
+import { BlogContainer } from '../../../components/blog/BlogContainer'
+import { BlogConfig } from '../config.ts'
+
+```javascript
+console.log()
+```
+
+# p1
+## p2
+### p3
+
+export default BlogContainer
+
+export async function getServerSideProps(context) {
+  const { locale, query } = context
+  const { key } = query || {}
+  const title = BlogConfig.find(item => item.key === key)?.title || ''
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ['common'])),
+      title,
+    },
+  }
+}

@@ -7,5 +7,9 @@
     "doc": "技术文档",
     "projects": "项目",
     "about": "关于我"
-  }
+  },
+  "error": "错误",
+  "back": "返回",
+  "optional": "可选",
+  "noBlog": "暂无内容..."
 }
