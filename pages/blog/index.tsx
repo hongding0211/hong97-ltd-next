@@ -22,7 +22,7 @@ export default function Blog(props: BlogProps) {
 
   return (
     <AppLayout>
-      <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 mt-12 sm:mx-auto sm:mb-12">
+      <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12 sm:mt-0 md:mt-4">
         <h1>{t('nav.blog')}</h1>
         {blogs.length === 0 && <figure>{t('noBlog')}</figure>}
         {blogs.map((blog) => (
