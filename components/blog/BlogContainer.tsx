@@ -1,46 +1,36 @@
 import React from 'react'
 import AppLayout from '../app-layout/AppLayout'
 import MdxLayout from '../mdx-layout'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { useTranslation } from 'react-i18next'
+// import { useTranslation } from 'react-i18next'
+import { IBlogConfig } from '../../config/blog'
+import dayjs from 'dayjs'
 
 interface IBlogContainer {
   children: React.ReactNode
-  title: string
+  meta: IBlogConfig
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, title } = props
+  const { children, meta } = props
 
-  const { t, i18n } = useTranslation('common')
-  const currentLang = i18n.language
+  // const { t, i18n } = useTranslation('common')
+  // const currentLang = i18n.language
 
   return (
     <AppLayout>
-      <Breadcrumb className="my-2">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/${currentLang}/blog`}>
-              {t('nav.blog')}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{title}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <MdxLayout>
-        <h1>{title}</h1>
-        {children}
-      </MdxLayout>
+      <div className="m-auto max-w-[1000px]">
+        <MdxLayout>
+          <h2 className="!mt-12 mb-2">{meta.title}</h2>
+          <figcaption className="m-0 !mt-1 text-sm">
+            {dayjs(meta.time).format('MMM DD, YYYY')}
+            {meta.keywords?.length && <span> | </span>}
+            {meta.keywords?.map((k, i) => (
+              <span key={k}>{` #${k}`}</span>
+            ))}
+          </figcaption>
+          {children}
+        </MdxLayout>
+      </div>
     </AppLayout>
   )
 }

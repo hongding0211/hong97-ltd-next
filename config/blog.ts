@@ -7,11 +7,11 @@ export interface IBlogConfig {
 }
 
 export const BlogConfig: IBlogConfig[] = [
-  // {
-  //   key: 'hello',
-  //   title: 'hello',
-  //   path: 'hello',
-  //   keywords: ['hello', 'world'],
-  //   time: 1725984618000,
-  // },
+  {
+    key: 'very-first-blog',
+    title: 'First Blog',
+    path: 'very-first-blog',
+    keywords: ['chore'],
+    time: 1727886690000,
+  },
 ]

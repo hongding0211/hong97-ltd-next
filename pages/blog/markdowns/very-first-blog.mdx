@@ -2,24 +2,18 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
 import { BlogConfig } from '../../../config/blog'
 
-```javascript
-console.log()
-```
-
-# p1
-## p2
-### p3
+就是想测试一下 MDX 的 SSR 渲染。
 
 export default BlogContainer
 
 export async function getServerSideProps(context) {
   const { locale, query } = context
   const { key } = query || {}
-  const title = BlogConfig.find(item => item.key === key)?.title || ''
+  const meta = BlogConfig.find(item => item.key === key)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),
-      title,
+      meta,
     },
   }
 }
