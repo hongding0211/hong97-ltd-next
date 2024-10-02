@@ -90,8 +90,8 @@ function About() {
             </Carousel>
             <figcaption>{t('c1')}</figcaption>
           </figure>
-          <h2>{'🛠️ ' + t('h2')}</h2>
-          <p>{t('p4')}</p>
+          {/* <h2>{t('h2')}</h2>
+          <p>{t('p4')}</p> */}
         </article>
       </AppLayout>
     </>

@@ -20,7 +20,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     <AppLayout>
       <div className="m-auto max-w-[1000px]">
         <MdxLayout>
-          <h2 className="!mt-12 mb-2">{meta.title}</h2>
+          <h2 className="mb-2">{meta.title}</h2>
           <figcaption className="m-0 !mt-1 text-sm">
             {dayjs(meta.time).format('MMM DD, YYYY')}
             {meta.keywords?.length && <span> | </span>}
