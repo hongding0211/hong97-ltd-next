@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import React, { useEffect, useId, useMemo } from 'react'
+import React, { useCallback, useEffect, useId, useMemo } from 'react'
 import {
   Card,
   CardContent,
@@ -10,16 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { GeneralProvider } from '../../components/hoc/general-context/GeneralProvider'
 import { Button } from '@/components/ui/button'
 import Logo from '../../components/common/Logo'
 import { Input, InputProps } from '@/components/ui/input'
 import { Label } from '@radix-ui/react-label'
 import { useLoginStore } from './store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { ContextToggle } from '../../components/common/ContextToggle'
-import { useRouter } from 'next/router'
 
 const InputWithLabel: React.FC<
   InputProps & {
@@ -44,11 +42,6 @@ function Login() {
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
 
-  const router = useRouter()
-  const { query } = router
-
-  console.log(query)
-
   const {
     msg,
     account,
@@ -60,6 +53,8 @@ function Login() {
     tab,
     changeTab,
     init,
+    loading,
+    signUp,
   } = useLoginStore((state) => ({
     msg: state.msg,
     account: state.account,
@@ -71,7 +66,24 @@ function Login() {
     tab: state.tab,
     changeTab: state.changeTab,
     init: state.init,
+    loading: state.loading,
+    signUp: state.signUp,
   }))
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== 'Enter') {
+        return
+      }
+      if (tab === 'login') {
+        login()
+      }
+      if (tab === 'signup') {
+        signUp()
+      }
+    },
+    [tab, login, signUp],
+  )
 
   const loginComponent = useMemo(
     () => (
@@ -88,30 +100,56 @@ function Login() {
           label={t('password')}
           type="password"
           placeholder={t('password') + ''}
+          onKeyDown={handleKeyDown}
         />
         <div className="mt-2 flex gap-2">
-          <Button size="sm" onClick={login}>
+          <Button size="sm" onClick={login} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('login')}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => changeTab('signup')}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => changeTab('signup')}
+            disabled={loading}
+          >
             {t('signup')}
           </Button>
         </div>
       </>
     ),
-    [account, password, setAccount, setPassword, t, login, changeTab],
+    [
+      account,
+      password,
+      setAccount,
+      setPassword,
+      t,
+      login,
+      changeTab,
+      handleKeyDown,
+      loading,
+    ],
   )
 
   const signUpComponent = useMemo(
     () => (
       <>
-        <InputWithLabel label={t('account')} placeholder={t('email') + ''} />
         <InputWithLabel
+          value={account}
+          onInput={(e) => setAccount(e.currentTarget.value)}
+          label={t('account')}
+          placeholder={t('email') + ''}
+        />
+        <InputWithLabel
+          value={password}
+          onInput={(e) => setPassword(e.currentTarget.value)}
+          type="password"
           label={t('password')}
           placeholder={t('password') + ''}
+          onKeyDown={handleKeyDown}
         />
         <div className="mt-2 flex gap-2">
-          <Button size="sm" onClick={() => changeTab('signup')}>
+          <Button size="sm" onClick={signUp}>
             {t('signup')}
           </Button>
           <Button size="sm" onClick={() => changeTab('login')} variant="ghost">
@@ -120,7 +158,17 @@ function Login() {
         </div>
       </>
     ),
-    [changeTab, t, tCommon],
+    [
+      changeTab,
+      t,
+      tCommon,
+      account,
+      password,
+      handleKeyDown,
+      setAccount,
+      setPassword,
+      signUp,
+    ],
   )
 
   useEffect(() => {
@@ -143,42 +191,40 @@ function Login() {
           content="#000"
         />
       </Head>
-      <GeneralProvider>
-        <div className="flex h-dvh w-svw items-center justify-center">
-          <Card className="relative w-[75%] min-w-[300px] max-w-[400px]">
-            <div className="absolute right-5 top-5">
-              <Logo
-                width={16}
-                enableLink={false}
-                className="fill-neutral-800 dark:fill-neutral-100"
-              />
-            </div>
-            <CardHeader>
-              <CardTitle>{t(tab)}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {!!msg && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>{tCommon('error')}</AlertTitle>
-                  <AlertDescription>{t(msg)}</AlertDescription>
-                </Alert>
-              )}
-              {tab === 'login' ? loginComponent : signUpComponent}
-            </CardContent>
-            <CardFooter>
-              <div className="w-full flex-col">
-                <div className="flex w-full items-center justify-between">
-                  <CardDescription className="text-xs">
-                    Copyright © {new Date().getFullYear()} hong97.ltd
-                  </CardDescription>
-                  <ContextToggle />
-                </div>
+      <div className="flex h-dvh w-svw items-center justify-center">
+        <Card className="relative w-[75%] min-w-[300px] max-w-[400px]">
+          <div className="absolute right-5 top-5">
+            <Logo
+              width={16}
+              enableLink={false}
+              className="fill-neutral-800 dark:fill-neutral-100"
+            />
+          </div>
+          <CardHeader>
+            <CardTitle>{t(tab)}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {!!msg && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>{tCommon('error')}</AlertTitle>
+                <AlertDescription>{t(msg)}</AlertDescription>
+              </Alert>
+            )}
+            {tab === 'login' ? loginComponent : signUpComponent}
+          </CardContent>
+          <CardFooter>
+            <div className="w-full flex-col">
+              <div className="flex w-full items-center justify-between">
+                <CardDescription className="text-xs">
+                  Copyright © {new Date().getFullYear()} hong97.ltd
+                </CardDescription>
+                <ContextToggle />
               </div>
-            </CardFooter>
-          </Card>
-        </div>
-      </GeneralProvider>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
     </>
   )
 }

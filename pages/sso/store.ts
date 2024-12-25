@@ -16,12 +16,14 @@ export type LoginStoreState = {
   registerPassword: string
   msg: string
   tab: 'login' | 'signup'
+  loading: boolean
 }
 
 export type LoginStoreAction = {
   setAccount: (account: string) => void
   setPassword: (password: string) => void
   login: () => void
+  signUp: () => void
   cleanUp: () => void
   changeTab: (tab: 'login' | 'signup') => void
   init: (payload?: { redirect?: string }) => void
@@ -34,11 +36,37 @@ const initialState: LoginStoreState = {
   registerAccount: '',
   registerPassword: '',
   tab: 'login',
+  loading: false,
 }
 
 export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
   (set, get) => {
     let loading = false
+
+    const validate = () => {
+      const { account, password } = get()
+
+      const phone = /^\d{11}$/.test(account) ? account : undefined
+      const email = /^\S+@\S+.\w$/.test(account) ? account : undefined
+
+      if (!phone && !email) {
+        set(() => ({
+          msg: 'invalidPhoneOrEmail',
+        }))
+        return false
+      }
+      if (!password) {
+        set(() => ({
+          msg: 'emptyPassword',
+        }))
+        return false
+      }
+      return {
+        phone,
+        email,
+        password,
+      }
+    }
 
     return {
       ...initialState,
@@ -49,29 +77,22 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           return
         }
 
-        const { account, password } = get()
+        const res = validate()
 
-        const phone = /^\d{11}$/.test(account) ? account : undefined
-        const email = /^\S+@\S+.\w$/.test(account) ? account : undefined
-
-        if (!phone && !email) {
-          set(() => ({
-            msg: 'invalidPhoneOrEmail',
-          }))
+        if (!res) {
           return
         }
-        if (!password) {
-          set(() => ({
-            msg: 'emptyPassword',
-          }))
-          return
-        }
+
+        const { phone, email, password } = res
 
         const hashedPassword = shajs('sha256').update(password).digest('hex')
 
         const req = new Requester<IPostApiLogin>(APIS.POST_LOGIN)
 
         loading = true
+        set(() => ({
+          loading: true,
+        }))
 
         req
           .post({
@@ -104,13 +125,28 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           })
           .finally(() => {
             loading = false
+            set(() => ({
+              loading: false,
+            }))
           })
       },
       init: (payload) => {
         const { redirect } = payload || {}
       },
       cleanUp: () => set(initialState),
-      changeTab: (tab: 'login' | 'signup') => set({ tab }),
+      changeTab: (tab: 'login' | 'signup') =>
+        set({
+          tab,
+          password: '',
+          msg: undefined,
+        }),
+      signUp: () => {
+        const res = validate()
+        if (!res) {
+          return
+        }
+        const { phone, email, password } = res
+      },
     }
   },
 )
