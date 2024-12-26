@@ -1,0 +1,96 @@
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
+import { BlogContainer } from '../../../components/blog/BlogContainer'
+import { BlogConfig } from '../../../config/blog'
+import { TLDR, Imgs0, Imgs1, Imgs2, Imgs3, Imgs4, Imgs5, Imgs6, Imgs7, Imgs8, Imgs9, End } from '../components/2024-summary'
+
+### 👀 这一年，
+
+<TLDR />
+
+---
+
+#### 1. Travel Around
+
+02.11 生日那天，美名其曰，给自己一个生日礼物。入手了心心念念的全画幅相机：Nikon Z6 II。
+
+<Imgs0 />
+
+春节，耗时 10+ 小时，800+ 公里，带着美花一路南下，开到了福州。在后备箱准备了猫砂、猫粮，可惜她胆子太小了，一路上几乎不吃不喝。
+
+<Imgs1 />
+
+顺路去了一次平潭，其实不是第一次去了，本来想的是带着美花“见见世面”的，没想到差点没把她吓死，还好牵着绳子，没有跑到海里去。
+
+<Imgs2 />
+
+有意思的是，这一个月 Tesla 给所有国内车主都赠送了一个月的 EAP 权益。亲测下来，除了打灯变道比较实用以外，其他的...不过信仰怎么能少？后面还是持续订阅了 6 个月。
+
+在福州，住在一个农家民宿里面，有烟花，有小鸡，还有天然温泉。晚上开起山路来，打灯会车，还是有点小刺激的。
+
+<Imgs3 />
+
+端午节，带着狗子去了桐庐。空气还是很清新的，有点小雨，不过！带狗自驾体验极差我不得不说。
+
+<Imgs4 />
+
+返程下坡，我也开出了负的能耗，-141Wh/km！
+
+<Imgs5 />
+
+十一，去了一次普吉岛，不过没啥好说的，也不是第一次去了，略。
+
+#### 2. Begin Again
+
+要说，2024 最大的变化，应该是换了工作，也换了个城市。
+
+08.02，是小红书的 12 周年，也是我毕业入职的第一份工作的 1 周年。这一天公司的 82 晚会，主题就叫 「Begin Again」。
+
+<Imgs6 />
+
+九月，在经历了一个月的恐怖面试（日均 2.5 场）之后，拿到了字节、阿里、百度、Shine 等 5 个 Offer。
+
+09.13 入职字节，咱也是 ByteDancer 了！
+
+<Imgs7 />
+
+从读书开始，到第一份工作，一直都在上海。第一次换了一个新的城市 —— 杭州，虽然也没太远。
+
+不过，该说不说，杭州的租房便宜很多（也可能是余杭太郊区）。不到 4,000，租到了一个大 House。
+
+赶上了国补，给自己整了一个 75 寸的大电视，也配上了充电桩，我的电车体验终于闭环了！
+
+<Imgs8 />
+
+#### 3. Some Memos
+
+旅行，工作之外，感觉这一年还是有一些事情可以记录一下。
+
+认识了杭州的好多技术小伙伴们，很有意思，很好玩。
+
+<Imgs9 />
+
+大屏幕上的那位帅哥，也写了一份年度总结，[可以点开](https://luckycc.cc/thoughts/12_2024-recap/)。
+
+年初的时候，心血来潮，斥 2,000 巨资买了一只哈士奇。朋友都说我疯了，确实是冲动消费，养了半年后发现自己真的没有精力去照顾她，给她找了一个新的主人。
+
+不管是在上一家公司，还是新的公司，都认识了好多新的朋友，大家都很 Nice！
+
+还有吗？好像没了……
+
+那就，祝新的一年，一切顺利！
+
+<End />
+
+export default BlogContainer
+
+export async function getServerSideProps(context) {
+  const { locale, query } = context
+  const { key } = query || {}
+  const meta = BlogConfig.find(item => item.key === key)
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ['common'])),
+      meta,
+    },
+  }
+}
