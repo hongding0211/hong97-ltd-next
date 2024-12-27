@@ -8,4 +8,10 @@ export function middleware(request: NextRequest) {
     url.pathname = '/about'
     return NextResponse.redirect(url)
   }
+
+  if (url.pathname === '/2024') {
+    url.pathname = '/blog/markdowns/2024-summary'
+    url.search = '?key=2024-summary'
+    return NextResponse.redirect(url)
+  }
 }

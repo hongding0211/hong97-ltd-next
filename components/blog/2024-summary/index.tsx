@@ -222,7 +222,7 @@ export const End = () => {
             const animationEnd = Date.now() + duration
             const defaults = {
               startVelocity: 30,
-              spread: 260,
+              spread: 100,
               ticks: 60,
               zIndex: 0,
             }
