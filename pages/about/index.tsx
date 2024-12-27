@@ -13,6 +13,8 @@ import AppLayout from '../../components/app-layout/AppLayout'
 import AnimatedGradientText from '../../components/magicui/animated-gradient-text'
 import BlurFade from '@/components/magicui/blur-fade'
 import { cn } from '@/lib/utils'
+import { ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/router'
 
 const CatsImgs = [
   '/img/cat0.jpeg',
@@ -23,6 +25,12 @@ const CatsImgs = [
 
 function About() {
   const { t } = useTranslation('about')
+
+  const router = useRouter()
+
+  const handleClickBanner = () => {
+    router.push('/blog/markdowns/2024-summary?key=2024-summary')
+  }
 
   return (
     <>
@@ -39,6 +47,13 @@ function About() {
           content="#000"
         />
       </Head>
+      <div
+        onClick={handleClickBanner}
+        className="flex w-full items-center justify-center gap-x-1 bg-blue-600 py-[10px] text-sm font-medium text-white"
+      >
+        👀 {t('banner')}
+        <ArrowRight className="size-4 transition-transform duration-300 ease-in-out hover:translate-x-0.5" />
+      </div>
       <AppLayout>
         <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12">
           <img src="/img/cover.jpeg" alt="me" className="rounded" />

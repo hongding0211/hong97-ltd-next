@@ -1,7 +1,7 @@
-import Confetti, { ConfettiRef } from '@/components/ui/confetti'
 import NumberTicker from '@/components/ui/number-ticker'
 import { useEffect, useRef } from 'react'
 import { Images } from '../common/images'
+import confetti from 'canvas-confetti'
 
 export const TLDR = () => {
   return (
@@ -197,7 +197,6 @@ export const Imgs9 = () => {
 }
 
 export const End = () => {
-  const confettiRef = useRef<ConfettiRef>(null)
   const h3Ref = useRef<HTMLHeadingElement>(null)
   const fired = useRef(false)
 
@@ -205,13 +204,47 @@ export const End = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && !fired.current) {
-            confettiRef.current?.fire()
-            fired.current = true
+          if (
+            entry.isIntersecting &&
+            entry.intersectionRatio === 1 &&
+            !fired.current
+          ) {
+            // fired.current = true;
+            const duration = 5 * 1000
+            const animationEnd = Date.now() + duration
+            const defaults = {
+              startVelocity: 30,
+              spread: 360,
+              ticks: 60,
+              zIndex: 0,
+            }
+
+            const randomInRange = (min: number, max: number) =>
+              Math.random() * (max - min) + min
+
+            const interval = window.setInterval(() => {
+              const timeLeft = animationEnd - Date.now()
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval)
+              }
+
+              const particleCount = 50 * (timeLeft / duration)
+              confetti({
+                ...defaults,
+                particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+              })
+              confetti({
+                ...defaults,
+                particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+              })
+            }, 250)
           }
         })
       },
-      { threshold: 0.3 }, // Adjust the threshold as needed
+      { threshold: 1.0 }, // 1.0 表示元素完全可见时触发
     )
 
     if (h3Ref.current) {
@@ -227,7 +260,6 @@ export const End = () => {
         position: 'relative',
       }}
     >
-      <Confetti ref={confettiRef} className="absolute left-0 z-0 size-full" />
       <h3 ref={h3Ref} style={{ paddingTop: 50 }}>
         Thanks!
       </h3>
