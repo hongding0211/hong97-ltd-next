@@ -23,6 +23,14 @@ export const TLDR = () => {
         张照片和视频，占所有照片的 12.87%。
       </h5>
       <h5>
+        和 ChatGPT 🔮 深入交流了
+        <NumberTicker
+          className="text-fuchsia-500 dark:text-fuchsia-500"
+          value={150}
+        />{' '}
+        次，平均互动时长约 20 - 30 分钟。
+      </h5>
+      <h5>
         靠着双脚，一共 🗼 到访了{' '}
         <span className="text-rose-500 dark:text-rose-500">9</span> 座城市。
       </h5>
@@ -209,12 +217,12 @@ export const End = () => {
             entry.intersectionRatio === 1 &&
             !fired.current
           ) {
-            // fired.current = true;
+            fired.current = true
             const duration = 5 * 1000
             const animationEnd = Date.now() + duration
             const defaults = {
               startVelocity: 30,
-              spread: 360,
+              spread: 260,
               ticks: 60,
               zIndex: 0,
             }
