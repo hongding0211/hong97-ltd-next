@@ -19,6 +19,16 @@ export default function Home() {
           media="(prefers-color-scheme: dark)"
           content="#000"
         />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          media="(prefers-color-scheme: light)"
+          content="#fff"
+        />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          media="(prefers-color-scheme: dark)"
+          content="#000"
+        />
       </Head>
       <AppLayout />
     </>
