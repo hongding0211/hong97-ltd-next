@@ -36,16 +36,6 @@ function About() {
     <>
       <Head>
         <title>{t('title')}</title>
-        <meta
-          name="theme-color"
-          media="(prefers-color-scheme: light)"
-          content="#fff"
-        />
-        <meta
-          name="theme-color"
-          media="(prefers-color-scheme: dark)"
-          content="#000"
-        />
       </Head>
       <div
         onClick={handleClickBanner}
