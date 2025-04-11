@@ -9,6 +9,12 @@ import { useTranslation } from 'next-i18next'
 import Link from 'next/link'
 import React, { useContext, useEffect, useState } from 'react'
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { useAppStore } from '@stores/general'
+import { getCompressImage } from '@utils/oss'
+import { truncate } from '@utils/truncate'
+import { UserRound } from 'lucide-react'
 import { footerConfig, menuConfig } from '../../config'
 import Divider from '../common/Divider'
 import Logo from '../common/Logo'
@@ -22,6 +28,10 @@ interface IAppLayout {
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
 
+  const { user } = useAppStore((state) => ({
+    user: state.user,
+  }))
+
   const [menuContainerStyle, menuContainerApi] = useSpring(() => {})
   const [lineStyle, lineApi] = useSpring(() => {})
   const [menuItemStyle, menuItemApi] = useSpring(() => {})
@@ -31,6 +41,10 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   const { darkModeEnabled, setDarkModeEnabled, router } = generalContext
 
   const currentPath = router?.pathname || ''
+
+  const handleClickAvatar = () => {
+    router?.push('/sso/profile')
+  }
 
   useEffect(() => {
     function resize() {
@@ -121,10 +135,54 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
             ))}
           </div>
           <div className="mx-[30px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
-          <NavButtons
-            darkMode={darkModeEnabled}
-            onDarkModeChange={handleChangeDarkMode}
-          />
+          {user ? (
+            <>
+              <div
+                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md p-1.5"
+                onClick={handleClickAvatar}
+              >
+                <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
+                  <AvatarImage
+                    src={getCompressImage(user.profile.avatar ?? '', 50)}
+                  />
+                  <AvatarFallback>{user.profile.name}</AvatarFallback>
+                </Avatar>
+                <span
+                  className={`ml-2 text-sm ${
+                    currentPath.startsWith('/sso/profile')
+                      ? 'text-neutral-900 dark:text-neutral-100'
+                      : 'text-neutral-500 dark:text-neutral-400'
+                  } relative top-[-1px]`}
+                >
+                  {truncate(user.profile.name)}
+                </span>
+              </div>
+              <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-[-25px] mr-[-10px] text-neutral-600 dark:text-neutral-400"
+                onClick={() => {
+                  window.location.href = `/sso/login?redirect=${encodeURIComponent(
+                    window.location.href,
+                  )}`
+                }}
+              >
+                <UserRound className="w-4 h-4 mr-2" />
+                {t('login')}
+              </Button>
+              <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
+            </>
+          )}
+          <div className="relative top-[2px]">
+            <NavButtons
+              darkMode={darkModeEnabled}
+              onDarkModeChange={handleChangeDarkMode}
+            />
+          </div>
         </div>
       </nav>
       {showMenu && (
@@ -162,10 +220,51 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 </animated.div>
               </div>
             ))}
+            {!user && (
+              <>
+                <Link
+                  href={`/sso/login?redirect=${encodeURIComponent(
+                    window.location.href,
+                  )}`}
+                  className="relative my-4 block cursor-pointer text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+                >
+                  {t('login')}
+                </Link>
+                <animated.div style={{ ...lineStyle }}>
+                  <Divider />
+                </animated.div>
+              </>
+            )}
             <animated.div
               style={{ ...menuItemStyle }}
-              className="flex w-full justify-end pt-5"
+              className={`flex w-full items-center pt-5 ${
+                user ? 'justify-between' : 'justify-end'
+              }`}
             >
+              {user && (
+                <div
+                  className="flex items-center relative left-[-4px] top-[-4px]"
+                  onClick={handleClickAvatar}
+                >
+                  <div
+                    className={`${
+                      currentPath.startsWith('/sso/profile')
+                        ? 'text-neutral-900 dark:text-neutral-100'
+                        : 'text-neutral-500 dark:text-neutral-400'
+                    } flex position items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md p-1.5`}
+                  >
+                    <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
+                      <AvatarImage
+                        src={getCompressImage(user.profile.avatar ?? '', 50)}
+                      />
+                      <AvatarFallback>{user.profile.name}</AvatarFallback>
+                    </Avatar>
+                    <span className="ml-2 text-sm relative top-[-1px]">
+                      {truncate(user.profile.name)}
+                    </span>
+                  </div>
+                </div>
+              )}
               <NavButtons
                 darkMode={darkModeEnabled}
                 onDarkModeChange={handleChangeDarkMode}

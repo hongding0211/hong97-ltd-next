@@ -36,6 +36,7 @@
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.13",
     "mongoose": "^8.13.1",
+    "nestjs-i18n": "^10.5.1",
     "node-rsa": "^1.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

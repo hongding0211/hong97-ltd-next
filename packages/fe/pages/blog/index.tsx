@@ -46,7 +46,7 @@ export default function Blog(props: BlogProps) {
 export async function getStaticProps({ locale }: any) {
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common'])),
+      ...(await serverSideTranslations(locale, ['common', 'toast'])),
       blogs: BlogConfig,
     },
   }

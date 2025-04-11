@@ -14,9 +14,15 @@ export class RequestUploadDto {
 
   @IsBoolean()
   @IsOptional()
-  compress?: string
+  compress?: boolean
 
   @IsNumber()
   @IsOptional()
   quality?: number
+}
+
+export class RequestUploadResponseDto {
+  url: string
+  filePath: string
+  fileName: string
 }

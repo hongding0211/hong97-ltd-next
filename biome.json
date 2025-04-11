@@ -34,7 +34,8 @@
       "node_modules/**",
       "test/**",
       "**/*.spec.ts",
-      "**/*.e2e-spec.ts"
+      "**/*.e2e-spec.ts",
+      "packages/server/src/i18n/types.d.ts"
     ]
   },
   "formatter": {

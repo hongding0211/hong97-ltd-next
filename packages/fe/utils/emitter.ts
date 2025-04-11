@@ -1,7 +1,11 @@
+import { ExternalToast } from 'sonner'
+
 type Event = {
   toast: {
-    msg: string
-    type?: 'error' | 'success'
+    msg?: string
+    options?: ExternalToast & {
+      type?: 'success' | 'error'
+    }
   }
 }
 

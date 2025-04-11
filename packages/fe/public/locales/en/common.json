@@ -12,7 +12,5 @@
   "back": "Back",
   "optional": "Optional",
   "noBlog": "Nothing here yet...",
-  "unauthorized": "Login session has expired.",
-  "ratelimited": "Request too frequent, please try again later.",
-  "commonError": "Network exception, please try again later."
+  "login": "Login"
 }

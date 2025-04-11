@@ -1,18 +1,24 @@
 import { AuthAPIS } from './auth/types'
+import { OssAPIS } from './oss/types'
+type ExtractFromDto<T> = T extends abstract new (
+  ..._args: any
+) => infer R
+  ? R
+  : never
 
 export type API<P = unknown, B = unknown, R = unknown> = {
   request: {
-    params?: P
-    body?: B
+    params?: ExtractFromDto<P>
+    body?: ExtractFromDto<B>
   }
-  responseData: R
+  responseData: ExtractFromDto<R>
 }
 
-export type RequesterResponse<K extends keyof APIs> = {
+export type HttpResponse<K extends keyof APIs> = {
   isSuccess: boolean
   data: APIs[K]['responseData']
   msg?: string
   errCode?: number
 }
 
-export type APIs = AuthAPIS
+export type APIs = AuthAPIS & OssAPIS

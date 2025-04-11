@@ -1,0 +1,7 @@
+{
+  "registerSuccess": "注册成功",
+  "commonError": "网络异常，请稍后再试",
+  "uploadFailed": "上传失败",
+  "unauthorized": "尚未登录",
+  "ratelimited": "请求过于频繁，请稍后再试"
+}

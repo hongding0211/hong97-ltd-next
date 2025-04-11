@@ -1,6 +1,7 @@
 {
   "login": "Login",
   "signup": "Sign Up",
+  "name": "Name",
   "account": "Account",
   "email": "Email / Phone",
   "avatar": "Avatar",
@@ -9,5 +10,10 @@
   "accountNotExist": "Account does not exist",
   "invalidPhoneOrEmail": "Invalid email or phone number",
   "invalidPassword": "Wrong password",
-  "emptyPassword": "Empty password"
+  "emptyPassword": "Empty password",
+  "emptyName": "Empty name",
+  "redirectTitle": "Welcome back, {{name}}!",
+  "redirectDescription": "We are handling your login process. It won't take long.",
+  "optional": "Optional",
+  "upload": "Upload"
 }

@@ -1,17 +1,26 @@
-name: Depoly
+name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      fe_changed:
+        description: 'Whether frontend has changes'
+        required: true
+        type: boolean
+      server_changed:
+        description: 'Whether server has changes'
+        required: true
+        type: boolean
   push:
     tags:
       - '*'
 
 jobs:
-  build:
+  deploy:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
-    - name: depoly
+    - name: Deploy
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.HOST }}
@@ -20,20 +29,37 @@ jobs:
         port: ${{ secrets.PORT }}
         script: |
           export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" 
           nvm -v
           nvm use 20
           node -v
           cd ${{ secrets.PATH }}
           ${{ secrets.CLASH }}
-          docker stop ${{ secrets.DOCKER_IMG }}
           export https_proxy='127.0.0.1:7890'
           git pull
           pnpm i
-          pnpm build
-          docker start ${{ secrets.DOCKER_IMG }}
-          docker exec -itd ${{ secrets.DOCKER_IMG }} /bin/sh -c "cd /app && pnpm start"
+          
+          # Only build and deploy changed packages
+          if [ "${{ github.event.inputs.fe_changed }}" = "true" ]; then
+            echo "Building and deploying frontend..."
+            cd packages/fe
+            pnpm build
+            docker stop ${{ secrets.DOCKER_IMG_FE }}
+            docker start ${{ secrets.DOCKER_IMG_FE }}
+            docker exec -itd ${{ secrets.DOCKER_IMG_FE }} /bin/sh -c "cd /app && pnpm start"
+          fi
+          
+          # TODO: deploy server
+          # if [ "${{ github.event.inputs.server_changed }}" = "true" ]; then
+          #   echo "Building and deploying server..."
+          #   cd packages/server
+          #   pnpm build
+          #   docker stop ${{ secrets.DOCKER_IMG_SERVER }}
+          #   docker start ${{ secrets.DOCKER_IMG_SERVER }}
+          #   docker exec -itd ${{ secrets.DOCKER_IMG_SERVER }} /bin/sh -c "cd /app && pnpm start"
+          # fi
+          
           kill $(cat pid.txt) || true
           rm pid.txt
           

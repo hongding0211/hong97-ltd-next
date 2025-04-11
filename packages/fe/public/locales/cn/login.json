@@ -1,6 +1,7 @@
 {
   "login": "登录",
   "signup": "注册",
+  "name": "昵称",
   "account": "账号",
   "email": "邮箱 / 手机",
   "avatar": "头像",
@@ -9,5 +10,10 @@
   "accountNotExist": "账号不存在",
   "invalidPhoneOrEmail": "邮箱或手机格式错误",
   "invalidPassword": "密码错误",
-  "emptyPassword": "密码不能为空"
+  "emptyPassword": "密码不能为空",
+  "emptyName": "昵称不能为空",
+  "redirectTitle": "欢迎回来，{{name}}！",
+  "redirectDescription": "正在处理你的登录请求，请稍等片刻...",
+  "optional": "可选",
+  "upload": "上传"
 }

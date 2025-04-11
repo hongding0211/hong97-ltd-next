@@ -1,14 +1,15 @@
 {
   "name": "hong97-ltd-next",
-  "version": "0.1.13",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev:fe": "pnpm --filter hong97-ltd-next-fe dev",
     "dev:server": "pnpm --filter hong97-ltd-next-server start:dev",
-    "bump": "bump -c -t -p",
+    "dev:server-debug": "pnpm --filter hong97-ltd-next-server start:debug",
     "prepare": "husky install",
     "lint": "biome lint .",
-    "check": "biome check --apply ."
+    "check": "biome check --apply .",
+    "bump": "bump patch -c -t"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
@@ -18,8 +19,6 @@
     "typescript": "^5.7.3"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx}": [
-      "biome check --apply-unsafe --diagnostic-level=error"
-    ]
+    "*.{js,ts,jsx,tsx}": ["biome check --apply-unsafe --diagnostic-level=error"]
   }
 }

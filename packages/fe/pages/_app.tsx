@@ -2,44 +2,39 @@ import { appWithTranslation, useTranslation } from 'next-i18next'
 import type { AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
-import { Toaster, toast } from 'sonner'
+import { Toaster } from 'sonner'
+import useDarkMode from 'use-dark-mode'
 import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
+import { http } from '../services/http'
 import '../styles/globals.css'
-import { emitter } from '../utils/emitter'
+import { registerToast } from '../utils/toast'
 
 function App(props: AppProps) {
   const { Component, pageProps, router } = props
 
-  const { t } = useTranslation('common')
+  const { t, i18n } = useTranslation('toast')
+
+  const darkMode = useDarkMode()
 
   useEffect(() => {
     localStorage.removeItem('darkMode')
   }, [])
 
+  http.setLocale(i18n.language)
+
   /** A toast event listener */
   useEffect(() => {
-    emitter.on('toast', (args) => {
-      if (!args) {
-        return
-      }
-      let toastFn: any = toast
-      if (args.type === 'error') {
-        toastFn = toast.error
-      }
-      if (args.type === 'success') {
-        toastFn = toast.success
-      }
-      toastFn(t(args.msg))
-    })
-    return () => {
-      emitter.off('toast')
-    }
+    const unregister = registerToast(t)
+    return unregister
   }, [t])
 
   return (
     <GeneralProvider router={router}>
       <Component {...pageProps} />
-      <Toaster />
+      <Toaster
+        theme={darkMode.value ? 'dark' : 'light'}
+        position="top-center"
+      />
     </GeneralProvider>
   )
 }
