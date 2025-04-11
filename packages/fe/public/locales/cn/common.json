@@ -12,7 +12,5 @@
   "back": "返回",
   "optional": "可选",
   "noBlog": "暂无内容...",
-  "unauthorized": "登录状态已失效",
-  "ratelimited": "请求过于频繁，请稍后再试",
-  "commonError": "网络异常，请稍后再试"
+  "login": "登录"
 }

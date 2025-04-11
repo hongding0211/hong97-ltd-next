@@ -38,7 +38,11 @@ export default Projects
 export async function getStaticProps({ locale }: any) {
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common', 'projects'])),
+      ...(await serverSideTranslations(locale, [
+        'common',
+        'projects',
+        'toast',
+      ])),
     },
   }
 }

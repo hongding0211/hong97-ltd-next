@@ -1,12 +1,14 @@
+import path from 'path'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
 import { MongooseModule } from '@nestjs/mongoose'
 import { ThrottlerModule } from '@nestjs/throttler'
+import { HeaderResolver, I18nModule } from 'nestjs-i18n'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
-import { StructuredResponseInterceptor } from './common/error/structured-response'
+import { StructuredResponseInterceptor } from './common/response/structured-response'
 import config from './config'
 import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
@@ -47,6 +49,15 @@ import { UserModule } from './modules/user/user.module'
           },
         ]
       },
+    }),
+    I18nModule.forRoot({
+      fallbackLanguage: 'cn',
+      loaderOptions: {
+        path: path.join(__dirname, '/i18n/'),
+        watch: true,
+      },
+      resolvers: [new HeaderResolver(['x-locale'])],
+      typesOutputPath: path.join(__dirname, '../../src/i18n/types.d.ts'),
     }),
     /** Global Modules */
     UserModule,

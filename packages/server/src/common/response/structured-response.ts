@@ -4,9 +4,10 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common'
+import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
-import { ErrorResponse } from 'src/common/error/err-response'
+import { ErrorResponse } from 'src/common/response/err-response'
 import {
   IStructureErrorResponse,
   IStructureResponse,
@@ -15,6 +16,8 @@ import {
 
 @Injectable()
 export class StructuredResponseInterceptor implements NestInterceptor {
+  constructor(private readonly i18n: I18nService) {}
+
   async intercept(
     _context: ExecutionContext,
     next: CallHandler,
@@ -30,7 +33,7 @@ export class StructuredResponseInterceptor implements NestInterceptor {
         if (data instanceof ErrorResponse) {
           const errorResponse: IStructureErrorResponse = {
             isSuccess: false,
-            msg: data.message,
+            msg: this.i18n.t(data.message),
             errCode: data.code,
           }
           return errorResponse

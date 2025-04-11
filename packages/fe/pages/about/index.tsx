@@ -11,8 +11,6 @@ import React from 'react'
 
 import BlurFade from '@/components/magicui/blur-fade'
 import { cn } from '@/lib/utils'
-import { ArrowRight } from 'lucide-react'
-import { useRouter } from 'next/router'
 import AppLayout from '../../components/app-layout/AppLayout'
 import AnimatedGradientText from '../../components/magicui/animated-gradient-text'
 
@@ -26,24 +24,11 @@ const CatsImgs = [
 function About() {
   const { t } = useTranslation('about')
 
-  const router = useRouter()
-
-  const handleClickBanner = () => {
-    router.push('/blog/markdowns/2024-summary?key=2024-summary')
-  }
-
   return (
     <>
       <Head>
         <title>{t('title')}</title>
       </Head>
-      <div
-        onClick={handleClickBanner}
-        className="flex w-full items-center justify-center gap-x-1 bg-blue-600 py-[10px] text-sm font-medium text-white"
-      >
-        👀 {t('banner')}
-        <ArrowRight className="size-4 transition-transform duration-300 ease-in-out hover:translate-x-0.5" />
-      </div>
       <AppLayout>
         <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12">
           <img src="/img/cover.jpeg" alt="me" className="rounded" />
@@ -108,7 +93,7 @@ export default About
 export async function getStaticProps({ locale }: any) {
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common', 'about'])),
+      ...(await serverSideTranslations(locale, ['common', 'about', 'toast'])),
     },
   }
 }

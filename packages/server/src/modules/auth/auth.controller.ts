@@ -8,11 +8,11 @@ import {
   Post,
 } from '@nestjs/common'
 import { UserId } from 'src/decorators/user-id.decorator'
+import { LoginDto } from '../../../../types/auth/login.dto'
+import { ModifyPasswordDto } from '../../../../types/auth/modify-password.dto'
+import { RegisterDto } from '../../../../types/auth/register.dto'
+import { UpdateProfileDto } from '../../../../types/auth/update-profile.dto'
 import { AuthService } from './auth.service'
-import { LoginDto } from './dto/login.dto'
-import { ModifyPasswordDto } from './dto/modify-password.dto'
-import { RegisterDto } from './dto/register.dto'
-import { UpdateProfileDto } from './dto/update-profile.dto'
 
 @Controller('auth')
 export class AuthController {

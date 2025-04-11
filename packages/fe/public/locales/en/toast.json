@@ -1,0 +1,7 @@
+{
+  "registerSuccess": "Register successfully",
+  "commonError": "Network exception, please try again later.",
+  "uploadFailed": "Upload failed",
+  "unauthorized": "Please login first.",
+  "ratelimited": "Request too frequent, please try again later."
+}

@@ -1,32 +1,28 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotImplementedException,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcrypt'
 import { Model } from 'mongoose'
+import { ErrorResponse } from 'src/common/response/err-response'
 import { v4 as uuidv4 } from 'uuid'
-import { AuthProvider, User, UserDocument } from '../../schemas/user.schema'
-import { UserService } from '../user/user.service'
 import {
   LocalLoginDto,
   LoginDto,
   OAuthLoginDto,
   PhoneLoginDto,
-} from './dto/login.dto'
-import { ModifyPasswordDto } from './dto/modify-password.dto'
+} from '../../../../types/auth/login.dto'
+import { ModifyPasswordDto } from '../../../../types/auth/modify-password.dto'
+import { RefreshTokenDto } from '../../../../types/auth/refresh-token-dto'
 import {
   LocalRegisterDto,
   OAuthRegisterDto,
   PhoneRegisterDto,
   RegisterDto,
-} from './dto/register.dto'
-import { UpdateProfileDto } from './dto/update-profile.dto'
+} from '../../../../types/auth/register.dto'
+import { UpdateProfileDto } from '../../../../types/auth/update-profile.dto'
+import { AuthProvider, User, UserDocument } from '../../schemas/user.schema'
+import { UserService } from '../user/user.service'
 
 @Injectable()
 export class AuthService {
@@ -48,7 +44,7 @@ export class AuthService {
       case 'oauth':
         return this.registerWithOAuth(credentials as OAuthRegisterDto)
       default:
-        throw new BadRequestException('Invalid register type')
+        return new ErrorResponse('auth.invalidRegisterType')
     }
   }
 
@@ -56,7 +52,7 @@ export class AuthService {
     const { email, phoneNumber, password, profile } = credentials
 
     if (!email && !phoneNumber) {
-      throw new BadRequestException('Email or phone number is required')
+      return new ErrorResponse('auth.emailOrPhoneRequired')
     }
 
     // 检查邮箱是否已存在
@@ -65,7 +61,7 @@ export class AuthService {
         'authData.local.email': email,
       })
       if (existingEmail) {
-        throw new ConflictException('Email already exists')
+        return new ErrorResponse('auth.emailExists')
       }
     }
 
@@ -75,7 +71,7 @@ export class AuthService {
         'authData.local.phoneNumber': phoneNumber,
       })
       if (existingPhone) {
-        throw new ConflictException('Phone number already exists')
+        return new ErrorResponse('auth.phoneExists')
       }
     }
 
@@ -99,11 +95,11 @@ export class AuthService {
   }
 
   private async registerWithPhone(_credentials: PhoneRegisterDto) {
-    throw new NotImplementedException('Phone registration is not implemented')
+    return new ErrorResponse('auth.phoneRegistrationNotImplemented')
   }
 
   private async registerWithOAuth(_credentials: OAuthRegisterDto) {
-    throw new NotImplementedException('OAuth registration is not implemented')
+    return new ErrorResponse('auth.oauthRegistrationNotImplemented')
   }
 
   async login(loginDto: LoginDto) {
@@ -117,7 +113,7 @@ export class AuthService {
       case 'oauth':
         return this.loginWithOAuth(credentials as OAuthLoginDto)
       default:
-        throw new BadRequestException('Invalid login type')
+        return new ErrorResponse('auth.invalidLoginType')
     }
   }
 
@@ -138,7 +134,7 @@ export class AuthService {
     const { email, phoneNumber, password } = credentials
 
     if (!email && !phoneNumber) {
-      throw new BadRequestException('Email or phone number is required')
+      return new ErrorResponse('auth.emailOrPhoneRequired')
     }
 
     // 构建查询条件
@@ -149,7 +145,7 @@ export class AuthService {
     const user = await this.userModel.findOne(query)
 
     if (!user || !user.authData?.local?.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials')
+      return new ErrorResponse('auth.userNotFound')
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -158,7 +154,7 @@ export class AuthService {
     )
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials')
+      return new ErrorResponse('auth.wrongPassword')
     }
 
     // 更新最后登录时间
@@ -167,26 +163,27 @@ export class AuthService {
 
     return {
       token: await this.generateTokens(user),
+      user: this.userService.mapUserToResponse(user),
     }
   }
 
   private async loginWithPhone(_: PhoneLoginDto) {
-    throw new NotImplementedException('Phone login is not implemented')
+    return new ErrorResponse('auth.phoneLoginNotImplemented')
   }
 
   private async loginWithOAuth(_: OAuthLoginDto) {
-    throw new NotImplementedException('OAuth login is not implemented')
+    return new ErrorResponse('auth.oauthLoginNotImplemented')
   }
 
   async info(userId: string) {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
-      throw new UnauthorizedException('User not found')
+      return new ErrorResponse('auth.userNotFound')
     }
     return this.userService.mapUserToResponse(user)
   }
 
-  async refreshToken(userId: string) {
+  async refreshToken(userId: string): Promise<RefreshTokenDto> {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
       throw new UnauthorizedException('User not found')
@@ -199,7 +196,7 @@ export class AuthService {
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
-      throw new UnauthorizedException('User not found')
+      return new ErrorResponse('auth.userNotFound')
     }
 
     // Update profile fields
@@ -231,7 +228,7 @@ export class AuthService {
       modifyPasswordDto
 
     if (!email && !phoneNumber) {
-      throw new BadRequestException('Email or phone number is required')
+      return new ErrorResponse('auth.emailOrPhoneRequired')
     }
 
     const user = await this.userModel.findOne({
@@ -242,7 +239,7 @@ export class AuthService {
     })
 
     if (!user || !user.authData?.local?.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials')
+      return new ErrorResponse('auth.userNotFound')
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -251,7 +248,7 @@ export class AuthService {
     )
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials')
+      return new ErrorResponse('auth.wrongOldPassword')
     }
 
     user.authData.local.passwordHash = await bcrypt.hash(newPassword, 10)
