@@ -2,8 +2,8 @@ name: Deploy Server
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '@server*'
 
 jobs:
   deploy-server:
@@ -28,15 +28,6 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v46
-
-      - name: Check Server changes
-        if: contains(steps.changed-files.outputs.all_changed_files, 'packages/server/')
-        run: |
-          echo "SERVER_CHANGED=true" >> $GITHUB_ENV
 
       - name: Deploy Server
         if: env.SERVER_CHANGED == 'true'
