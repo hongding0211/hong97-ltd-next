@@ -31,9 +31,7 @@ jobs:
 
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v41
-        with:
-          files: packages/server/**
+        uses: tj-actions/changed-files@v46
 
       - name: Check Server changes
         if: contains(steps.changed-files.outputs.all_changed_files, 'packages/server/')
@@ -67,6 +65,3 @@ jobs:
             # docker stop ${{ secrets.DOCKER_IMG_SERVER }}
             # docker start ${{ secrets.DOCKER_IMG_SERVER }}
             # docker exec -itd ${{ secrets.DOCKER_IMG_SERVER }} /bin/sh -c "cd /app && pnpm start"
-            
-            # kill $(cat pid.txt) || true
-            # rm pid.txt 

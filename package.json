@@ -6,6 +6,8 @@
     "dev:fe": "pnpm --filter hong97-ltd-next-fe dev",
     "dev:server": "pnpm --filter hong97-ltd-next-server start:dev",
     "dev:server-debug": "pnpm --filter hong97-ltd-next-server start:debug",
+    "build:fe": "pnpm --filter hong97-ltd-next-fe build",
+    "start:fe": "pnpm --filter hong97-ltd-next-fe start",
     "prepare": "husky install",
     "lint": "biome lint .",
     "check": "biome check --apply .",
