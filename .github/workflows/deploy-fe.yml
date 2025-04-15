@@ -60,3 +60,6 @@ jobs:
             docker stop ${{ secrets.DOCKER_IMG_FE }}
             docker start ${{ secrets.DOCKER_IMG_FE }}
             docker exec -itd ${{ secrets.DOCKER_IMG_FE }} /bin/sh -c "cd /app && pnpm start"
+
+            kill $(cat pid.txt) || true
+            rm pid.txt 
