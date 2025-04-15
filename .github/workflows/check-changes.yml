@@ -23,6 +23,10 @@ jobs:
         with:
           version: 8
 
+      - name: Install dependencies
+        run: |
+          pnpm install
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v41
@@ -40,7 +44,7 @@ jobs:
       - name: Check Server changes
         if: contains(steps.changed-files.outputs.all_changed_files, 'packages/server/')
         run: |
-          pnpm --filter hong97-ltd-next-server bump --patch --yes
+          pnpm --filter hong97-ltd-next-server bump
           echo "SERVER_CHANGED=true" >> $GITHUB_ENV
 
       - name: Trigger Deploy
