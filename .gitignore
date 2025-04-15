@@ -20,7 +20,3 @@ node_modules
 !.vscode/extensions.json
 
 .next
-
-packages/server/src/i18n/types.d.ts
-
-packages/fe/.env

@@ -1,4 +1,4 @@
-import { I18nPath } from 'src/i18n/types'
+import { I18nPath } from '../../i18n/types'
 
 export class ErrorResponse {
   code?: number

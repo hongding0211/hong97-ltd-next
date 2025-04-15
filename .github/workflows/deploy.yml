@@ -2,8 +2,8 @@ name: Deploy Frontend
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '@fe*'
 
 jobs:
   deploy-fe:
@@ -51,7 +51,7 @@ jobs:
             cd ${{ secrets.PATH }}
             ${{ secrets.CLASH }}
             export https_proxy='127.0.0.1:7890'
-            git reset --hard origin/main
+            git pull
             echo "Building and deploying frontend..."
             pnpm i
             pnpm build:fe

@@ -6,23 +6,23 @@ import * as bcrypt from 'bcrypt'
 import { Model } from 'mongoose'
 import { ErrorResponse } from 'src/common/response/err-response'
 import { v4 as uuidv4 } from 'uuid'
+import { AuthProvider, User, UserDocument } from '../../schemas/user.schema'
+import { UserService } from '../user/user.service'
 import {
   LocalLoginDto,
   LoginDto,
   OAuthLoginDto,
   PhoneLoginDto,
-} from '../../../../types/auth/login.dto'
-import { ModifyPasswordDto } from '../../../../types/auth/modify-password.dto'
-import { RefreshTokenDto } from '../../../../types/auth/refresh-token-dto'
+} from './dto/login.dto'
+import { ModifyPasswordDto } from './dto/modify-password.dto'
+import { RefreshTokenDto } from './dto/refresh-token-dto'
 import {
   LocalRegisterDto,
   OAuthRegisterDto,
   PhoneRegisterDto,
   RegisterDto,
-} from '../../../../types/auth/register.dto'
-import { UpdateProfileDto } from '../../../../types/auth/update-profile.dto'
-import { AuthProvider, User, UserDocument } from '../../schemas/user.schema'
-import { UserService } from '../user/user.service'
+} from './dto/register.dto'
+import { UpdateProfileDto } from './dto/update-profile.dto'
 
 @Injectable()
 export class AuthService {
