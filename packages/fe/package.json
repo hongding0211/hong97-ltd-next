@@ -1,12 +1,12 @@
 {
   "name": "hong97-ltd-next-fe",
-  "version": "0.1.18",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "bump": "bump patch -c -t"
+    "bump": "bump -c -t"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.2.1",
