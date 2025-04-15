@@ -3,7 +3,7 @@ name: Check Changes and Bump
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   check-changes:
@@ -52,7 +52,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'depoly.yml',
-              ref: 'master',
+              ref: 'main',
               inputs: {
                 fe_changed: process.env.FE_CHANGED === 'true',
                 server_changed: process.env.SERVER_CHANGED === 'true'
