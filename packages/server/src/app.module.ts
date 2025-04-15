@@ -27,6 +27,7 @@ import { UserModule } from './modules/user/user.module'
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('database.uri'),
         ...configService.get('database.options'),
+        dbName: configService.get<string>('database.dbName'),
       }),
       inject: [ConfigService],
     }),
