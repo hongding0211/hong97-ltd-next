@@ -9,7 +9,8 @@
     "prepare": "husky install",
     "lint": "biome lint .",
     "check": "biome check --apply .",
-    "bump": "bump patch -c -t"
+    "bump:fe": "pnpm --filter hong97-ltd-next-fe bump",
+    "bump:server": "pnpm --filter hong97-ltd-next-server bump"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
