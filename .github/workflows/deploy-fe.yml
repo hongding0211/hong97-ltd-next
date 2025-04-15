@@ -14,6 +14,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v46
+
+      - name: Check FE changes
+        if: contains(steps.changed-files.outputs.all_changed_files, 'packages/fe/')
+        run: |
+          echo "FE_CHANGED=true" >> $GITHUB_ENV
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,17 +32,6 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v46
-        with:
-          files: packages/fe/**
-
-      - name: Check FE changes
-        if: contains(steps.changed-files.outputs.all_changed_files, 'packages/fe/')
-        run: |
-          echo "FE_CHANGED=true" >> $GITHUB_ENV
 
       - name: Deploy Frontend
         if: env.FE_CHANGED == 'true'
