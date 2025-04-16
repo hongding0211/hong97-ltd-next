@@ -65,7 +65,6 @@ const InputWithLabel: React.FC<
 }
 
 const Uploader: React.FC = () => {
-  'use client'
   const [loading, setLoading] = useState(false)
 
   const { avatar, setAvatar } = useLoginStore((state) => ({
@@ -126,7 +125,7 @@ const Uploader: React.FC = () => {
             onClick={setAvatar.bind(null, '')}
           >
             <Avatar className="border-2 border-neutral-200 dark:border-neutral-800">
-              <AvatarImage src={avatar} />
+              <AvatarImage src={avatar} className="object-cover" />
             </Avatar>
             <Avatar className="opacity-0 hover:opacity-100 border-2 border-neutral-200 dark:border-neutral-800 absolute right-0 bottom-0 items-center justify-center hover:backdrop-brightness-50 hover:backdrop-blur-sm hidden md:flex">
               <Trash2 className="h-3.5 w-3.5 text-neutral-200" />

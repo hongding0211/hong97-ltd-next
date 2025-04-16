@@ -212,9 +212,7 @@ export class AuthService {
     if (updateProfileDto.gender) {
       user.profile.gender = updateProfileDto.gender
     }
-    if (updateProfileDto.bio) {
-      user.profile.bio = updateProfileDto.bio
-    }
+    user.profile.bio = updateProfileDto.bio
     if (updateProfileDto.metadata) {
       user.profile.metadata = updateProfileDto.metadata
     }

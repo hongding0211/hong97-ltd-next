@@ -3,5 +3,8 @@
   "commonError": "Network exception, please try again later.",
   "uploadFailed": "Upload failed",
   "unauthorized": "Please login first.",
-  "ratelimited": "Request too frequent, please try again later."
+  "ratelimited": "Request too frequent, please try again later.",
+  "updateAvatarSuccess": "Update avatar successfully",
+  "updateProfileSuccess": "Update profile successfully",
+  "nameRequired": "Name cannot be empty"
 }

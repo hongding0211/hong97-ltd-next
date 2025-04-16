@@ -7,7 +7,7 @@ export function registerToast(t: TFunction) {
     if (!args) {
       return
     }
-    let toastFn: any = toast
+    let toastFn: any = sonnerToast
     if (args.options?.type === 'error') {
       toastFn = sonnerToast.error
     }

@@ -1,5 +1,4 @@
-import { Type } from 'class-transformer'
-import { IsDate, IsOptional, IsString } from 'class-validator'
+import { IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -11,9 +10,8 @@ export class UpdateProfileDto {
   avatar?: string
 
   @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  birthday?: Date
+  @IsNumber()
+  birthday?: number
 
   @IsOptional()
   @IsString()

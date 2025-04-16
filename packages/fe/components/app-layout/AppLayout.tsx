@@ -144,6 +144,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
                   <AvatarImage
                     src={getCompressImage(user.profile.avatar ?? '', 50)}
+                    className="object-cover"
                   />
                   <AvatarFallback>{user.profile.name}</AvatarFallback>
                 </Avatar>
@@ -256,6 +257,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                     <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
                       <AvatarImage
                         src={getCompressImage(user.profile.avatar ?? '', 50)}
+                        className="object-cover"
                       />
                       <AvatarFallback>{user.profile.name}</AvatarFallback>
                     </Avatar>

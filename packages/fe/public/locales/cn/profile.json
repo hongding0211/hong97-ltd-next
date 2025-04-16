@@ -1,3 +1,20 @@
 {
-  "title": "个人资料"
+  "title": "个人资料",
+  "updateAvatar": "更新头像",
+  "editProfile": "编辑资料",
+  "logout": "退出登录",
+  "birthday": "生日",
+  "bio": "个人简介",
+  "gender": "性别",
+  "genderEnum": {
+    "male": "男",
+    "female": "女",
+    "other": "其他"
+  },
+  "selectYear": "选择年份",
+  "apply": "应用",
+  "cancel": "取消",
+  "emptyBio": "你的个人简介为空，说点什么吧。",
+  "name": "昵称",
+  "required": "必填"
 }

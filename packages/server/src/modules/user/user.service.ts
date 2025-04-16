@@ -11,12 +11,7 @@ export class UserService {
   mapUserToResponse(user: UserDocument): UserResponseDto {
     return {
       userId: user.userId,
-      profile: {
-        name: user.profile.name,
-        avatar: user.profile?.avatar,
-        bio: user.profile?.bio,
-        metadata: user.profile?.metadata,
-      },
+      profile: user.profile,
     }
   }
 

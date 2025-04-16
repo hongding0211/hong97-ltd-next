@@ -1,3 +1,20 @@
 {
-  "title": "Profile"
+  "title": "Profile",
+  "updateAvatar": "Update Avatar",
+  "editProfile": "Edit Profile",
+  "logout": "Logout",
+  "birthday": "Birthday",
+  "bio": "Bio",
+  "gender": "Gender",
+  "genderEnum": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  "selectYear": "Select Year",
+  "apply": "Apply",
+  "cancel": "Cancel",
+  "emptyBio": "Your bio is empty, say something about yourself.",
+  "name": "Name",
+  "required": "Required"
 }

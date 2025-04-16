@@ -19,7 +19,7 @@ export class UserProfile {
   avatar?: string
 
   @Prop()
-  birthday?: Date
+  birthday?: number
 
   @Prop()
   gender?: string
