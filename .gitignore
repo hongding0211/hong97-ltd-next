@@ -20,3 +20,5 @@ node_modules
 !.vscode/extensions.json
 
 .next
+
+/packages/fe/.env
