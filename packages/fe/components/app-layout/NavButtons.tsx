@@ -1,12 +1,11 @@
-import { faGithub } from '@fortawesome/free-brands-svg-icons'
-import { faLanguage, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { Github, Languages, Moon, Sun } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 
 interface INavButtons {
   darkMode: boolean
   onDarkModeChange: (isDarkMode: boolean) => void
+  onPress?: () => void
 }
 
 const NavButtons: React.FC<INavButtons> = (props) => {
@@ -23,26 +22,28 @@ const NavButtons: React.FC<INavButtons> = (props) => {
         locale: locale === 'cn' ? 'en' : 'cn',
       })
       .then()
+    props.onPress?.()
   }
+
+  const ThemeIcon = darkMode ? Sun : Moon
+
   return (
-    <div className="flex gap-x-[24px]">
+    <div className="flex gap-x-[20px]">
       <a
         href="https://github.com/hongding0211"
         target="_blank"
         rel="noreferrer"
       >
-        <FontAwesomeIcon
-          icon={faGithub}
-          className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
-        />
+        <Github className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300" />
       </a>
-      <FontAwesomeIcon
-        icon={!darkMode ? faSun : faMoon}
+      <ThemeIcon
         className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
-        onClick={() => props.onDarkModeChange(!props.darkMode)}
+        onClick={() => {
+          props.onDarkModeChange(!props.darkMode)
+          props.onPress?.()
+        }}
       />
-      <FontAwesomeIcon
-        icon={faLanguage}
+      <Languages
         className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={handleChangeLanguage}
       />

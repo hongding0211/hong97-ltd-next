@@ -24,7 +24,7 @@
       "@constants": ["./constants/index.ts"],
       "@utils/*": ["./utils/*"],
       "@services/*": ["./services/*"],
-      "@stores/*": ["./stores/*"]
+      "@stores/*": ["./stores/*"],
     },
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,

@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -40,6 +39,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import React, { useEffect, useId, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
+import Avatar from '../../components/common/Avatar'
 
 const ProfileItem: React.FC<{
   label: string
@@ -265,13 +265,7 @@ export const Profile: React.FC = () => {
         {/* 桌面端 */}
         <div className="max-w-[600px] mx-auto justify-between hidden md:flex mt-[40px]">
           <div className="flex flex-col items-center">
-            <Avatar className="w-[240px] h-[240px] border-2 border-neutral-200 dark:border-neutral-800 mb-8">
-              <AvatarImage
-                src={user?.profile.avatar}
-                className="object-cover"
-              />
-              <AvatarFallback>{user?.profile.name}</AvatarFallback>
-            </Avatar>
+            <Avatar user={user} className="mb-8" width={240} />
             <div className="text-2xl font-semibold">@{user?.profile.name}</div>
             <div className="text-[0.7rem] mt-1.5 text-neutral-500">
               #{user?.userId}
@@ -338,7 +332,10 @@ export const Profile: React.FC = () => {
                           )}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="flex w-auto flex-col space-y-2 p-2">
+                      <PopoverContent
+                        avoidCollisions={false}
+                        className="flex w-auto flex-col space-y-2 p-2"
+                      >
                         <div className="rounded-md border">
                           <Calendar
                             mode="single"
@@ -393,10 +390,7 @@ export const Profile: React.FC = () => {
 
         {/* 移动端 */}
         <div className="flex mx-8 mt-8 flex-col items-center md:hidden">
-          <Avatar className="w-[180px] h-[180px] border-2 border-neutral-200 dark:border-neutral-800 mb-8">
-            <AvatarImage src={user?.profile.avatar} className="object-cover" />
-            <AvatarFallback>{user?.profile.name}</AvatarFallback>
-          </Avatar>
+          <Avatar user={user} className="mb-8" width={180} />
           <div className="text-2xl font-semibold">@{user?.profile.name}</div>
           <div className="text-[0.7rem] mt-1.5 truncate text-neutral-500">
             #{user?.userId}
@@ -458,7 +452,10 @@ export const Profile: React.FC = () => {
                             )}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="flex w-auto flex-col space-y-2 p-2">
+                        <PopoverContent
+                          avoidCollisions={false}
+                          className="flex w-auto flex-col space-y-2 p-2"
+                        >
                           <div className="rounded-md border">
                             <Calendar
                               mode="single"

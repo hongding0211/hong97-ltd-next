@@ -12,12 +12,14 @@
         "useExhaustiveDependencies": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noArrayIndexKey": "warn"
       },
       "style": {
         "useConst": "error",
         "useTemplate": "off",
-        "noUselessElse": "warn"
+        "noUselessElse": "warn",
+        "noNonNullAssertion": "off"
       },
       "a11y": {
         "noSvgWithoutTitle": "off",

@@ -1,21 +1,16 @@
-import {
-  faEllipsisVertical,
-  faEnvelope,
-  faXmark,
-} from '@fortawesome/free-solid-svg-icons'
+import { faEllipsisVertical, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { animated, useSpring } from '@react-spring/web'
 import { useTranslation } from 'next-i18next'
 import Link from 'next/link'
 import React, { useContext, useEffect, useState } from 'react'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@stores/general'
-import { getCompressImage } from '@utils/oss'
 import { truncate } from '@utils/truncate'
-import { UserRound } from 'lucide-react'
+import { Mail, UserRound } from 'lucide-react'
 import { footerConfig, menuConfig } from '../../config'
+import Avatar from '../common/Avatar'
 import Divider from '../common/Divider'
 import Logo from '../common/Logo'
 import { GeneralContext } from '../hoc/general-context/GeneralContext'
@@ -138,23 +133,11 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
           {user ? (
             <>
               <div
-                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md p-1.5"
+                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5"
                 onClick={handleClickAvatar}
               >
-                <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
-                  <AvatarImage
-                    src={getCompressImage(user.profile.avatar ?? '', 50)}
-                    className="object-cover"
-                  />
-                  <AvatarFallback>{user.profile.name}</AvatarFallback>
-                </Avatar>
-                <span
-                  className={`ml-2 text-sm ${
-                    currentPath.startsWith('/sso/profile')
-                      ? 'text-neutral-900 dark:text-neutral-100'
-                      : 'text-neutral-500 dark:text-neutral-400'
-                  } relative top-[-1px]`}
-                >
+                <Avatar user={user} width={20} borderWidth={1} />
+                <span className="ml-2 text-sm">
                   {truncate(user.profile.name)}
                 </span>
               </div>
@@ -248,19 +231,11 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   onClick={handleClickAvatar}
                 >
                   <div
-                    className={`${
-                      currentPath.startsWith('/sso/profile')
-                        ? 'text-neutral-900 dark:text-neutral-100'
-                        : 'text-neutral-500 dark:text-neutral-400'
-                    } flex position items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md p-1.5`}
+                    className={
+                      'text-neutral-500 dark:text-neutral-400 flex position items-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5'
+                    }
                   >
-                    <Avatar className="h-5 w-5 border box-content border-neutral-300 dark:border-neutral-600">
-                      <AvatarImage
-                        src={getCompressImage(user.profile.avatar ?? '', 50)}
-                        className="object-cover"
-                      />
-                      <AvatarFallback>{user.profile.name}</AvatarFallback>
-                    </Avatar>
+                    <Avatar user={user} width={20} borderWidth={1} />
                     <span className="ml-2 text-sm relative top-[-1px]">
                       {truncate(user.profile.name)}
                     </span>
@@ -270,6 +245,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
               <NavButtons
                 darkMode={darkModeEnabled}
                 onDarkModeChange={handleChangeDarkMode}
+                onPress={setShowMenu.bind(null, false)}
               />
             </animated.div>
           </div>
@@ -296,13 +272,10 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   {t('xhs')} @弘
                 </a>
               </span>
-              <span>
-                <FontAwesomeIcon
-                  icon={faEnvelope}
-                  className="mr-1 text-[10px]"
-                />
+              <div className="flex items-center">
+                <Mail className="mr-1 w-[12px] h-[12px]" />
                 keith.dh@hotmail.com
-              </span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-y-1">

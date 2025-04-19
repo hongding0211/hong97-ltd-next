@@ -1,5 +1,4 @@
-import { faLanguage, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { Languages, Moon, Sun } from 'lucide-react'
 import { useRouter } from 'next/router'
 import React, { useContext } from 'react'
 import { GeneralContext } from '../hoc/general-context/GeneralContext'
@@ -21,15 +20,15 @@ export const ContextToggle: React.FC<IContextToggle> = (_props) => {
       .then()
   }
 
+  const ThemeIcon = darkModeEnabled ? Sun : Moon
+
   return (
-    <div className="flex gap-x-[8px]">
-      <FontAwesomeIcon
-        icon={!darkModeEnabled ? faMoon : faSun}
+    <div className="flex gap-x-[10px]">
+      <ThemeIcon
         className="h-[16px] w-[16px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={() => setDarkModeEnabled(!darkModeEnabled)}
       />
-      <FontAwesomeIcon
-        icon={faLanguage}
+      <Languages
         className="h-[16px] w-[16px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={handleChangeLanguage}
       />
