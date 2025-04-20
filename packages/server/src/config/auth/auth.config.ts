@@ -5,10 +5,5 @@ export default registerAs('auth', () => ({
     secret: process.env.JWT_SECRET || 'your-secret-key',
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
   },
-  ignore: [
-    '/auth/login',
-    '/auth/register',
-    '/oss/requestUpload',
-    '/auth/modifyPassword',
-  ],
+  ignore: ['/auth/login', '/auth/register', '/oss/requestUpload'],
 }))

@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogOverlay,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DialogClose } from '@radix-ui/react-dialog'
@@ -89,47 +88,45 @@ const ImageCrop: React.FC<ImageCropProps> = (props) => {
 
   return (
     <Dialog modal open={show} onOpenChange={onShowChange}>
-      <DialogOverlay className="bg-black/10 backdrop-blur-lg">
-        <DialogContent className="rounded-md !w-[90%] max-w-[500px] py-4 pt-5 px-4">
-          <DialogHeader>
-            {' '}
-            <DialogTitle>
-              <div className="flex items-center gap-x-1.5">
-                <span>{t('cropAvatar')}</span>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="w-full relative pt-2">
-            <div className="relative w-full h-[250px] md:h-[350px] bg-neutral-800">
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                rotation={0}
-                zoom={1}
-                aspect={1}
-                onCropChange={setCrop}
-                onCropComplete={handleCropComplete}
-                cropShape="round"
-                restrictPosition
-              />
+      <DialogContent className="rounded-md !w-[90%] max-w-[500px] py-4 pt-5 px-4">
+        <DialogHeader>
+          {' '}
+          <DialogTitle>
+            <div className="flex items-center gap-x-1.5">
+              <span>{t('cropAvatar')}</span>
             </div>
+          </DialogTitle>
+        </DialogHeader>
 
-            <div className="items-center mt-6 grid grid-cols-2 gap-x-2">
-              <DialogClose className="w-full" asChild>
-                <Button size="sm" variant="outline">
-                  <Ban className="w-4 h-4" />
-                  {t('cancel')}
-                </Button>
-              </DialogClose>
-              <Button size="sm" onClick={handleApply}>
-                <CheckCircle className="w-4 h-4" />
-                {t('apply')}
-              </Button>
-            </div>
+        <div className="w-full relative pt-2">
+          <div className="relative w-full h-[250px] md:h-[350px] bg-neutral-800">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              rotation={0}
+              zoom={1}
+              aspect={1}
+              onCropChange={setCrop}
+              onCropComplete={handleCropComplete}
+              cropShape="round"
+              restrictPosition
+            />
           </div>
-        </DialogContent>
-      </DialogOverlay>
+
+          <div className="items-center mt-6 grid grid-cols-2 gap-x-2">
+            <DialogClose className="w-full" asChild>
+              <Button size="sm" variant="outline">
+                <Ban className="w-4 h-4" />
+                {t('cancel')}
+              </Button>
+            </DialogClose>
+            <Button size="sm" onClick={handleApply}>
+              <CheckCircle className="w-4 h-4" />
+              {t('apply')}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
     </Dialog>
   )
 }

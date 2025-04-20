@@ -4,10 +4,9 @@ import {
   IsOptional,
   IsPhoneNumber,
   IsString,
-  MinLength,
 } from 'class-validator'
 
-export type RegisterType = 'local' | 'phone' | 'oauth'
+export type RegisterType = 'local' | 'phone' | 'github'
 
 export class UserProfileDto {
   @IsString()
@@ -40,7 +39,6 @@ export class LocalRegisterDto {
   phoneNumber?: string
 
   @IsString()
-  @MinLength(6)
   password: string
 
   @IsObject()

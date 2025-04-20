@@ -5,9 +5,11 @@ import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcrypt'
 import { Model } from 'mongoose'
 import { ErrorResponse } from 'src/common/response/err-response'
+import { ServiceResponse } from 'src/common/response/types'
 import { v4 as uuidv4 } from 'uuid'
-import { AuthProvider, User, UserDocument } from '../../schemas/user.schema'
+import { User, UserDocument } from '../../schemas/user.schema'
 import { UserService } from '../user/user.service'
+import { HasLocalAuthResponseDto } from './dto/hasLocalAuth.dto'
 import {
   LocalLoginDto,
   LoginDto,
@@ -41,7 +43,7 @@ export class AuthService {
         return this.registerWithLocal(credentials as LocalRegisterDto)
       case 'phone':
         return this.registerWithPhone(credentials as PhoneRegisterDto)
-      case 'oauth':
+      case 'github':
         return this.registerWithOAuth(credentials as OAuthRegisterDto)
       default:
         return new ErrorResponse('auth.invalidRegisterType')
@@ -53,6 +55,10 @@ export class AuthService {
 
     if (!email && !phoneNumber) {
       return new ErrorResponse('auth.emailOrPhoneRequired')
+    }
+
+    if (password.length < 6) {
+      return new ErrorResponse('auth.passwordTooShort')
     }
 
     // 检查邮箱是否已存在
@@ -79,9 +85,9 @@ export class AuthService {
     const user = new this.userModel({
       userId: uuidv4(),
       profile,
-      authProviders: [AuthProvider.LOCAL],
+      authProviders: ['local'],
       authData: {
-        [AuthProvider.LOCAL]: {
+        local: {
           email,
           phoneNumber,
           passwordHash: hashedPassword,
@@ -110,7 +116,7 @@ export class AuthService {
         return this.loginWithLocal(credentials as LocalLoginDto)
       case 'phone':
         return this.loginWithPhone(credentials as PhoneLoginDto)
-      case 'oauth':
+      case 'github':
         return this.loginWithOAuth(credentials as OAuthLoginDto)
       default:
         return new ErrorResponse('auth.invalidLoginType')
@@ -221,23 +227,25 @@ export class AuthService {
     return this.userService.mapUserToResponse(user)
   }
 
-  async modifyPassword(modifyPasswordDto: ModifyPasswordDto) {
-    const { email, phoneNumber, originalPassword, newPassword } =
-      modifyPasswordDto
+  async modifyPassword(userId: string, modifyPasswordDto: ModifyPasswordDto) {
+    const { originalPassword, newPassword } = modifyPasswordDto
 
-    if (!email && !phoneNumber) {
-      return new ErrorResponse('auth.emailOrPhoneRequired')
+    if (newPassword.length < 6) {
+      return new ErrorResponse('auth.passwordTooShort')
     }
 
-    const user = await this.userModel.findOne({
-      $or: [
-        { 'authData.local.email': email },
-        { 'authData.local.phoneNumber': phoneNumber },
-      ],
-    })
+    if (!originalPassword || originalPassword === newPassword) {
+      return new ErrorResponse('auth.passwordCannotBeSameAsOriginalPassword')
+    }
+
+    const user = await this.userModel.findOne({ userId })
 
     if (!user || !user.authData?.local?.passwordHash) {
       return new ErrorResponse('auth.userNotFound')
+    }
+
+    if (user.authProviders.indexOf('local') === -1) {
+      return new ErrorResponse('auth.userHasNoLocalAuth')
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -249,9 +257,20 @@ export class AuthService {
       return new ErrorResponse('auth.wrongOldPassword')
     }
 
-    user.authData.local.passwordHash = await bcrypt.hash(newPassword, 10)
-    await user.save()
+    await user.updateOne({
+      'authData.local.passwordHash': await bcrypt.hash(newPassword, 10),
+    })
 
     return this.userService.mapUserToResponse(user)
+  }
+
+  async hasLocalAuth(userId: string): ServiceResponse<HasLocalAuthResponseDto> {
+    const user = await this.userModel.findOne({ userId })
+    if (!user) {
+      return new ErrorResponse('auth.userNotFound')
+    }
+    return {
+      hasLocalAuth: user.authProviders.includes('local'),
+    }
   }
 }

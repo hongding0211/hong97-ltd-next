@@ -7,4 +7,5 @@ export const AUTH_PATHS: Record<keyof AuthAPIS, string> = {
   PatchProfile: 'auth/profile',
   PostModifyPassword: 'auth/modifyPassword',
   GetRefreshToken: 'auth/refreshToken',
+  GetHasLocalAuth: 'auth/hasLocalAuth',
 }

@@ -53,7 +53,16 @@ export class AuthController {
 
   @Post('modifyPassword')
   @HttpCode(HttpStatus.OK)
-  async modifyPassword(@Body() modifyPasswordDto: ModifyPasswordDto) {
-    return this.authService.modifyPassword(modifyPasswordDto)
+  async modifyPassword(
+    @UserId() userId: string,
+    @Body() modifyPasswordDto: ModifyPasswordDto,
+  ) {
+    return this.authService.modifyPassword(userId, modifyPasswordDto)
+  }
+
+  @Get('hasLocalAuth')
+  @HttpCode(HttpStatus.OK)
+  async hasLocalAuth(@UserId() userId: string) {
+    return this.authService.hasLocalAuth(userId)
   }
 }

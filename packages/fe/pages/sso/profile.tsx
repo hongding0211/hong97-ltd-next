@@ -27,6 +27,7 @@ import {
   Ban,
   CalendarIcon,
   CheckCircle,
+  Key,
   Loader2,
   LogOut,
   Pencil,
@@ -41,6 +42,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import Avatar from '../../components/common/Avatar'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
+import ModifyPassword from '../../components/sso/modify-password'
 
 const ProfileItem: React.FC<{
   label: string
@@ -79,6 +81,9 @@ export const Profile: React.FC = () => {
 
   const [profileEditing, setProfileEditing] = useState(false)
 
+  const [canModifyPassword, setCanModifyPassword] = useState(false)
+
+  const [showModifyPassword, setShowModifyPassword] = useState(false)
   const [showImageCrop, setShowImageCrop] = useState(false)
 
   const [name, setName] = useState('')
@@ -177,7 +182,9 @@ export const Profile: React.FC = () => {
           setProfileEditing(false)
           refresh()
         } else {
-          toast(v.msg)
+          toast(v.msg, {
+            type: 'error',
+          })
         }
       })
       .finally(setProfileApplying.bind(null, false))
@@ -212,6 +219,19 @@ export const Profile: React.FC = () => {
       {t('editProfile')}
     </Button>
   )
+
+  const changePasswordButton = canModifyPassword ? (
+    <Button
+      size="sm"
+      variant="outline"
+      className="w-full"
+      onClick={setShowModifyPassword.bind(null, true)}
+      disabled={uploadLoading || profileEditing}
+    >
+      <Key className="w-4 h-4" />
+      {t('changePassword')}
+    </Button>
+  ) : null
 
   const logoutButton = (
     <Button
@@ -264,6 +284,14 @@ export const Profile: React.FC = () => {
   }, [isLoading, router, user])
 
   useEffect(() => {
+    if (!isLoading && user) {
+      http.get('GetHasLocalAuth').then((v) => {
+        setCanModifyPassword(v?.data?.hasLocalAuth || false)
+      })
+    }
+  }, [isLoading, user])
+
+  useEffect(() => {
     setGender(user?.profile.gender || '')
     setBirthday(new Date(user?.profile.birthday).valueOf())
     setBio(user?.profile.bio || '')
@@ -286,6 +314,7 @@ export const Profile: React.FC = () => {
             </div>
             <div className="flex flex-col w-full gap-y-4 mt-8">
               {uploadAvatarButton}
+              {changePasswordButton}
               {editProfileButton}
               {logoutButton}
             </div>
@@ -527,12 +556,14 @@ export const Profile: React.FC = () => {
             ) : (
               <>
                 {uploadAvatarButton}
+                {changePasswordButton}
                 {editProfileButton}
                 {logoutButton}
               </>
             )}
           </div>
         </div>
+
         <ImageCrop
           show={showImageCrop}
           onShowChange={setShowImageCrop}
@@ -542,6 +573,11 @@ export const Profile: React.FC = () => {
             uploadAvatar()
           }}
           file={imgFile.current}
+        />
+
+        <ModifyPassword
+          show={showModifyPassword}
+          onShowChange={setShowModifyPassword}
         />
       </AppLayout>
     </>

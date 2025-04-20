@@ -3,12 +3,7 @@ import { Document } from 'mongoose'
 
 export type UserDocument = User & Document
 
-export enum AuthProvider {
-  LOCAL = 'local',
-  GITHUB = 'github',
-  GOOGLE = 'google',
-  PHONE = 'phone',
-}
+export type AuthProvider = 'local' | 'github' | 'phone'
 
 @Schema({ timestamps: true })
 export class UserProfile {
@@ -42,24 +37,21 @@ export class User {
   @Prop({ type: UserProfile })
   profile: UserProfile
 
-  @Prop({ type: [{ type: String, enum: AuthProvider }] })
+  @Prop({ type: [{ type: String }] })
   authProviders: AuthProvider[]
 
   @Prop({ type: Object })
   authData: {
-    [AuthProvider.LOCAL]?: {
+    local?: {
+      phoneNumber?: string
       email?: string
-      passwordHash?: string
+      passwordHash: string
     }
-    [AuthProvider.GITHUB]?: {
+    github?: {
       githubId: string
       accessToken?: string
     }
-    [AuthProvider.GOOGLE]?: {
-      googleId: string
-      accessToken?: string
-    }
-    [AuthProvider.PHONE]?: {
+    phone?: {
       phoneNumber: string
       isVerified: boolean
       lastVerificationTime?: Date

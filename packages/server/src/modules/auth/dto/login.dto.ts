@@ -8,7 +8,7 @@ import {
 } from 'class-validator'
 import { UserResponseDto } from '../../../../src/modules/user/dto/user.response.dto'
 
-export type LoginType = 'local' | 'phone' | 'oauth'
+export type LoginType = 'local' | 'phone' | 'github'
 
 export class LocalLoginDto {
   @IsOptional()

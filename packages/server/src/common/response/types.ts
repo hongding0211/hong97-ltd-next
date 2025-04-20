@@ -1,3 +1,5 @@
+import { ErrorResponse } from './err-response'
+
 export interface IStructureResponse<T = any> {
   isSuccess: boolean
   data?: T
@@ -15,3 +17,5 @@ export interface IStructureSuccessResponse<T> {
   isSuccess: true
   data: T
 }
+
+export type ServiceResponse<T> = Promise<T | ErrorResponse>

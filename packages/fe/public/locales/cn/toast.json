@@ -6,5 +6,6 @@
   "ratelimited": "请求过于频繁，请稍后再试",
   "updateAvatarSuccess": "更新头像成功",
   "updateProfileSuccess": "更新资料成功",
-  "nameRequired": "昵称不能为空"
+  "nameRequired": "昵称不能为空",
+  "modifyPasswordSuccess": "密码修改成功"
 }

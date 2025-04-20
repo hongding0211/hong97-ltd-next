@@ -19,6 +19,9 @@ export type I18nTranslations = {
     userNotFound: string
     wrongPassword: string
     wrongOldPassword: string
+    userHasNoLocalAuth: string
+    passwordCannotBeSameAsOriginalPassword: string
+    passwordTooShort: string
   }
 }
 /* prettier-ignore */

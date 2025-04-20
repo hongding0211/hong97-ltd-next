@@ -1,3 +1,4 @@
+import { HasLocalAuthResponseDto } from '@server/modules/auth/dto/hasLocalAuth.dto'
 import { LoginDto, LoginResponseDto } from '@server/modules/auth/dto/login.dto'
 import { ModifyPasswordDto } from '@server/modules/auth/dto/modify-password.dto'
 import { RefreshTokenDto } from '@server/modules/auth/dto/refresh-token-dto'
@@ -17,4 +18,5 @@ export type AuthAPIS = {
     typeof UserResponseDto
   >
   GetRefreshToken: API<undefined, undefined, typeof RefreshTokenDto>
+  GetHasLocalAuth: API<undefined, undefined, typeof HasLocalAuthResponseDto>
 }

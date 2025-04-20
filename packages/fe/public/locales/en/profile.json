@@ -16,5 +16,9 @@
   "cancel": "Cancel",
   "emptyBio": "Your bio is empty, say something about yourself.",
   "name": "Name",
-  "required": "Required"
+  "required": "Required",
+  "changePassword": "Modify Password",
+  "oldPassword": "Old Password",
+  "newPassword": "New Password",
+  "oldOrNewPasswordRequired": "Old password and new password cannot be empty."
 }

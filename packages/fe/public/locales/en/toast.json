@@ -6,5 +6,6 @@
   "ratelimited": "Request too frequent, please try again later.",
   "updateAvatarSuccess": "Update avatar successfully",
   "updateProfileSuccess": "Update profile successfully",
-  "nameRequired": "Name cannot be empty"
+  "nameRequired": "Name cannot be empty",
+  "modifyPasswordSuccess": "Password modified successfully"
 }

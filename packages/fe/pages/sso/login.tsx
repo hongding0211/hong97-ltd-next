@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input, InputProps } from '@/components/ui/input'
 import { ACCESS_TOKEN_KEY } from '@constants'
 import { Label } from '@radix-ui/react-label'
 import { http } from '@services/http'
@@ -44,33 +43,7 @@ import React, {
 import { ContextToggle } from '../../components/common/ContextToggle'
 import Logo from '../../components/common/Logo'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
-
-const InputWithLabel: React.FC<
-  InputProps & {
-    label: string
-    right?: React.ReactNode
-  }
-> = (props) => {
-  const { label, right, ...restProps } = props
-
-  const uid = useId()
-
-  return (
-    <div className="flex flex-col gap-y-2">
-      <Label htmlFor={uid} className="text-sm">
-        {label}
-      </Label>
-      <div className="relative">
-        <Input id={uid} {...restProps} />
-        {right && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            {right}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+import { InputWithLabel } from '../../components/common/input-with-label'
 
 const Uploader: React.FC = () => {
   const [loading, setLoading] = useState(false)
