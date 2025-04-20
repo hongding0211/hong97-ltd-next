@@ -10,7 +10,7 @@ import { UserRound } from 'lucide-react'
 import React, { useMemo } from 'react'
 
 interface IAvatar {
-  user?: InstanceType<typeof UserResponseDto> | null
+  user?: InstanceType<typeof UserResponseDto>
   borderWidth?: number
   className?: string
   width?: number
@@ -72,7 +72,7 @@ const Avatar: React.FC<IAvatar> = (props) => {
     }
 
     return (
-      <AvatarFallback delayMs={user === null ? 0 : 500}>
+      <AvatarFallback delayMs={500}>
         <UserRound className="w-[60%] h-[60%]" />
       </AvatarFallback>
     )
