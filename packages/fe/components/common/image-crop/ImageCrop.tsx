@@ -8,18 +8,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DialogClose } from '@radix-ui/react-dialog'
-import { getOrientation } from 'get-orientation/browser'
 import { Ban, CheckCircle } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import Cropper from 'react-easy-crop'
 import { useTranslation } from 'react-i18next'
-import { getCroppedImg, getRotatedImage, readFile } from './utils'
+import { getCroppedImg, readFile } from './utils'
 
-const ORIENTATION_TO_ANGLE = {
-  '3': 180,
-  '6': 90,
-  '8': -90,
-}
+// const ORIENTATION_TO_ANGLE = {
+//   '3': 180,
+//   '6': 90,
+//   '8': -90,
+// }
 
 interface ImageCropProps {
   show: boolean
@@ -66,23 +65,26 @@ const ImageCrop: React.FC<ImageCropProps> = (props) => {
 
   useEffect(() => {
     const getImageSrc = async (file: File) => {
-      let imageDataUrl: any = await readFile(file)
+      const imageDataUrl: any = await readFile(file)
 
-      try {
-        // apply rotation if needed
-        const orientation = await getOrientation(file)
-        const rotation = ORIENTATION_TO_ANGLE[orientation]
-        if (rotation) {
-          imageDataUrl = await getRotatedImage(imageDataUrl, rotation)
-        }
-      } catch {
-        // noop
-      }
+      // try {
+      //   // apply rotation if needed
+      //   const orientation = await getOrientation(file)
+      //   const rotation = ORIENTATION_TO_ANGLE[orientation]
+      //   if (rotation) {
+      //     imageDataUrl = await getRotatedImage(imageDataUrl, rotation)
+      //   }
+      // } catch {
+      //   // noop
+      // }
 
       setImageSrc(imageDataUrl)
     }
     if (show && file) {
       getImageSrc(file)
+    }
+    return () => {
+      setImageSrc('')
     }
   }, [show, file])
 

@@ -313,9 +313,9 @@ export const Profile: React.FC = () => {
               #{user?.userId}
             </div>
             <div className="flex flex-col w-full gap-y-4 mt-8">
+              {editProfileButton}
               {uploadAvatarButton}
               {changePasswordButton}
-              {editProfileButton}
               {logoutButton}
             </div>
           </div>
@@ -555,9 +555,9 @@ export const Profile: React.FC = () => {
               </>
             ) : (
               <>
+                {editProfileButton}
                 {uploadAvatarButton}
                 {changePasswordButton}
-                {editProfileButton}
                 {logoutButton}
               </>
             )}

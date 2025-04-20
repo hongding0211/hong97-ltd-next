@@ -216,16 +216,16 @@ const ModifyPassword: React.FC<{
         <DrawerHeader className="text-left">
           <DrawerTitle>{t('changePassword')}</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pt-4">
-          {!!alertMsg && (
+        {!!alertMsg && (
+          <div className="px-4 pt-1">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{tCommon('error')}</AlertTitle>
               <AlertDescription>{t(alertMsg)}</AlertDescription>
             </Alert>
-          )}
-        </div>
-        <div className="py-6 px-4">
+          </div>
+        )}
+        <div className="py-6 pt-4 px-4">
           <Form
             oldPassword={oldPassword}
             newPassword={newPassword}
