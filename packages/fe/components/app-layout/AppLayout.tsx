@@ -33,7 +33,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   const { t } = useTranslation('common')
 
   const generalContext = useContext(GeneralContext)
-  const { darkModeEnabled, setDarkModeEnabled, router } = generalContext
+  const { router } = generalContext
 
   const currentPath = router?.pathname || ''
 
@@ -55,14 +55,6 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
       window.removeEventListener('resize', resize)
     }
   }, [])
-
-  function handleChangeDarkMode(isDarkMode: boolean) {
-    if (isDarkMode) {
-      setDarkModeEnabled(true)
-    } else {
-      setDarkModeEnabled(false)
-    }
-  }
 
   function handleClickShowMenu() {
     menuContainerApi.start({
@@ -121,10 +113,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
               >
                 {t(`nav.${m.key}`)}
                 {m.icon && (
-                  <FontAwesomeIcon
-                    icon={m.icon}
-                    className="absolute h-[10px] w-[10px] pl-[2px]"
-                  />
+                  <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
                 )}
               </Link>
             ))}
@@ -162,10 +151,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
             </>
           )}
           <div className="relative top-[2px]">
-            <NavButtons
-              darkMode={darkModeEnabled}
-              onDarkModeChange={handleChangeDarkMode}
-            />
+            <NavButtons />
           </div>
         </div>
       </nav>
@@ -242,11 +228,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   </div>
                 </div>
               )}
-              <NavButtons
-                darkMode={darkModeEnabled}
-                onDarkModeChange={handleChangeDarkMode}
-                onPress={setShowMenu.bind(null, false)}
-              />
+              <NavButtons onPress={setShowMenu.bind(null, false)} />
             </animated.div>
           </div>
         </animated.div>

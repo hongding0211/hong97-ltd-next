@@ -12,5 +12,8 @@
   "back": "Back",
   "optional": "Optional",
   "noBlog": "Nothing here yet...",
-  "login": "Login"
+  "login": "Login",
+  "cropAvatar": "Edit Avatar",
+  "apply": "Apply",
+  "cancel": "Cancel"
 }

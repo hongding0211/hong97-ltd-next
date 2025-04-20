@@ -1,20 +1,19 @@
-import { Github, Languages, Moon, Sun } from 'lucide-react'
+import { Github, Languages, Moon, Sun, SunMoon } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 
 interface INavButtons {
-  darkMode: boolean
-  onDarkModeChange: (isDarkMode: boolean) => void
   onPress?: () => void
 }
 
 const NavButtons: React.FC<INavButtons> = (props) => {
   const router = useRouter()
   const { pathname, asPath, query, locale } = router
-  const [darkMode, setDarkMode] = useState(false)
-  useEffect(() => {
-    setDarkMode(props.darkMode)
-  }, [props.darkMode])
+
+  const { theme, setTheme, themes } = useTheme()
+
+  const [atClient, setAtClient] = useState(false)
 
   function handleChangeLanguage() {
     router
@@ -25,7 +24,18 @@ const NavButtons: React.FC<INavButtons> = (props) => {
     props.onPress?.()
   }
 
-  const ThemeIcon = darkMode ? Sun : Moon
+  const ThemeIcon = (() => {
+    if (theme === 'system') {
+      return SunMoon
+    }
+    if (theme === 'dark') {
+      return Moon
+    }
+    return Sun
+  })()
+
+  /** A fix for hydration error */
+  useEffect(setAtClient.bind(null, true), [])
 
   return (
     <div className="flex gap-x-[20px]">
@@ -36,13 +46,20 @@ const NavButtons: React.FC<INavButtons> = (props) => {
       >
         <Github className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300" />
       </a>
-      <ThemeIcon
-        className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
-        onClick={() => {
-          props.onDarkModeChange(!props.darkMode)
-          props.onPress?.()
-        }}
-      />
+      {atClient ? (
+        <ThemeIcon
+          className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
+          onClick={() => {
+            let nextThemeIdx = themes.indexOf(theme) + 1
+            if (nextThemeIdx >= themes.length) {
+              nextThemeIdx = 0
+            }
+            setTheme(themes[nextThemeIdx])
+          }}
+        />
+      ) : (
+        <SunMoon className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300" />
+      )}
       <Languages
         className="h-[20px] w-[20px] cursor-pointer text-neutral-500 transition-colors duration-150 ease-in-out hover:text-neutral-600 dark:text-neutral-400 dark:hover:text-neutral-300"
         onClick={handleChangeLanguage}

@@ -1,4 +1,4 @@
-import { faSquareArrowUpRight } from '@fortawesome/free-solid-svg-icons'
+import { SquareArrowOutUpRight } from 'lucide-react'
 
 export type IMenuItem = {
   key: string
@@ -26,7 +26,7 @@ export const menuConfig: IMenuItem[] = [
     key: 'doc',
     path: 'https://docs.hong97.ltd',
     externalLink: true,
-    icon: faSquareArrowUpRight,
+    icon: SquareArrowOutUpRight,
   },
 ]
 

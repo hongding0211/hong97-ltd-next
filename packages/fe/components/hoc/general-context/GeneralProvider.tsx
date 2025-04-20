@@ -1,7 +1,7 @@
 import { useAppStore } from '@stores/general'
+import { ThemeProvider } from 'next-themes'
 import { NextRouter } from 'next/router'
-import React, { useCallback, useEffect, useMemo } from 'react'
-import useDarkMode from 'use-dark-mode'
+import React, { useEffect, useMemo } from 'react'
 import { GeneralContext } from './GeneralContext'
 
 interface IGeneralProviderProps {
@@ -17,34 +17,11 @@ export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
     cleanUp: state.cleanUp,
   }))
 
-  const darkMode = useDarkMode(false, {
-    onChange: (val) => {
-      if (val) {
-        document.documentElement.className = 'dark'
-      } else {
-        document.documentElement.className = 'light'
-      }
-    },
-  })
-
-  const setDarkModeEnabled = useCallback(
-    (value: boolean) => {
-      if (value) {
-        darkMode.enable()
-      } else {
-        darkMode.disable()
-      }
-    },
-    [darkMode],
-  )
-
   const value = useMemo(
     () => ({
-      darkModeEnabled: darkMode.value,
-      setDarkModeEnabled,
       router,
     }),
-    [darkMode, setDarkModeEnabled, router],
+    [router],
   )
 
   useEffect(() => {
@@ -53,6 +30,10 @@ export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
   }, [init, cleanUp])
 
   return (
-    <GeneralContext.Provider value={value}>{children}</GeneralContext.Provider>
+    <GeneralContext.Provider value={value}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {children}
+      </ThemeProvider>
+    </GeneralContext.Provider>
   )
 }

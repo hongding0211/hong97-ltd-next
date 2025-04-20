@@ -43,7 +43,10 @@ const Avatar: React.FC<IAvatar> = (props) => {
     if (user?.profile.avatar) {
       return (
         <>
-          <AvatarImage src={getCompressImage(user.profile.avatar, width * 2)} />
+          <AvatarImage
+            className="object-cover"
+            src={getCompressImage(user.profile.avatar, width * 2)}
+          />
           <AvatarFallback delayMs={300} className="animate-pulse">
             <div className="w-full h-full bg-neutral-200 dark:bg-neutral-800" />
           </AvatarFallback>

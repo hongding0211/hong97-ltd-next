@@ -33,9 +33,17 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { ContextToggle } from '../../components/common/ContextToggle'
 import Logo from '../../components/common/Logo'
+import ImageCrop from '../../components/common/image-crop/ImageCrop'
 
 const InputWithLabel: React.FC<
   InputProps & {
@@ -67,6 +75,11 @@ const InputWithLabel: React.FC<
 const Uploader: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
+  const [showImageCrop, setShowImageCrop] = useState(false)
+
+  const imgFile = useRef<File | null>(null)
+  const croppedImgFile = useRef<File | null>(null)
+
   const { avatar, setAvatar } = useLoginStore((state) => ({
     avatar: state.avatar,
     setAvatar: state.setAvatar,
@@ -77,6 +90,21 @@ const Uploader: React.FC = () => {
   const uid = useId()
 
   const upload = () => {
+    if (!croppedImgFile.current) {
+      return
+    }
+    setLoading(true)
+    uploadFile2Oss(croppedImgFile.current)
+      .then((p) => {
+        if (!p) {
+          return
+        }
+        setAvatar(p)
+      })
+      .finally(setLoading.bind(null, false))
+  }
+
+  const selectFile = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
@@ -86,15 +114,8 @@ const Uploader: React.FC = () => {
       if (!file) {
         return
       }
-      setLoading(true)
-      uploadFile2Oss(file)
-        .then((p) => {
-          if (!p) {
-            return
-          }
-          setAvatar(p)
-        })
-        .finally(setLoading.bind(null, false))
+      imgFile.current = file
+      setShowImageCrop(true)
     }
     document.body.appendChild(input)
     input.click()
@@ -102,52 +123,64 @@ const Uploader: React.FC = () => {
   }
 
   const handleClickButton = () => {
-    upload()
+    selectFile()
   }
 
   return (
-    <div className="flex flex-col gap-y-3">
-      <div className="flex items-center gap-x-1">
-        <Label htmlFor={uid} className="text-sm">
-          {t('avatar')}
-        </Label>
-        <Badge
-          variant="secondary"
-          className="relative px-1.5 text-[0.5rem] top-[0.1rem]"
-        >
-          {t('optional')}
-        </Badge>
-      </div>
-      <div className="relative flex gap-x-2">
-        {avatar ? (
-          <div
-            className="relative cursor-pointer"
-            onClick={setAvatar.bind(null, '')}
+    <>
+      <div className="flex flex-col gap-y-3">
+        <div className="flex items-center gap-x-1">
+          <Label htmlFor={uid} className="text-sm">
+            {t('avatar')}
+          </Label>
+          <Badge
+            variant="secondary"
+            className="relative px-1.5 text-[0.5rem] top-[0.1rem]"
           >
-            <Avatar className="border-2 border-neutral-200 dark:border-neutral-800">
-              <AvatarImage src={avatar} className="object-cover" />
-            </Avatar>
-            <Avatar className="opacity-0 hover:opacity-100 border-2 border-neutral-200 dark:border-neutral-800 absolute right-0 bottom-0 items-center justify-center hover:backdrop-brightness-50 hover:backdrop-blur-sm hidden md:flex">
-              <Trash2 className="h-3.5 w-3.5 text-neutral-200" />
-            </Avatar>
-            <div className="absolute right-0 top-0 h-3 w-3 bg-neutral-800 dark:bg-neutral-100 rounded-full flex items-center justify-center md:hidden">
-              <X className="h-2.5 w-2.5 text-neutral-200 dark:text-neutral-800" />
+            {t('optional')}
+          </Badge>
+        </div>
+        <div className="relative flex gap-x-2">
+          {avatar ? (
+            <div
+              className="relative cursor-pointer"
+              onClick={setAvatar.bind(null, '')}
+            >
+              <Avatar className="border-2 border-neutral-200 dark:border-neutral-800">
+                <AvatarImage src={avatar} className="object-cover" />
+              </Avatar>
+              <Avatar className="opacity-0 hover:opacity-100 border-2 border-neutral-200 dark:border-neutral-800 absolute right-0 bottom-0 items-center justify-center hover:backdrop-brightness-50 hover:backdrop-blur-sm hidden md:flex">
+                <Trash2 className="h-3.5 w-3.5 text-neutral-200" />
+              </Avatar>
+              <div className="absolute right-0 top-0 h-3 w-3 bg-neutral-800 dark:bg-neutral-100 rounded-full flex items-center justify-center md:hidden">
+                <X className="h-2.5 w-2.5 text-neutral-200 dark:text-neutral-800" />
+              </div>
             </div>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            className="gap-x-2 px-2.5 py-1.5 h-[none] font-normal text-[0.8rem]"
-            onClick={handleClickButton}
-            disabled={loading}
-          >
-            {loading && <Loader2 className="h-3 w-3 animate-spin" />}
-            {!loading && <Upload className="h-3 w-3" />}
-            <span>{t('upload')}</span>
-          </Button>
-        )}
+          ) : (
+            <Button
+              variant="outline"
+              className="gap-x-2 px-2.5 py-1.5 h-[none] font-normal text-[0.8rem]"
+              onClick={handleClickButton}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+              {!loading && <Upload className="h-3 w-3" />}
+              <span>{t('upload')}</span>
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+      <ImageCrop
+        show={showImageCrop}
+        onShowChange={setShowImageCrop}
+        onApply={(f) => {
+          croppedImgFile.current = f
+          setShowImageCrop(false)
+          upload()
+        }}
+        file={imgFile.current}
+      />
+    </>
   )
 }
 

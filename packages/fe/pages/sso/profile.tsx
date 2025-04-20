@@ -24,22 +24,23 @@ import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { enUS, zhCN } from 'date-fns/locale'
 import {
+  Ban,
   CalendarIcon,
-  Check,
+  CheckCircle,
   Loader2,
   LogOut,
   Pencil,
   UserRound,
-  X,
 } from 'lucide-react'
 import { GetStaticPropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { useEffect, useId, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import Avatar from '../../components/common/Avatar'
+import ImageCrop from '../../components/common/image-crop/ImageCrop'
 
 const ProfileItem: React.FC<{
   label: string
@@ -59,7 +60,7 @@ const ProfileEditItem: React.FC<{
 }> = ({ label, children, badge }) => {
   return (
     <div className="flex flex-col gap-y-2.5">
-      <div className="flex gap-x-2 items-center">
+      <div className="flex gap-x-1.5 items-center">
         <span className="text-sm font-semibold text-neutral-500">{label}</span>
         {badge && (
           <Badge className="relative px-1.5 py-0.5 text-[0.6rem]">
@@ -78,10 +79,15 @@ export const Profile: React.FC = () => {
 
   const [profileEditing, setProfileEditing] = useState(false)
 
+  const [showImageCrop, setShowImageCrop] = useState(false)
+
   const [name, setName] = useState('')
   const [gender, setGender] = useState('')
   const [birthday, setBirthday] = useState<number | undefined>()
   const [bio, setBio] = useState('')
+
+  const imgFile = useRef<File | null>(null)
+  const croppedImgFile = useRef<File | null>(null)
 
   const { locale } = useRouter()
 
@@ -98,7 +104,34 @@ export const Profile: React.FC = () => {
     logout: state.logout,
   }))
 
-  const handleUploadAvatar = () => {
+  const uploadAvatar = () => {
+    if (!croppedImgFile.current) {
+      return
+    }
+    setUploadLoading(true)
+    uploadFile2Oss(croppedImgFile.current)
+      .then((p) => {
+        if (!p) {
+          return
+        }
+        return http.patch('PatchProfile', {
+          avatar: p,
+        })
+      })
+      .then((r) => {
+        if (r.isSuccess) {
+          toast('updateAvatarSuccess', {
+            type: 'success',
+          })
+          refresh()
+        } else {
+          toast(r.msg)
+        }
+      })
+      .finally(setUploadLoading.bind(null, false))
+  }
+
+  const handleSelectAvatar = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
@@ -108,27 +141,8 @@ export const Profile: React.FC = () => {
       if (!file) {
         return
       }
-      setUploadLoading(true)
-      uploadFile2Oss(file)
-        .then((p) => {
-          if (!p) {
-            return
-          }
-          return http.patch('PatchProfile', {
-            avatar: p,
-          })
-        })
-        .then((r) => {
-          if (r.isSuccess) {
-            toast('updateAvatarSuccess', {
-              type: 'success',
-            })
-            refresh()
-          } else {
-            toast(r.msg)
-          }
-        })
-        .finally(setUploadLoading.bind(null, false))
+      imgFile.current = file
+      setShowImageCrop(true)
     }
     document.body.appendChild(input)
     input.click()
@@ -174,7 +188,7 @@ export const Profile: React.FC = () => {
       size="sm"
       variant="outline"
       className="w-full"
-      onClick={handleUploadAvatar}
+      onClick={handleSelectAvatar}
       disabled={uploadLoading || profileEditing}
     >
       {uploadLoading ? (
@@ -222,7 +236,7 @@ export const Profile: React.FC = () => {
       {profileApplying ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
-        <Check className="w-4 h-4" />
+        <CheckCircle className="w-4 h-4" />
       )}
       {t('apply')}
     </Button>
@@ -236,7 +250,7 @@ export const Profile: React.FC = () => {
       onClick={() => setProfileEditing(false)}
       disabled={profileApplying}
     >
-      <X className="w-4 h-4" />
+      <Ban className="w-4 h-4" />
       {t('cancel')}
     </Button>
   )
@@ -519,6 +533,16 @@ export const Profile: React.FC = () => {
             )}
           </div>
         </div>
+        <ImageCrop
+          show={showImageCrop}
+          onShowChange={setShowImageCrop}
+          onApply={(f) => {
+            croppedImgFile.current = f
+            setShowImageCrop(false)
+            uploadAvatar()
+          }}
+          file={imgFile.current}
+        />
       </AppLayout>
     </>
   )
