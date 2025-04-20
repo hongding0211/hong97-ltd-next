@@ -302,6 +302,10 @@ export const Profile: React.FC = () => {
     <>
       <Head>
         <title>{t('title')}</title>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
       </Head>
       <AppLayout>
         {/* 桌面端 */}
