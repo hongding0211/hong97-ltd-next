@@ -122,7 +122,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
           {user ? (
             <>
               <div
-                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5"
+                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5"
                 onClick={handleClickAvatar}
               >
                 <Avatar user={user} width={20} borderWidth={1} />
