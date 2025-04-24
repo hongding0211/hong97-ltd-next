@@ -172,7 +172,7 @@ export const Profile: React.FC = () => {
         name: _name,
         gender,
         birthday: birthday || undefined,
-        bio: bio.trim() || undefined,
+        bio: bio.trim() || '',
       })
       .then((v) => {
         if (v.isSuccess) {
