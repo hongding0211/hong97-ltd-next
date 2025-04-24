@@ -7,7 +7,7 @@ import { Model } from 'mongoose'
 import { ErrorResponse } from 'src/common/response/err-response'
 import { ServiceResponse } from 'src/common/response/types'
 import { v4 as uuidv4 } from 'uuid'
-import { User, UserDocument } from '../../schemas/user.schema'
+import { User, UserDocument } from '../user/schemas/user.schema'
 import { UserService } from '../user/user.service'
 import { HasLocalAuthResponseDto } from './dto/hasLocalAuth.dto'
 import {
