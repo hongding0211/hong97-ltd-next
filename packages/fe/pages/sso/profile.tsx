@@ -38,7 +38,7 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import Avatar from '../../components/common/Avatar'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
@@ -190,6 +190,18 @@ export const Profile: React.FC = () => {
       .finally(setProfileApplying.bind(null, false))
   }
 
+  const syncProfileEditingFields = useCallback(() => {
+    setName(user?.profile.name || '')
+    setGender(user?.profile.gender || '')
+    setBirthday(new Date(user?.profile.birthday).valueOf())
+    setBio(user?.profile.bio || '')
+  }, [user])
+
+  const handleCancelEditing = () => {
+    setProfileEditing(false)
+    syncProfileEditingFields()
+  }
+
   const handleCopyUserId = () => {
     if (user?.userId) {
       navigator.clipboard.writeText(user.userId)
@@ -276,7 +288,7 @@ export const Profile: React.FC = () => {
       size="sm"
       className="w-full"
       variant="outline"
-      onClick={() => setProfileEditing(false)}
+      onClick={handleCancelEditing}
       disabled={profileApplying}
     >
       <Ban className="w-4 h-4" />
@@ -301,11 +313,8 @@ export const Profile: React.FC = () => {
   }, [isLoading, user])
 
   useEffect(() => {
-    setGender(user?.profile.gender || '')
-    setBirthday(new Date(user?.profile.birthday).valueOf())
-    setBio(user?.profile.bio || '')
-    setName(user?.profile.name || '')
-  }, [user])
+    syncProfileEditingFields()
+  }, [syncProfileEditingFields])
 
   return (
     <>
