@@ -7,5 +7,6 @@
   "updateAvatarSuccess": "Update avatar successfully",
   "updateProfileSuccess": "Update profile successfully",
   "nameRequired": "Name cannot be empty",
-  "modifyPasswordSuccess": "Password modified successfully"
+  "modifyPasswordSuccess": "Password modified successfully",
+  "copyUserIdSuccess": "User ID copied"
 }

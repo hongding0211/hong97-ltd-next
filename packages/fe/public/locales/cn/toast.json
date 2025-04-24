@@ -7,5 +7,6 @@
   "updateAvatarSuccess": "更新头像成功",
   "updateProfileSuccess": "更新资料成功",
   "nameRequired": "昵称不能为空",
-  "modifyPasswordSuccess": "密码修改成功"
+  "modifyPasswordSuccess": "密码修改成功",
+  "copyUserIdSuccess": "用户ID已复制"
 }

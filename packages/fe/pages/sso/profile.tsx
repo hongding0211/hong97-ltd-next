@@ -190,6 +190,15 @@ export const Profile: React.FC = () => {
       .finally(setProfileApplying.bind(null, false))
   }
 
+  const handleCopyUserId = () => {
+    if (user?.userId) {
+      navigator.clipboard.writeText(user.userId)
+      toast('copyUserIdSuccess', {
+        type: 'success',
+      })
+    }
+  }
+
   const uploadAvatarButton = (
     <Button
       size="sm"
@@ -313,7 +322,10 @@ export const Profile: React.FC = () => {
           <div className="flex flex-col items-center">
             <Avatar user={user} className="mb-8" width={240} />
             <div className="text-2xl font-semibold">@{user?.profile.name}</div>
-            <div className="text-[0.7rem] mt-1.5 text-neutral-500">
+            <div
+              onClick={handleCopyUserId}
+              className="text-[0.7rem] mt-1.5 text-neutral-500 text-nowrap text-ellipsis overflow-hidden max-w-[240px] cursor-pointer"
+            >
               #{user?.userId}
             </div>
             <div className="flex flex-col w-full gap-y-4 mt-8">
@@ -439,7 +451,10 @@ export const Profile: React.FC = () => {
         <div className="flex mx-8 mt-8 flex-col items-center md:hidden">
           <Avatar user={user} className="mb-8" width={180} />
           <div className="text-2xl font-semibold">@{user?.profile.name}</div>
-          <div className="text-[0.7rem] mt-1.5 truncate text-neutral-500">
+          <div
+            onClick={handleCopyUserId}
+            className="text-[0.7rem] mt-1.5 truncate text-neutral-500 text-nowrap text-ellipsis overflow-hidden max-w-[240px] cursor-pointer"
+          >
             #{user?.userId}
           </div>
           <div className="flex flex-col w-full gap-y-6 mt-12">
