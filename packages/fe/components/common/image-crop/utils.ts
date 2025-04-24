@@ -38,6 +38,7 @@ export async function getCroppedImg(
   pixelCrop,
   rotation = 0,
   flip = { horizontal: false, vertical: false },
+  quality = 0.8,
 ) {
   const image = (await createImage(imageSrc)) as any
   const canvas = document.createElement('canvas')
@@ -99,7 +100,7 @@ export async function getCroppedImg(
 
   // As a blob
   return new Promise((resolve) => {
-    croppedCanvas.toBlob(resolve, 'image/png')
+    croppedCanvas.toBlob(resolve, 'image/png', quality)
   })
 }
 

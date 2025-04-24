@@ -78,7 +78,7 @@ const Form: React.FC<{
               </div>
             )
           }
-          autoComplete="new-password"
+          autoComplete="current-password"
         />
         <InputWithLabel
           value={newPassword}
