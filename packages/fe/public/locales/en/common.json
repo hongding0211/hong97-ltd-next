@@ -6,7 +6,8 @@
     "blog": "Blog",
     "doc": "Documents",
     "projects": "Projects",
-    "about": "About"
+    "about": "About",
+    "tools": "Tools"
   },
   "error": "Error",
   "back": "Back",
@@ -15,5 +16,13 @@
   "login": "Login",
   "cropAvatar": "Edit Avatar",
   "apply": "Apply",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "useLogin": {
+    "fallback": {
+      "title": "Oops!",
+      "subTitle": "This page requires login.",
+      "description": "Click to login",
+      "login": "Login"
+    }
+  }
 }

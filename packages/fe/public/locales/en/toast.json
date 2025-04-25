@@ -8,5 +8,9 @@
   "updateProfileSuccess": "Update profile successfully",
   "nameRequired": "Name cannot be empty",
   "modifyPasswordSuccess": "Password modified successfully",
-  "copyUserIdSuccess": "User ID copied"
+  "copyUserIdSuccess": "User ID copied",
+  "uploadSuccess": "Upload successfully",
+  "fileTooLarge": "Cannot upload files larger than 20MB",
+  "noFilesToUpload": "All files uploaded",
+  "copySuccess": "Copy successfully"
 }

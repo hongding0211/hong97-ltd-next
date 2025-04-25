@@ -23,6 +23,10 @@ export const menuConfig: IMenuItem[] = [
     path: '/blog',
   },
   {
+    key: 'tools',
+    path: '/tools',
+  },
+  {
     key: 'doc',
     path: 'https://docs.hong97.ltd',
     externalLink: true,

@@ -1,0 +1,14 @@
+{
+  "title": "工具集",
+  "items": {
+    "oss": {
+      "title": "OSS",
+      "subTitle": "对象存储上传工具",
+      "select": "选择文件",
+      "append": "添加文件",
+      "upload": "上传",
+      "noFiles": "还没有选中文件",
+      "clickToCopy": "点击复制"
+    }
+  }
+}

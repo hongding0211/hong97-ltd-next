@@ -1,0 +1,14 @@
+{
+  "title": "Tools",
+  "items": {
+    "oss": {
+      "title": "OSS",
+      "subTitle": "Object Storage Upload Tool",
+      "select": "Select File",
+      "append": "Append File",
+      "upload": "Upload",
+      "noFiles": "No files selected",
+      "clickToCopy": "Click to copy"
+    }
+  }
+}

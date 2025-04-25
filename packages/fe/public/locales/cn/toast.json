@@ -8,5 +8,9 @@
   "updateProfileSuccess": "更新资料成功",
   "nameRequired": "昵称不能为空",
   "modifyPasswordSuccess": "密码修改成功",
-  "copyUserIdSuccess": "用户ID已复制"
+  "copyUserIdSuccess": "用户ID已复制",
+  "uploadSuccess": "上传成功",
+  "fileTooLarge": "无法上传大于20MB的文件",
+  "noFilesToUpload": "所有文件已上传",
+  "copySuccess": "复制成功"
 }

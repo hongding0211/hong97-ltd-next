@@ -6,7 +6,8 @@
     "blog": "博客",
     "doc": "技术文档",
     "projects": "项目",
-    "about": "关于我"
+    "about": "关于我",
+    "tools": "工具集"
   },
   "error": "错误",
   "back": "返回",
@@ -15,5 +16,13 @@
   "login": "登录",
   "cropAvatar": "编辑头像",
   "apply": "应用",
-  "cancel": "取消"
+  "cancel": "取消",
+  "useLogin": {
+    "fallback": {
+      "title": "Oops!",
+      "subTitle": "该页面需要登录后访问",
+      "description": "点击跳转登录",
+      "login": "登录"
+    }
+  }
 }
