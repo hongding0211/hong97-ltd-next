@@ -243,7 +243,11 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
             (isLogin ? props.children : fallbackComponent)}
         </div>
 
-        <footer className="w-full bg-neutral-50 p-5 text-xs font-light text-neutral-800 dark:bg-black dark:text-neutral-300">
+        <footer
+          className={`w-full p-5 text-xs font-light ${
+            props?.simplifiedFooter ? '' : 'bg-neutral-50 dark:bg-black'
+          } text-neutral-800 dark:text-neutral-300`}
+        >
           {!props?.simplifiedFooter && (
             <div className="flex flex-col gap-x-10 gap-y-3 sm:flex-row">
               <div className="flex flex-col gap-y-1">

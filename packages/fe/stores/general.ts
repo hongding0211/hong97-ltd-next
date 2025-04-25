@@ -60,9 +60,7 @@ export const useAppStore = create<AppStore & AppStoreAction>((set) => {
     logout: () => {
       localStorage.removeItem(ACCESS_TOKEN_KEY)
       window.location.href = '/about'
-      setTimeout(() => {
-        set({ user: null })
-      }, 200)
+      set({ ...initialState })
     },
   }
 })

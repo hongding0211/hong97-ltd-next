@@ -163,7 +163,7 @@ const ModifyPassword: React.FC<{
       setNewPassword('')
       setAlertMsg('')
     }
-  }, [show])
+  }, [])
 
   if (isDesktop) {
     return (
