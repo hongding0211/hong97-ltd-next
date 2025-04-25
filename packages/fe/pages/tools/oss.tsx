@@ -67,7 +67,7 @@ const Item: React.FC<{
   )
 }
 
-function OSS() {
+function OSS({ locale }: { locale: string }) {
   const [files, setFiles] = useState<File[]>([])
 
   const [uploadedFiles, setUploadedFiles] = useState<
@@ -164,7 +164,7 @@ function OSS() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/tools">
+                <BreadcrumbLink href={`/${locale}/tools`}>
                   {tCommon('nav.tools')}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -249,6 +249,7 @@ export async function getStaticProps(context: GetStaticPropsContext) {
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),
+      locale,
     },
   }
 }

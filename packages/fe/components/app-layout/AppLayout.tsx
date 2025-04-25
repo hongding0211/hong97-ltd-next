@@ -179,7 +179,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                       currentPath.startsWith(m.path)
                         ? 'dark:text-neutral-100'
                         : 'dark:text-neutral-400'
-                    } hover:text-neutral-900 dark:hover:text-neutral-100 w-min`}
+                    } hover:text-neutral-900 dark:hover:text-neutral-100 text-nowrap w-min`}
                   >
                     {t(`nav.${m.key}`)}
                     {m.icon && (
