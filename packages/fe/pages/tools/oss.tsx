@@ -150,7 +150,7 @@ function OSS() {
           content="#000"
         />
       </Head>
-      <AppLayout>
+      <AppLayout simplifiedFooter>
         <div className="max-w-[500px] mx-auto mt-1 md:mt-8 flex-col">
           <div className="flex flex-col gap-y-2">
             {files.length === 0 && (

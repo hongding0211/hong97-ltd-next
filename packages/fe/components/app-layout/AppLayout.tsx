@@ -18,6 +18,7 @@ import NavButtons from './NavButtons'
 
 interface IAppLayout {
   children?: React.ReactNode
+  simplifiedFooter?: boolean
 }
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
@@ -238,43 +239,45 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
         <div className="p-5">{props.children}</div>
 
         <footer className="w-full bg-neutral-50 p-5 text-xs font-light text-neutral-800 dark:bg-black dark:text-neutral-300">
-          <div className="flex flex-col gap-x-10 gap-y-3 sm:flex-row">
-            <div className="flex flex-col gap-y-1">
-              <span className="font-medium">{t('contact')}</span>
-              <span className="flex items-center">
-                <img
-                  src="https://www.xiaohongshu.com/favicon.ico"
-                  alt="xhs"
-                  className="mr-1 h-[11px] w-[11px]"
-                />
-                <a
-                  href="https://www.xiaohongshu.com/user/profile/5b4cb655f7e8b918f05ca063"
-                  target="__blank"
-                >
-                  {t('xhs')} @弘
-                </a>
-              </span>
-              <div className="flex items-center">
-                <Mail className="mr-1 w-[12px] h-[12px]" />
-                keith.dh@hotmail.com
+          {!props?.simplifiedFooter && (
+            <div className="flex flex-col gap-x-10 gap-y-3 sm:flex-row">
+              <div className="flex flex-col gap-y-1">
+                <span className="font-medium">{t('contact')}</span>
+                <span className="flex items-center">
+                  <img
+                    src="https://www.xiaohongshu.com/favicon.ico"
+                    alt="xhs"
+                    className="mr-1 h-[11px] w-[11px]"
+                  />
+                  <a
+                    href="https://www.xiaohongshu.com/user/profile/5b4cb655f7e8b918f05ca063"
+                    target="__blank"
+                  >
+                    {t('xhs')} @弘
+                  </a>
+                </span>
+                <div className="flex items-center">
+                  <Mail className="mr-1 w-[12px] h-[12px]" />
+                  keith.dh@hotmail.com
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-y-1">
+                <span className="font-medium">{t('myProject')}</span>
+                {footerConfig.map((i) => (
+                  <a
+                    href={i.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cursor-pointer text-neutral-800 hover:underline dark:text-neutral-300"
+                    key={i.key}
+                  >
+                    {i.title}
+                  </a>
+                ))}
               </div>
             </div>
-
-            <div className="flex flex-col gap-y-1">
-              <span className="font-medium">{t('myProject')}</span>
-              {footerConfig.map((i) => (
-                <a
-                  href={i.path}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="cursor-pointer text-neutral-800 hover:underline dark:text-neutral-300"
-                  key={i.key}
-                >
-                  {i.title}
-                </a>
-              ))}
-            </div>
-          </div>
+          )}
 
           <div className="my-3 h-[1px] bg-neutral-200 dark:bg-neutral-800" />
 
