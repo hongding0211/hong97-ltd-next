@@ -113,7 +113,7 @@ function OSS() {
       setUploading(true)
       await executePromisesWithLimit(
         fileToBeUploaded.map((f) => ({
-          promise: uploadFile2Oss(f),
+          promise: uploadFile2Oss(f, 'uploader'),
           onFulfilled: (url) => {
             setUploadedFiles([...uploadedFiles, { name: f.name, url }])
           },

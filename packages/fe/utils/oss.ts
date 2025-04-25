@@ -42,12 +42,6 @@ export async function uploadFile2Oss(file: File, app?: string) {
   }
 }
 
-export async function uploadFiles2Oss(files: File[]) {
-  const promises = files.map((file) => uploadFile2Oss(file))
-  const results = await Promise.all(promises)
-  return results
-}
-
 export function getCompressImage(path: string, width: number) {
   return `${path}?x-oss-process=image/resize,w_${width}`
 }

@@ -114,7 +114,7 @@ export const Profile: React.FC = () => {
       return
     }
     setUploadLoading(true)
-    uploadFile2Oss(croppedImgFile.current)
+    uploadFile2Oss(croppedImgFile.current, 'sso')
       .then((p) => {
         if (!p) {
           return
