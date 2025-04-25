@@ -10,11 +10,14 @@ export async function executePromisesWithLimit<T>(
     onFulfilled?: (value: T) => void
     onRejected?: (reason: any) => void
   }[],
-  limit: number,
+  limit = 3,
+  onAllSettled?: (results: (T | Error)[]) => void,
 ): Promise<void> {
   const results: (T | Error)[] = []
   const executing: Promise<void>[] = []
   const iterator = promiseObjects.entries()
+
+  let cnt = 0
 
   const runPromise = async ([index, { promise, onFulfilled, onRejected }]: [
     number,
@@ -27,6 +30,10 @@ export async function executePromisesWithLimit<T>(
     } catch (error) {
       results[index] = error instanceof Error ? error : new Error(String(error))
       onRejected?.(error)
+    } finally {
+      if (++cnt === promiseObjects.length) {
+        onAllSettled?.(results)
+      }
     }
   }
 

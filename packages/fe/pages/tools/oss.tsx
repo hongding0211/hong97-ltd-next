@@ -109,27 +109,26 @@ function OSS() {
       })
       return
     }
-    try {
-      setUploading(true)
-      await executePromisesWithLimit(
-        fileToBeUploaded.map((f) => ({
-          promise: uploadFile2Oss(f, 'uploader'),
-          onFulfilled: (url) => {
-            setUploadedFiles([...uploadedFiles, { name: f.name, url }])
-          },
-        })),
-        3,
-      )
-      toast('uploadSuccess', {
-        type: 'success',
-      })
-    } catch {
-      toast('uploadFailed', {
-        type: 'error',
-      })
-    } finally {
-      setUploading(false)
-    }
+    setUploading(true)
+    executePromisesWithLimit(
+      fileToBeUploaded.map((f) => ({
+        promise: uploadFile2Oss(f, 'uploader'),
+        onFulfilled: (url) => {
+          setUploadedFiles((pre) => [...pre, { name: f.name, url }])
+        },
+        onRejected: () => {
+          toast('uploadFailed', {
+            type: 'error',
+          })
+        },
+      })),
+      3,
+      () => {
+        toast('uploadSuccess', {
+          type: 'success',
+        })
+      },
+    )
   }
 
   return (
@@ -174,7 +173,10 @@ function OSS() {
                   uploaded={
                     uploadedFiles.find((x) => x.name === f.name) !== undefined
                   }
-                  uploading={uploading}
+                  uploading={
+                    uploading &&
+                    !uploadedFiles.map((x) => x.name).includes(f.name)
+                  }
                 />
                 {idx !== files.length - 1 && (
                   <div className="w-full h-[0.5px] my-1 bg-neutral-300 dark:bg-neutral-700" />
