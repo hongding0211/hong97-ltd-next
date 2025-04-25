@@ -12,7 +12,7 @@ interface AppStoreAction {
   init: () => Promise<void>
   cleanUp: () => void
   refresh: () => void
-  logout: () => void
+  logout: (locale: string) => void
 }
 
 const initialState: AppStore = {
@@ -57,9 +57,9 @@ export const useAppStore = create<AppStore & AppStoreAction>((set) => {
         set({ isLoading: false })
       }
     },
-    logout: () => {
+    logout: (locale: string) => {
       localStorage.removeItem(ACCESS_TOKEN_KEY)
-      window.location.href = '/about'
+      window.location.href = `/${locale}/about`
       set({ ...initialState })
     },
   }

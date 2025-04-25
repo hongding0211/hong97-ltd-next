@@ -155,7 +155,7 @@ export const Profile: React.FC = () => {
   }
 
   const handleLogout = () => {
-    logout()
+    logout(locale)
   }
 
   const handleApplyEditing = () => {

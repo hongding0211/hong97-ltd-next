@@ -106,11 +106,6 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           })
           if (loginRes.isSuccess) {
             localStorage.setItem(ACCESS_TOKEN_KEY, loginRes.data.token)
-            set({
-              showRedirecting: true,
-              avatar: loginRes.data.user.profile.avatar ?? '',
-              name: loginRes.data.user.profile.name ?? '',
-            })
             const { redirect } = get()
             if (redirect) {
               /** If a redirect url is provided, redirect to it */
@@ -119,6 +114,11 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
               /** Otherwise, append the token to the current url */
               const url = new URL(window.location.href)
               window.location.href = `${url}#${loginRes.data.token}`
+              set({
+                showRedirecting: true,
+                avatar: loginRes.data.user.profile.avatar ?? '',
+                name: loginRes.data.user.profile.name ?? '',
+              })
             }
           } else {
             toast(loginRes.msg, {
