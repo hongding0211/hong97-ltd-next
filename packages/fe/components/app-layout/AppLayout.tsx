@@ -6,6 +6,7 @@ import Link from 'next/link'
 import React, { useContext, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { useLogin } from '@hooks/useLogin'
 import { useAppStore } from '@stores/general'
 import { truncate } from '@utils/truncate'
 import { Mail, UserRound } from 'lucide-react'
@@ -19,6 +20,7 @@ import NavButtons from './NavButtons'
 interface IAppLayout {
   children?: React.ReactNode
   simplifiedFooter?: boolean
+  authRequired?: boolean
 }
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
@@ -27,6 +29,8 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   const { user } = useAppStore((state) => ({
     user: state.user,
   }))
+
+  const { fallbackComponent, isLogin } = useLogin()
 
   const [menuContainerStyle, menuContainerApi] = useSpring(() => {})
   const [lineStyle, lineApi] = useSpring(() => {})
@@ -175,14 +179,11 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                       currentPath.startsWith(m.path)
                         ? 'dark:text-neutral-100'
                         : 'dark:text-neutral-400'
-                    } hover:text-neutral-900 dark:hover:text-neutral-100`}
+                    } hover:text-neutral-900 dark:hover:text-neutral-100 w-min`}
                   >
                     {t(`nav.${m.key}`)}
                     {m.icon && (
-                      <FontAwesomeIcon
-                        icon={m.icon}
-                        className="absolute top-1 h-[10px] w-[10px] pl-[4px]"
-                      />
+                      <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
                     )}
                   </Link>
                 </animated.span>
@@ -236,7 +237,11 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
       )}
 
       <div className="app-layout-content flex flex-col justify-between">
-        <div className="p-5">{props.children}</div>
+        <div className="p-5">
+          {!props?.authRequired && props.children}
+          {props?.authRequired &&
+            (isLogin ? props.children : fallbackComponent)}
+        </div>
 
         <footer className="w-full bg-neutral-50 p-5 text-xs font-light text-neutral-800 dark:bg-black dark:text-neutral-300">
           {!props?.simplifiedFooter && (

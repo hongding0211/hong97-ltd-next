@@ -22,6 +22,7 @@ export function useLogin() {
   }, [isLoading, user])
 
   return {
+    isLogin: user && !isLoading,
     fallbackComponent,
   }
 }

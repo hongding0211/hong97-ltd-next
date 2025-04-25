@@ -1,5 +1,4 @@
 import AppLayout from '@components/app-layout/AppLayout'
-import { useLogin } from '@hooks/useLogin'
 import { http } from '@services/http'
 import { ChevronRight } from 'lucide-react'
 import { GetStaticPropsContext } from 'next'
@@ -47,8 +46,6 @@ const Item: React.FC<{
 function Tools() {
   const { t } = useTranslation('tools')
 
-  const { fallbackComponent } = useLogin()
-
   return (
     <>
       <Head>
@@ -79,8 +76,6 @@ function Tools() {
             </>
           ))}
         </div>
-
-        {fallbackComponent}
       </AppLayout>
     </>
   )

@@ -1,3 +1,11 @@
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import AppLayout from '@components/app-layout/AppLayout'
 import { useLogin } from '@hooks/useLogin'
@@ -72,6 +80,7 @@ function OSS() {
   const [uploading, setUploading] = useState(false)
 
   const { t } = useTranslation('tools')
+  const { t: tCommon } = useTranslation('common')
 
   const { fallbackComponent } = useLogin()
 
@@ -150,9 +159,22 @@ function OSS() {
           content="#000"
         />
       </Head>
-      <AppLayout simplifiedFooter>
-        <div className="max-w-[500px] mx-auto mt-1 md:mt-8 flex-col">
-          <div className="flex flex-col gap-y-2">
+      <AppLayout simplifiedFooter authRequired>
+        <div className="max-w-[768px] mx-auto md:mt-2 flex-col">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/tools">
+                  {tCommon('nav.tools')}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{t('items.oss.title')}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className="flex flex-col gap-y-2 mt-10">
             {files.length === 0 && (
               <span className="text-neutral-600 dark:text-neutral-400 text-sm">
                 {t('items.oss.noFiles')}
