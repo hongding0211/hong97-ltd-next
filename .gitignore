@@ -22,3 +22,4 @@ node_modules
 .next
 
 /packages/fe/.env
+packages/server/src/i18n/types.d.ts
