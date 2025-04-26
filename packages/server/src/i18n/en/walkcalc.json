@@ -1,0 +1,8 @@
+{
+  "joinFailed": "Join failed",
+  "groupNotExists": "Group does not exist.",
+  "userAlreadyInGroup": "User already in this group.",
+  "groupNotFoundOrNotOwner": "Group not found or you do not own this group.",
+  "notGroupOwner": "You do not own this group.",
+  "nameExists": "Name exists."
+}

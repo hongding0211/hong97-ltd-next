@@ -99,50 +99,45 @@ export class RecordService {
     return result
   }
 
-  async drop(groupId: string, recordId: string, userId: string) {
-    const group = await this.groupModel.findOne({
-      id: groupId,
-      $or: [{ ownerId: userId }, { 'members.userId': userId }],
-    })
-
-    if (!group) {
-      throw new Error('You are not in the group.')
-    }
-
-    const record = group.records.find((r) => r.id === recordId)
-    if (!record) {
-      throw new Error('Record not found.')
-    }
-
-    // Revert debt for each participant
-    for (const participant of record.participants) {
-      const debt = participant.amount
-      await this.groupModel.updateOne(
-        { id: groupId, 'members.userId': participant.userId },
-        {
-          $inc: {
-            'members.$.debt': debt,
-            'members.$.cost': -participant.amount,
-          },
-        },
-      )
-    }
-
-    // Revert for the one who paid
-    await this.groupModel.updateOne(
-      { id: groupId, 'members.userId': record.creatorId },
-      {
-        $inc: { 'members.$.debt': -record.amount },
-      },
-    )
-
-    // Remove the record
-    return this.groupModel.updateOne(
-      { id: groupId },
-      {
-        $pull: { records: { id: recordId } },
-      },
-    )
+  async drop(_groupId: string, _recordId: string, _userId: string) {
+    // const group = await this.groupModel.findOne({
+    //   id: groupId,
+    //   $or: [{ ownerId: userId }, { 'members.userId': userId }],
+    // })
+    // if (!group) {
+    //   throw new Error('You are not in the group.')
+    // }
+    // const record = group.records.find((r) => r.recordId === recordId)
+    // if (!record) {
+    //   throw new Error('Record not found.')
+    // }
+    // // Revert debt for each participant
+    // for (const participant of record.forWhom) {
+    //   const debt = participant.amount
+    //   await this.groupModel.updateOne(
+    //     { id: groupId, 'members.userId': participant.userId },
+    //     {
+    //       $inc: {
+    //         'members.$.debt': debt,
+    //         'members.$.cost': -participant.amount,
+    //       },
+    //     },
+    //   )
+    // }
+    // // Revert for the one who paid
+    // await this.groupModel.updateOne(
+    //   { id: groupId, 'members.userId': record.creatorId },
+    //   {
+    //     $inc: { 'members.$.debt': -record.amount },
+    //   },
+    // )
+    // // Remove the record
+    // return this.groupModel.updateOne(
+    //   { id: groupId },
+    //   {
+    //     $pull: { records: { id: recordId } },
+    //   },
+    // )
   }
 
   async update(payload: AddRecordDto) {

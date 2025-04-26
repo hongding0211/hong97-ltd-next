@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
+import { ErrorResponse } from 'src/common/response/err-response'
 import { Group } from '../schemas/group.schema'
 
 @Injectable()
@@ -11,15 +12,17 @@ export class GroupService {
   ) {}
 
   private numToString(num: number): string {
-    const chars =
-      '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    let result = ''
-    let n = num
-    do {
-      result = chars[n % chars.length] + result
-      n = Math.floor(n / chars.length)
-    } while (n > 0)
-    return result
+    const binArr = num.toString(2).split('')
+    const len = binArr.length
+    for (let i = 0; i < 20 - len; i++) {
+      binArr.unshift('0')
+    }
+    binArr.reverse()
+    let str = parseInt(binArr.join(''), 2).toString(36)
+    while (str.length < 4) {
+      str = '0' + str
+    }
+    return str.toUpperCase()
   }
 
   async create(name: string, userId: string) {
@@ -40,7 +43,6 @@ export class GroupService {
         members: [
           {
             userId,
-            name: '',
             debt: 0,
             cost: 0,
           },
@@ -58,7 +60,7 @@ export class GroupService {
   async join(groupId: string, userId: string) {
     const group = await this.groupModel.findOne({ id: groupId })
     if (!group) {
-      throw new Error('Group not exists.')
+      return new ErrorResponse('walkcalc.groupNotExists')
     }
 
     const existingMember = await this.groupModel.findOne({
@@ -67,32 +69,53 @@ export class GroupService {
     })
 
     if (existingMember) {
-      throw new Error('User already in this group.')
+      return new ErrorResponse('walkcalc.userAlreadyInGroup')
     }
 
-    return this.groupModel.updateOne(
+    const updateRes = await this.groupModel.updateOne(
       { id: groupId },
       {
         $push: {
           members: {
             userId,
-            name: '',
             debt: 0,
             cost: 0,
           },
         },
       },
     )
+
+    if (updateRes.modifiedCount < 1) {
+      return new ErrorResponse('walkcalc.joinFailed')
+    }
+
+    return {
+      groupId,
+    }
   }
 
   async dismiss(groupId: string, userId: string) {
-    const res = await this.groupModel.deleteOne({
-      id: groupId,
+    const group = await this.groupModel.findOne({
       ownerId: userId,
     })
-    if (res.deletedCount < 1) {
-      throw new Error('Group not found or you do not own this group')
+    if (!group) {
+      return new ErrorResponse('walkcalc.notGroupOwner')
     }
+
+    // const members = group.members
+
+    // TODO - HongD 04/26 23:29
+    // update member's debt
+
+    if (
+      !(await this.groupModel.deleteOne({
+        id: groupId,
+        ownerId: userId,
+      }))
+    ) {
+      return new ErrorResponse('walkcalc.groupNotFoundOrNotOwner')
+    }
+
     return {
       groupId,
     }
@@ -110,7 +133,7 @@ export class GroupService {
     })
 
     if (!group) {
-      throw new Error('You do not own this group')
+      throw new ErrorResponse('walkcalc.notGroupOwner')
     }
 
     const existingUser = await this.groupModel.findOne({
@@ -119,7 +142,7 @@ export class GroupService {
     })
 
     if (existingUser) {
-      throw new Error('Name exists.')
+      throw new ErrorResponse('walkcalc.nameExists')
     }
 
     return this.groupModel.updateOne(
@@ -144,7 +167,7 @@ export class GroupService {
     })
 
     if (!group) {
-      throw new Error('You do not own this group')
+      throw new ErrorResponse('walkcalc.notGroupOwner')
     }
 
     return this.groupModel.updateOne(
@@ -205,7 +228,7 @@ export class GroupService {
     })
 
     if (!group) {
-      throw new Error('Group not found or you do not own this group')
+      throw new ErrorResponse('walkcalc.groupNotFoundOrNotOwner')
     }
 
     if (isArchive) {
@@ -245,7 +268,7 @@ export class GroupService {
     })
 
     if (!group) {
-      throw new Error('Group not found or you do not own this group')
+      throw new ErrorResponse('walkcalc.groupNotFoundOrNotOwner')
     }
 
     return this.groupModel.updateOne(

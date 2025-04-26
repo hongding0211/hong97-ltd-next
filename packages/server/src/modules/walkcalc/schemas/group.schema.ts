@@ -17,26 +17,6 @@ export class Group {
   @Prop()
   name: string
 
-  @Prop([{ type: Object }])
-  members: Array<{
-    userId: string
-    name: string
-    avatar?: string
-  }>
-
-  @Prop([{ type: Object }])
-  records: Array<{
-    id: string
-    amount: number
-    description: string
-    creatorId: string
-    participants: Array<{
-      userId: string
-      amount: number
-    }>
-    createdAt: number
-  }>
-
   @Prop()
   createdAt: number
 
@@ -44,17 +24,36 @@ export class Group {
   modifiedAt: number
 
   @Prop([{ type: Object }])
-  tempUsers: Array<{
-    id: string
-    name: string
+  members: Array<{
+    userId: string
+    debt: number
+    cost: number
   }>
 
   @Prop([{ type: Object }])
-  archivedUsers: Array<{
-    userId: string
-    name: string
-    avatar?: string
+  records: Array<{
+    who: string
+    paid: number
+    forWhom: string[]
+    type: string
+    text?: string
+    long?: number
+    lat?: number
+    recordId: string
+    createdAt: number
+    modifiedAt: number
   }>
+
+  @Prop([{ type: Object }])
+  tempUsers: Array<{
+    uuid: string
+    name: string
+    debt: number
+    cost: number
+  }>
+
+  @Prop([{ type: Object }])
+  archivedUsers: Array<string>
 }
 
 export const GroupSchema = SchemaFactory.createForClass(Group)

@@ -15,6 +15,7 @@ import { CustomThrottleGuard } from './guards/throttle'
 import { AuthModule } from './modules/auth/auth.module'
 import { OssModule } from './modules/oss/oss.module'
 import { UserModule } from './modules/user/user.module'
+import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { UserModule } from './modules/user/user.module'
     /** General Modules */
     AuthModule,
     OssModule,
+    WalkcalcModule,
   ],
   controllers: [AppController],
   providers: [

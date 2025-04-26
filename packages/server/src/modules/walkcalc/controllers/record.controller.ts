@@ -46,13 +46,13 @@ export class RecordController {
     @UserId() userId: string,
   ) {
     const { groupId, recordId } = body
-    const result = await this.recordService.drop(groupId, recordId, userId)
-    if (result.modifiedCount > 0) {
-      return {
-        groupId,
-        recordId,
-      }
-    }
+    const _result = await this.recordService.drop(groupId, recordId, userId)
+    // if (result.modifiedCount > 0) {
+    //   return {
+    //     groupId,
+    //     recordId,
+    //   }
+    // }
     throw new Error('Drop failed.')
   }
 

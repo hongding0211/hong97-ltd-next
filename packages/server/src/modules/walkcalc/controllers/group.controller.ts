@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { v4 as uuidv4 } from 'uuid'
 import { GroupService } from '../services/group.service'
@@ -19,18 +19,12 @@ export class GroupController {
   @Post('join')
   async join(@Body() body: { id: string }, @UserId() userId: string) {
     const { id } = body
-    const result = await this.groupService.join(id, userId)
-    if (result.modifiedCount === 1) {
-      return {
-        groupId: id,
-      }
-    }
-    throw new Error('Join failed.')
+    return this.groupService.join(id, userId)
   }
 
-  @Get('dismiss')
+  @Delete('/')
   async dismiss(@Query('id') id: string, @UserId() userId: string) {
-    await this.groupService.dismiss(id, userId)
+    return this.groupService.dismiss(id, userId)
   }
 
   @Post('temp-user')
