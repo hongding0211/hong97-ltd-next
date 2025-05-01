@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { ErrorResponse } from 'src/common/response/err-response'
+import { UserService } from 'src/modules/user/user.service'
 import { Group } from '../schemas/group.schema'
 
 @Injectable()
@@ -9,6 +10,7 @@ export class GroupService {
   constructor(
     @InjectModel('walkcalc-groups')
     private readonly groupModel: Model<Group>,
+    private readonly userService: UserService,
   ) {}
 
   private numToString(num: number): string {
@@ -102,10 +104,17 @@ export class GroupService {
       return new ErrorResponse('walkcalc.notGroupOwner')
     }
 
-    // const members = group.members
+    const members = group.members
 
-    // TODO - HongD 04/26 23:29
-    // update member's debt
+    members.forEach(async (member) => {
+      await this.userService.writeUserAppData(
+        member.userId,
+        'walkcalc',
+        (pre) => ({
+          totalDebt: (pre.totalDebt ?? 0) - member.debt,
+        }),
+      )
+    })
 
     if (
       !(await this.groupModel.deleteOne({
@@ -121,6 +130,7 @@ export class GroupService {
     }
   }
 
+  // TODO - HongD 04/27 00:04
   async addTempUser(
     groupId: string,
     uuid: string,
@@ -163,21 +173,24 @@ export class GroupService {
   async invite(groupId: string, members: string[], userId: string) {
     const group = await this.groupModel.findOne({
       id: groupId,
-      ownerId: userId,
+      members: {
+        $elemMatch: {
+          userId,
+        },
+      },
     })
 
     if (!group) {
-      throw new ErrorResponse('walkcalc.notGroupOwner')
+      throw new ErrorResponse('walkcalc.userNotInGroup')
     }
 
-    return this.groupModel.updateOne(
+    const updateRes = await this.groupModel.updateOne(
       { id: groupId },
       {
         $push: {
           members: {
             $each: members.map((memberId) => ({
               userId: memberId,
-              name: '',
               debt: 0,
               cost: 0,
             })),
@@ -185,6 +198,15 @@ export class GroupService {
         },
       },
     )
+
+    if (updateRes.modifiedCount < 1) {
+      throw new ErrorResponse('walkcalc.inviteFailed')
+    }
+
+    return {
+      groupId,
+      members,
+    }
   }
 
   async my(userId: string) {

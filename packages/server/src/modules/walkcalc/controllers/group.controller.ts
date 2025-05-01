@@ -51,14 +51,7 @@ export class GroupController {
     @UserId() userId: string,
   ) {
     const { id, members } = body
-    const result = await this.groupService.invite(id, members, userId)
-    if (result.modifiedCount === 1) {
-      return {
-        id,
-        members,
-      }
-    }
-    throw new Error('Invite failed.')
+    return await this.groupService.invite(id, members, userId)
   }
 
   @Get('my')

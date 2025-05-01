@@ -4,5 +4,7 @@
   "userAlreadyInGroup": "用户已在群组中。",
   "groupNotFoundOrNotOwner": "群组未找到或您不是群主。",
   "notGroupOwner": "您不是该群主。",
-  "nameExists": "名称已存在。"
+  "nameExists": "名称已存在。",
+  "inviteFailed": "邀请失败。",
+  "userNotInGroup": "用户不在该群组中。"
 }

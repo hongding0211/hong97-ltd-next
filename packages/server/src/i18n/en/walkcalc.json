@@ -4,5 +4,7 @@
   "userAlreadyInGroup": "User already in this group.",
   "groupNotFoundOrNotOwner": "Group not found or you do not own this group.",
   "notGroupOwner": "You do not own this group.",
-  "nameExists": "Name exists."
+  "nameExists": "Name exists.",
+  "inviteFailed": "Invite failed.",
+  "userNotInGroup": "User not in this group."
 }
