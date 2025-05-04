@@ -4,9 +4,18 @@ export interface IBlogConfig {
   path: string
   time: number
   keywords?: string[]
+  authRequired?: boolean
 }
 
 export const BlogConfig: IBlogConfig[] = [
+  {
+    key: '2025-mood-closet',
+    title: 'Mood Closet',
+    path: '2025-mood-closet',
+    time: 1746387234000,
+    keywords: ['nsfw'],
+    authRequired: true,
+  },
   {
     key: '2024-summary',
     title: '2024 Summary',
