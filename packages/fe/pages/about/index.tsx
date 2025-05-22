@@ -11,8 +11,14 @@ import React from 'react'
 
 import BlurFade from '@/components/magicui/blur-fade'
 import { cn } from '@/lib/utils'
+import { getCompressImage } from '@utils/oss'
 import AppLayout from '../../components/app-layout/AppLayout'
 import AnimatedGradientText from '../../components/magicui/animated-gradient-text'
+
+const COVER = getCompressImage(
+  'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202505/DSC_3651_mazkbx1n.jpeg',
+  1000,
+)
 
 const CatsImgs = [
   '/img/cat0.jpeg',
@@ -31,14 +37,14 @@ function About() {
       </Head>
       <AppLayout>
         <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12">
-          <img src="/img/cover.jpeg" alt="me" className="rounded" />
+          <img src={COVER} alt="me" className="rounded" />
 
           <div className="mb-6 mt-12 sm:mb-12 sm:mt-24">
             <BlurFade inView>
               <AnimatedGradientText>
                 <h1
                   className={cn(
-                    'animate-gradient inline bg-gradient-to-r from-[#007BFF] via-[#00fbff] to-[#007BFF] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent',
+                    'animate-gradient inline bg-gradient-to-r from-[#FF416C] via-[#FF416C] to-[#FF4B2B] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent',
                   )}
                 >
                   {t('title')}
