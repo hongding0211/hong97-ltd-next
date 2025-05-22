@@ -1,11 +1,12 @@
 import { Badge } from '@/components/ui/badge'
+import BlogConfig from '@config/blog.json'
 import dayjs from 'dayjs'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useTranslation } from 'react-i18next'
 import AppLayout from '../../components/app-layout/AppLayout'
-import { BlogConfig, IBlogConfig } from '../../config/blog'
+import { IBlogConfig } from '../../types/blog'
 
 type BlogProps = {
   blogs: IBlogConfig[]
@@ -69,7 +70,7 @@ export default function Blog(props: BlogProps) {
                 <h2 className="!m-0"># {year}</h2>
               </div>
               {blogs.map((blog) => (
-                <div key={blog.key} className="mb-3">
+                <div key={blog.key} className="mb-5">
                   <a
                     className="flex items-center gap-x-1 cursor-pointer no-underline"
                     onClick={() => handleClickLink(blog)}
@@ -81,7 +82,7 @@ export default function Blog(props: BlogProps) {
                       </Badge>
                     )}
                   </a>
-                  <figcaption className="m-0 mt-0.5">
+                  <figcaption className="m-0 !mt-0.5 !text-sm">
                     {dayjs(blog.time).format('MMM DD, YYYY')}
                     {blog.keywords?.map((k, _i) => (
                       <span key={k}>{` #${k}`}</span>

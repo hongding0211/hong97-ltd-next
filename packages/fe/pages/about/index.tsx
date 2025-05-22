@@ -10,6 +10,7 @@ import Head from 'next/head'
 import React from 'react'
 
 import BlurFade from '@/components/magicui/blur-fade'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { getCompressImage } from '@utils/oss'
 import AppLayout from '../../components/app-layout/AppLayout'
@@ -37,7 +38,18 @@ function About() {
       </Head>
       <AppLayout>
         <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12">
-          <img src={COVER} alt="me" className="rounded" />
+          <div
+            className="relative rounded sm:mt-2 md:!mt-6"
+            style={{
+              aspectRatio: '3/2',
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+            }}
+          >
+            <Skeleton className="w-full h-full absolute !rounded" />
+            <img src={COVER} alt="me" className="absolute !m-0 !rounded" />
+          </div>
 
           <div className="mb-6 mt-12 sm:mb-12 sm:mt-24">
             <BlurFade inView>

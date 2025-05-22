@@ -14,16 +14,24 @@
     "lint": "biome lint .",
     "check": "biome check --apply .",
     "bump:fe": "pnpm --filter hong97-ltd-next-fe bump",
-    "bump:server": "pnpm --filter hong97-ltd-next-server bump"
+    "bump:server": "pnpm --filter hong97-ltd-next-server bump",
+    "new:blog": "node packages/fe/scripts/new-blog.js"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
+    "@inquirer/prompts": "^7.5.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
-    "version-bump-prompt": "^6.1.0",
-    "typescript": "^5.7.3"
+    "pinyin": "^4.0.0",
+    "typescript": "^5.7.3",
+    "version-bump-prompt": "^6.1.0"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx}": ["biome check --apply-unsafe --diagnostic-level=error"]
+    "*.{js,ts,jsx,tsx}": [
+      "biome check --apply-unsafe --diagnostic-level=error"
+    ]
+  },
+  "dependencies": {
+    "chalk": "4"
   }
 }

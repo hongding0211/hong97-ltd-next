@@ -2,7 +2,7 @@ import dayjs from 'dayjs'
 import Head from 'next/head'
 import React from 'react'
 // import { useTranslation } from 'react-i18next'
-import { IBlogConfig } from '../../config/blog'
+import { IBlogConfig } from '../../types/blog'
 import AppLayout from '../app-layout/AppLayout'
 import MdxLayout from '../mdx-layout'
 

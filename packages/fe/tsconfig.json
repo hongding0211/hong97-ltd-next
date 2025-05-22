@@ -26,7 +26,8 @@
       "@services/*": ["./services/*"],
       "@stores/*": ["./stores/*"],
       "@hooks/*": ["./hooks/*"],
-      "@components/*": ["./components/*"]
+      "@components/*": ["./components/*"],
+      "@config/*": ["./config/*"]
     },
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,

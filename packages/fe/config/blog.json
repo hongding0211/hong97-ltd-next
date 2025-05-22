@@ -1,0 +1,18 @@
+[
+  {
+    "key": "2025-mood-closet",
+    "title": "Mood Closet",
+    "path": "2025-mood-closet",
+    "time": 1746387234000,
+    "keywords": ["nsfw"],
+    "authRequired": true
+  },
+  {
+    "key": "2024-summary",
+    "title": "2024 Summary",
+    "path": "2024-summary",
+    "time": 1735219062000,
+    "keywords": ["nsfw"],
+    "authRequired": false
+  }
+]
