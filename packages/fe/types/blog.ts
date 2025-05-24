@@ -5,4 +5,5 @@ export interface IBlogConfig {
   time: number
   keywords?: string[]
   authRequired?: boolean
+  coverImg?: string
 }

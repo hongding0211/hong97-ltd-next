@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import dayjs from 'dayjs'
 import Head from 'next/head'
 import React from 'react'
@@ -22,7 +23,17 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       <Head>
         <title>{meta.title}</title>
       </Head>
-      <AppLayout authRequired={meta.authRequired}>
+      <AppLayout authRequired={meta.authRequired} simplifiedFooter>
+        {meta.coverImg && (
+          <div className="relative w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
+            <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
+            {/* biome-ignore lint/a11y/useAltText: <explanation> */}
+            <img
+              src={meta.coverImg}
+              className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
+            />
+          </div>
+        )}
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
             <h2 className="mb-2">{meta.title}</h2>

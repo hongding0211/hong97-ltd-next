@@ -33,6 +33,14 @@ async function main() {
     .split(',')
     .map((k) => k.trim())
     .filter(Boolean)
+  const coverImg = (
+    await prompts.input({
+      message: 'Enter the cover image url\r\n',
+      default: '',
+    })
+  )
+    .toString()
+    .trim()
   const authRequired = await prompts.confirm({
     message: 'Is auth required?',
     default: false,
@@ -52,6 +60,7 @@ async function main() {
     path: pathStr,
     time,
     keywords,
+    coverImg,
     ...(authRequired ? { authRequired: true } : {}),
   }
   blogConfigArr.unshift(newConfigObj)

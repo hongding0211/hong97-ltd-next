@@ -39,6 +39,7 @@
     "get-orientation": "^1.1.2",
     "i": "^0.3.7",
     "i18next": "^22.0.6",
+    "jsmediatags": "^3.9.7",
     "lucide-react": "^0.448.0",
     "motion": "^12.6.5",
     "next": "13.0.4",
