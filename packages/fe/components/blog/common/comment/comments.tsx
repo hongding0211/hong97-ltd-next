@@ -41,7 +41,7 @@ export const Comments: React.FC<CommentsProps> = (props) => {
   }
 
   return (
-    <div className="p-3 rounded-md pb-6 bg-neutral-100 dark:bg-neutral-900 mt-10">
+    <div className="px-3 py-1.5 pb-3 rounded-md bg-neutral-100 dark:bg-neutral-900 mt-10">
       <div className="text-sm mt-2 mb-6 font-semibold">{`${t('allComments')}(${
         comments.length
       })`}</div>
