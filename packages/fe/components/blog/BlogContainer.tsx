@@ -1,7 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { useLogin } from '@hooks/useLogin'
+import { http } from '@services/http'
 import dayjs from 'dayjs'
+import { Eye, Heart } from 'lucide-react'
 import Head from 'next/head'
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
 import { IBlogConfig } from '../../types/blog'
 import AppLayout from '../app-layout/AppLayout'
@@ -15,8 +18,61 @@ interface IBlogContainer {
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const { children, meta } = props
 
+  const [viewCnt, setViewCnt] = useState(0)
+  const [likeCnt, setLikeCnt] = useState(0)
+  const [isLiked, setIsLiked] = useState(false)
+
+  const loading = useRef(false)
+
+  const { isLogin } = useLogin()
+
   // const { t, i18n } = useTranslation('common')
   // const currentLang = i18n.language
+
+  const handleLike = () => {
+    if (loading.current) {
+      return
+    }
+    if (isLiked && !isLogin) {
+      return
+    }
+    setLikeCnt((c) => c + (isLiked ? -1 : 1))
+    setIsLiked(!isLiked)
+    http
+      .post('PostBlogLike', {
+        blogId: meta.key,
+      })
+      .then((res) => {
+        if (!res.isSuccess) {
+          return
+        }
+        setLikeCnt(res.data.likeCount)
+        if (isLogin) {
+          setIsLiked(res.data.isLiked)
+        }
+      })
+  }
+
+  useEffect(() => {
+    http
+      .post('PostBlogView', {
+        blogId: meta.key,
+        blogTitle: meta.title,
+      })
+      .then(() => {
+        return http.get('GetBlogMeta', {
+          blogId: meta.key,
+        })
+      })
+      .then((res) => {
+        if (!res.isSuccess) {
+          return
+        }
+        setViewCnt(res.data.viewCount)
+        setLikeCnt(res.data.likeCount)
+        setIsLiked(res.data.isLiked)
+      })
+  }, [meta])
 
   return (
     <>
@@ -45,6 +101,23 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               ))}
             </figcaption>
             {children}
+            <div className="flex items-center gap-3 mt-12 mb-[-1rem] ">
+              <div
+                className="cursor-pointer flex items-center gap-1 text-neutral-500 dark:text-neutral-300 rounded-lg py-1 px-2 w-min bg-neutral-100 dark:bg-neutral-800"
+                onClick={handleLike}
+              >
+                {isLiked ? (
+                  <Heart className="w-4 h-4" fill="red" stroke="none" />
+                ) : (
+                  <Heart className="w-4 h-4" />
+                )}
+                <span className="text-sm">{likeCnt}</span>
+              </div>
+              <div className="flex items-center gap-1 text-neutral-500 dark:text-neutral-300  rounded-lg py-1 px-2 w-min bg-neutral-100 dark:bg-neutral-800">
+                <Eye className="w-4 h-4" />
+                <span className="text-sm">{viewCnt}</span>
+              </div>
+            </div>
           </MdxLayout>
         </div>
       </AppLayout>

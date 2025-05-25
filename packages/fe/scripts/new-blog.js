@@ -87,7 +87,7 @@ export async function getServerSideProps(context) {
   const meta = BlogConfig.find(item => item.key === key)
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common'])),
+      ...(await serverSideTranslations(locale, ['common', 'blog'])),
       meta,
     },
   }

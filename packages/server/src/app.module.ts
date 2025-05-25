@@ -13,6 +13,7 @@ import config from './config'
 import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
 import { AuthModule } from './modules/auth/auth.module'
+import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
 import { UserModule } from './modules/user/user.module'
 
@@ -65,6 +66,7 @@ import { UserModule } from './modules/user/user.module'
     /** General Modules */
     AuthModule,
     OssModule,
+    BlogModule,
   ],
   controllers: [AppController],
   providers: [

@@ -23,6 +23,9 @@ export type I18nTranslations = {
     passwordCannotBeSameAsOriginalPassword: string
     passwordTooShort: string
   }
+  blog: {
+    blogNotFound: string
+  }
 }
 /* prettier-ignore */
 export type I18nPath = Path<I18nTranslations>
