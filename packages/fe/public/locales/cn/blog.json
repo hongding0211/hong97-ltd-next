@@ -1,3 +1,9 @@
 {
-  "viewCount": "浏览量"
+  "typeComment": "在这里留下你的评论吧",
+  "sendComment": "发布",
+  "emptyComment": "评论不能为空",
+  "commentTooLong": "评论不能超过500字",
+  "comment": "评论",
+  "sendCommentSuccess": "发布成功",
+  "allComments": "所有评论"
 }

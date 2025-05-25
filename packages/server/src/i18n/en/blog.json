@@ -1,3 +1,4 @@
 {
-  "blogNotFound": "Blog not found"
+  "blogNotFound": "Blog not found",
+  "commentTooLong": "Comment cannot be longer than 500 characters"
 }

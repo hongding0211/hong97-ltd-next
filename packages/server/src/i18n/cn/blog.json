@@ -1,3 +1,4 @@
 {
-  "blogNotFound": "博客不存在"
+  "blogNotFound": "博客不存在",
+  "commentTooLong": "评论不能超过500字"
 }

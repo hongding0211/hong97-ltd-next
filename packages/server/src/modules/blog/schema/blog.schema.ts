@@ -22,6 +22,16 @@ export class Blog {
     userId?: string
     time: number
   }[]
+
+  @Prop({ required: true })
+  comments: {
+    commentId?: string
+    userId?: string
+    anonymous: boolean
+    name?: string
+    time: number
+    content: string
+  }[]
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)

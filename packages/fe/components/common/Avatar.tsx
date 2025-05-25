@@ -44,7 +44,7 @@ const Avatar: React.FC<IAvatar> = (props) => {
       return (
         <>
           <AvatarImage
-            className="object-cover"
+            className="object-cover !m-0"
             src={getCompressImage(user.profile.avatar, width * 2)}
           />
           <AvatarFallback delayMs={300} className="animate-pulse">

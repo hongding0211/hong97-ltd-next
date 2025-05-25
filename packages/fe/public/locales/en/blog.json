@@ -1,3 +1,9 @@
 {
-  "viewCount": "浏览量"
+  "typeComment": "Type your comment here",
+  "sendComment": "Send",
+  "emptyComment": "Comment cannot be empty",
+  "commentTooLong": "Comment cannot be longer than 500 characters",
+  "comment": "Comment",
+  "sendCommentSuccess": "Send success",
+  "allComments": "All comments"
 }

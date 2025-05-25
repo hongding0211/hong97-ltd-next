@@ -1,14 +1,17 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLogin } from '@hooks/useLogin'
+import { CommentsResponseDto } from '@server/modules/blog/dto/comment'
 import { http } from '@services/http'
 import dayjs from 'dayjs'
 import { Eye, Heart } from 'lucide-react'
 import Head from 'next/head'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
 import { IBlogConfig } from '../../types/blog'
 import AppLayout from '../app-layout/AppLayout'
 import MdxLayout from '../mdx-layout'
+import { Comments } from './common/comment/comments'
+import { CommentEdit } from './common/comment/edit'
 
 interface IBlogContainer {
   children: React.ReactNode
@@ -21,6 +24,20 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const [viewCnt, setViewCnt] = useState(0)
   const [likeCnt, setLikeCnt] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
+
+  const [comments, setComments] = useState<CommentsResponseDto['comments']>([])
+
+  useEffect(() => {
+    http
+      .get('GetBlogComments', {
+        blogId: meta.key,
+      })
+      .then((res) => {
+        if (res.isSuccess && res?.data?.comments?.length) {
+          setComments(res.data.comments)
+        }
+      })
+  }, [meta])
 
   const loading = useRef(false)
 
@@ -36,6 +53,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     if (isLiked && !isLogin) {
       return
     }
+    loading.current = true
     setLikeCnt((c) => c + (isLiked ? -1 : 1))
     setIsLiked(!isLiked)
     http
@@ -51,7 +69,22 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           setIsLiked(res.data.isLiked)
         }
       })
+      .finally(() => {
+        loading.current = false
+      })
   }
+
+  const fetchComments = useCallback(() => {
+    http
+      .get('GetBlogComments', {
+        blogId: meta.key,
+      })
+      .then((res) => {
+        if (res.isSuccess && res?.data?.comments?.length) {
+          setComments(res.data.comments)
+        }
+      })
+  }, [meta])
 
   useEffect(() => {
     http
@@ -73,6 +106,10 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         setIsLiked(res.data.isLiked)
       })
   }, [meta])
+
+  useEffect(() => {
+    fetchComments()
+  }, [fetchComments])
 
   return (
     <>
@@ -101,7 +138,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               ))}
             </figcaption>
             {children}
-            <div className="flex items-center gap-3 mt-12 mb-[-1rem] ">
+            <div className="flex items-center gap-3 mt-12">
               <div
                 className="cursor-pointer flex items-center gap-1 text-neutral-500 dark:text-neutral-300 rounded-lg py-1 px-2 w-min bg-neutral-100 dark:bg-neutral-800"
                 onClick={handleLike}
@@ -117,6 +154,10 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                 <Eye className="w-4 h-4" />
                 <span className="text-sm">{viewCnt}</span>
               </div>
+            </div>
+            <div className="flex flex-col mt-12">
+              <CommentEdit blogId={meta.key} onSubmit={fetchComments} />
+              <Comments comments={comments} />
             </div>
           </MdxLayout>
         </div>
