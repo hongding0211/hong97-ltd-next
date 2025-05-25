@@ -60,7 +60,7 @@ export const CommentEdit: React.FC<CommentEditProps> = (props) => {
       <div className="relative h-[120px] md:h-[150px]">
         <Textarea
           placeholder={t('typeComment')}
-          className="resize-none absolute top-0 left-0 w-full h-full text-neutral-600 dark:text-neutral-400"
+          className="text-sm resize-none absolute top-0 left-0 w-full h-full text-neutral-600 dark:text-neutral-400"
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
