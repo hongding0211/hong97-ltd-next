@@ -115,6 +115,10 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     <>
       <Head>
         <title>{meta.title}</title>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
       </Head>
       <AppLayout authRequired={meta.authRequired} simplifiedFooter>
         {meta.coverImg && (
