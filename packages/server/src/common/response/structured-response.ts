@@ -6,13 +6,9 @@ import {
 } from '@nestjs/common'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
-import { map } from 'rxjs/operators'
-import { ErrorResponse } from 'src/common/response/err-response'
-import {
-  IStructureErrorResponse,
-  IStructureResponse,
-  IStructureSuccessResponse,
-} from './types'
+import { catchError, map } from 'rxjs/operators'
+import { GeneralException } from 'src/exceptions/general-exceptions'
+import { IStructureResponse, IStructureSuccessResponse } from './types'
 
 @Injectable()
 export class StructuredResponseInterceptor implements NestInterceptor {
@@ -29,22 +25,22 @@ export class StructuredResponseInterceptor implements NestInterceptor {
           return data
         }
 
-        // 如果是错误响应
-        if (data instanceof ErrorResponse) {
-          const errorResponse: IStructureErrorResponse = {
-            isSuccess: false,
-            msg: this.i18n.t(data.message),
-            errCode: data.code,
-          }
-          return errorResponse
-        }
-
         // 成功响应
         const successResponse: IStructureSuccessResponse<typeof data> = {
           isSuccess: true,
           data,
         }
         return successResponse
+      }),
+      catchError(async (err) => {
+        if (err instanceof GeneralException) {
+          return {
+            iSuccess: false,
+            msg: this.i18n.t(err.message),
+            code: err.code,
+            data: null,
+          }
+        }
       }),
     )
   }

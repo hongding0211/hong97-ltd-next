@@ -7,4 +7,5 @@ export default registerAs('auth', () => ({
   },
   ignore: ['/auth/login', '/auth/register', '/oss/requestUpload'],
   softIgnore: ['/blog/*'],
+  rootUsers: process.env.ROOT_USERS ? process.env.ROOT_USERS.split(',') : [],
 }))

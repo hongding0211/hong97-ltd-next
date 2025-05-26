@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
+import pinyin from 'pinyin'
 import { MockNames } from 'src/common/assets/mock-names'
-import { ErrorResponse } from 'src/common/response/err-response'
+import { GeneralException } from 'src/exceptions/general-exceptions'
 import { v4 as uuidv4 } from 'uuid'
 import { UserService } from '../user/user.service'
-import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment'
-import { MetaDto } from './dto/meta'
-import { ViewDto } from './dto/view'
+import { BlogDto, BlogResponseDto } from './dto/blog.dto'
+import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
+import { MetaDto } from './dto/meta.dto'
+import { ViewDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
 @Injectable()
@@ -17,25 +19,34 @@ export class BlogService {
     private userService: UserService,
   ) {}
 
-  private async createBlog(blogId: string, blogTitle: string) {
+  private async createBlog(meta: {
+    blogId: string
+    blogTitle: string
+    coverImg?: string
+    keywords?: string[]
+  }) {
+    const { blogId, blogTitle, coverImg, keywords = [] } = meta
     const blog = new this.blogModel({
       blogId,
       title: blogTitle,
       viewHistory: [],
       likeHistory: [],
+      comments: [],
+      keywords,
+      coverImg,
+      time: Date.now(),
     })
     await blog.save()
     return blog
   }
 
   async view(viewDto: ViewDto, userId?: string) {
-    const { blogId, blogTitle } = viewDto
+    const { blogId } = viewDto
 
-    let blog = await this.blogModel.findOne({ blogId })
+    const blog = await this.blogModel.findOne({ blogId })
 
     if (!blog) {
-      // create new blog record
-      blog = await this.createBlog(blogId, blogTitle)
+      throw new GeneralException('blog.blogNotFound')
     }
 
     blog.viewHistory.push({ userId, time: Date.now() })
@@ -51,7 +62,7 @@ export class BlogService {
     const blog = await this.blogModel.findOne({ blogId })
 
     if (!blog) {
-      return new ErrorResponse('blog.blogNotFound')
+      throw new GeneralException('blog.blogNotFound')
     }
 
     const isLiked = userId
@@ -72,7 +83,7 @@ export class BlogService {
     const blog = await this.blogModel.findOne({ blogId })
 
     if (!blog) {
-      return new ErrorResponse('blog.blogNotFound')
+      throw new GeneralException('blog.blogNotFound')
     }
 
     if (userId) {
@@ -96,13 +107,13 @@ export class BlogService {
     const { content, anonymous, blogId } = commentDto
 
     if (content.length > 500) {
-      return new ErrorResponse('blog.commentTooLong')
+      throw new GeneralException('blog.commentTooLong')
     }
 
     const blog = await this.blogModel.findOne({ blogId })
 
     if (!blog) {
-      return new ErrorResponse('blog.blogNotFound')
+      throw new GeneralException('blog.blogNotFound')
     }
 
     const commentId = uuidv4()
@@ -140,7 +151,7 @@ export class BlogService {
     const blog = await this.blogModel.findOne({ blogId })
 
     if (!blog) {
-      return new ErrorResponse('blog.blogNotFound')
+      throw new GeneralException('blog.blogNotFound')
     }
 
     const _comments = blog.comments ?? []
@@ -168,6 +179,39 @@ export class BlogService {
 
     return {
       comments: res,
+    }
+  }
+
+  async new(blogDto: BlogDto): Promise<BlogResponseDto> {
+    const { title, keywords, coverImg } = blogDto
+
+    let key = ''
+    const timestamp = Date.now()
+    if (/^[a-zA-Z\s]+$/.test(title)) {
+      // english title
+      key = title.toLowerCase().replace(/\s+/g, '-') + '-' + timestamp
+    } else {
+      // chinese title
+      const pyArr = pinyin(title, { style: pinyin.STYLE_NORMAL })
+      key =
+        pyArr.flat().join('-').toLowerCase().replace(/\s+/g, '-') +
+        '-' +
+        timestamp
+    }
+
+    const blog = await this.createBlog({
+      blogId: key,
+      blogTitle: title,
+      coverImg,
+      keywords,
+    })
+
+    return {
+      key,
+      title,
+      time: blog.time,
+      keywords,
+      coverImg,
     }
   }
 }

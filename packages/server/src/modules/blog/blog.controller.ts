@@ -7,15 +7,24 @@ import {
   Post,
   Query,
 } from '@nestjs/common'
+import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { BlogService } from './blog.service'
-import { CommentDto, CommentsDto } from './dto/comment'
-import { MetaDto } from './dto/meta'
-import { ViewDto } from './dto/view'
+import { BlogDto } from './dto/blog.dto'
+import { CommentDto, CommentsDto } from './dto/comment.dto'
+import { MetaDto } from './dto/meta.dto'
+import { ViewDto } from './dto/view.dto'
 
 @Controller('blog')
 export class BlogController {
   constructor(private readonly blogService: BlogService) {}
+
+  @Post('new')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async new(@Body() blogDto: BlogDto) {
+    return this.blogService.new(blogDto)
+  }
 
   @Post('view')
   @HttpCode(HttpStatus.OK)

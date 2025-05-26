@@ -40,6 +40,7 @@
     "mongoose": "^8.13.1",
     "nestjs-i18n": "^10.5.1",
     "node-rsa": "^1.1.1",
+    "pinyin": "^4.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^11.1.0"

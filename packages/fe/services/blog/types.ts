@@ -3,10 +3,10 @@ import {
   CommentResponseDto,
   CommentsDto,
   CommentsResponseDto,
-} from '@server/modules/blog/dto/comment'
-import { MetaDto } from '@server/modules/blog/dto/meta'
-import { MetaResponseDto } from '@server/modules/blog/dto/meta'
-import { ViewDto } from '@server/modules/blog/dto/view'
+} from '@server/modules/blog/dto/comment.dto'
+import { MetaDto } from '@server/modules/blog/dto/meta.dto'
+import { MetaResponseDto } from '@server/modules/blog/dto/meta.dto'
+import { ViewDto } from '@server/modules/blog/dto/view.dto'
 import { API } from '../types'
 
 export type BlogAPIS = {

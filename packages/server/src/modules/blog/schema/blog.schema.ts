@@ -32,6 +32,15 @@ export class Blog {
     time: number
     content: string
   }[]
+
+  @Prop({ required: true })
+  keywords: string[]
+
+  @Prop({ required: false })
+  coverImg?: string
+
+  @Prop({ required: true })
+  time: number
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)

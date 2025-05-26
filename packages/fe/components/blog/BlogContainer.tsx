@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLogin } from '@hooks/useLogin'
-import { CommentsResponseDto } from '@server/modules/blog/dto/comment'
+import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { http } from '@services/http'
 import dayjs from 'dayjs'
 import { Eye, Heart } from 'lucide-react'
@@ -90,7 +90,6 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     http
       .post('PostBlogView', {
         blogId: meta.key,
-        blogTitle: meta.title,
       })
       .then(() => {
         return http.get('GetBlogMeta', {

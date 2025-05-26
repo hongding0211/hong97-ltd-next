@@ -4,8 +4,8 @@ import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcrypt'
 import { Model } from 'mongoose'
-import { ErrorResponse } from 'src/common/response/err-response'
 import { ServiceResponse } from 'src/common/response/types'
+import { GeneralException } from 'src/exceptions/general-exceptions'
 import { v4 as uuidv4 } from 'uuid'
 import { User, UserDocument } from '../user/schema/user.schema'
 import { UserService } from '../user/user.service'
@@ -46,7 +46,7 @@ export class AuthService {
       case 'github':
         return this.registerWithOAuth(credentials as OAuthRegisterDto)
       default:
-        return new ErrorResponse('auth.invalidRegisterType')
+        throw new GeneralException('auth.invalidRegisterType')
     }
   }
 
@@ -54,11 +54,11 @@ export class AuthService {
     const { email, phoneNumber, password, profile } = credentials
 
     if (!email && !phoneNumber) {
-      return new ErrorResponse('auth.emailOrPhoneRequired')
+      throw new GeneralException('auth.emailOrPhoneRequired')
     }
 
     if (password.length < 6) {
-      return new ErrorResponse('auth.passwordTooShort')
+      throw new GeneralException('auth.passwordTooShort')
     }
 
     // 检查邮箱是否已存在
@@ -67,7 +67,7 @@ export class AuthService {
         'authData.local.email': email,
       })
       if (existingEmail) {
-        return new ErrorResponse('auth.emailExists')
+        throw new GeneralException('auth.emailExists')
       }
     }
 
@@ -77,7 +77,7 @@ export class AuthService {
         'authData.local.phoneNumber': phoneNumber,
       })
       if (existingPhone) {
-        return new ErrorResponse('auth.phoneExists')
+        throw new GeneralException('auth.phoneExists')
       }
     }
 
@@ -101,11 +101,11 @@ export class AuthService {
   }
 
   private async registerWithPhone(_credentials: PhoneRegisterDto) {
-    return new ErrorResponse('auth.phoneRegistrationNotImplemented')
+    throw new GeneralException('auth.phoneRegistrationNotImplemented')
   }
 
   private async registerWithOAuth(_credentials: OAuthRegisterDto) {
-    return new ErrorResponse('auth.oauthRegistrationNotImplemented')
+    throw new GeneralException('auth.oauthRegistrationNotImplemented')
   }
 
   async login(loginDto: LoginDto) {
@@ -119,7 +119,7 @@ export class AuthService {
       case 'github':
         return this.loginWithOAuth(credentials as OAuthLoginDto)
       default:
-        return new ErrorResponse('auth.invalidLoginType')
+        throw new GeneralException('auth.invalidLoginType')
     }
   }
 
@@ -140,7 +140,7 @@ export class AuthService {
     const { email, phoneNumber, password } = credentials
 
     if (!email && !phoneNumber) {
-      return new ErrorResponse('auth.emailOrPhoneRequired')
+      throw new GeneralException('auth.emailOrPhoneRequired')
     }
 
     // 构建查询条件
@@ -151,7 +151,7 @@ export class AuthService {
     const user = await this.userModel.findOne(query)
 
     if (!user || !user.authData?.local?.passwordHash) {
-      return new ErrorResponse('auth.userNotFound')
+      throw new GeneralException('auth.userNotFound')
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -160,7 +160,7 @@ export class AuthService {
     )
 
     if (!isPasswordValid) {
-      return new ErrorResponse('auth.wrongPassword')
+      throw new GeneralException('auth.wrongPassword')
     }
 
     // 更新最后登录时间
@@ -174,17 +174,17 @@ export class AuthService {
   }
 
   private async loginWithPhone(_: PhoneLoginDto) {
-    return new ErrorResponse('auth.phoneLoginNotImplemented')
+    throw new GeneralException('auth.phoneLoginNotImplemented')
   }
 
   private async loginWithOAuth(_: OAuthLoginDto) {
-    return new ErrorResponse('auth.oauthLoginNotImplemented')
+    throw new GeneralException('auth.oauthLoginNotImplemented')
   }
 
   async info(userId: string) {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
-      return new ErrorResponse('auth.userNotFound')
+      throw new GeneralException('auth.userNotFound')
     }
     return this.userService.mapUserToResponse(user)
   }
@@ -202,7 +202,7 @@ export class AuthService {
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
-      return new ErrorResponse('auth.userNotFound')
+      throw new GeneralException('auth.userNotFound')
     }
 
     // Update profile fields
@@ -233,21 +233,21 @@ export class AuthService {
     const { originalPassword, newPassword } = modifyPasswordDto
 
     if (newPassword.length < 6) {
-      return new ErrorResponse('auth.passwordTooShort')
+      throw new GeneralException('auth.passwordTooShort')
     }
 
     if (!originalPassword || originalPassword === newPassword) {
-      return new ErrorResponse('auth.passwordCannotBeSameAsOriginalPassword')
+      throw new GeneralException('auth.passwordCannotBeSameAsOriginalPassword')
     }
 
     const user = await this.userModel.findOne({ userId })
 
     if (!user || !user.authData?.local?.passwordHash) {
-      return new ErrorResponse('auth.userNotFound')
+      throw new GeneralException('auth.userNotFound')
     }
 
     if (user.authProviders.indexOf('local') === -1) {
-      return new ErrorResponse('auth.userHasNoLocalAuth')
+      throw new GeneralException('auth.userHasNoLocalAuth')
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -256,7 +256,7 @@ export class AuthService {
     )
 
     if (!isPasswordValid) {
-      return new ErrorResponse('auth.wrongOldPassword')
+      throw new GeneralException('auth.wrongOldPassword')
     }
 
     await user.updateOne({
@@ -269,7 +269,7 @@ export class AuthService {
   async hasLocalAuth(userId: string): ServiceResponse<HasLocalAuthResponseDto> {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
-      return new ErrorResponse('auth.userNotFound')
+      throw new GeneralException('auth.userNotFound')
     }
     return {
       hasLocalAuth: user.authProviders.includes('local'),
