@@ -21,7 +21,7 @@ interface IBlogContainer {
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const { children, meta } = props
 
-  const [viewCnt] = useState(meta.viewCount)
+  const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
   const [isLiked, setIsLiked] = useState(meta.isLiked)
 
@@ -91,7 +91,19 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       .post('PostBlogView', {
         blogId: meta.blogId,
       })
-      .then()
+      .then(() => {
+        return http.get('GetBlogMeta', {
+          blogId: meta.blogId,
+        })
+      })
+      .then((res) => {
+        if (!res.isSuccess) {
+          return
+        }
+        setViewCnt(res.data.viewCount)
+        setLikeCnt(res.data.likeCount)
+        setIsLiked(res.data.isLiked)
+      })
   }, [meta])
 
   useEffect(() => {
