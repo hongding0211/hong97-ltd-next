@@ -2,7 +2,7 @@ import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator'
 import {
   PaginationQueryDto,
   PaginationResponseDto,
-} from 'src/dtos/pagination.dto'
+} from '../../../dtos/pagination.dto'
 export class BlogDto {
   @IsString()
   title: string

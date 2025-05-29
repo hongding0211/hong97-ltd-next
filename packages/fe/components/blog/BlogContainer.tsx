@@ -21,8 +21,6 @@ interface IBlogContainer {
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const { children, meta } = props
 
-  console.log('!!👉 BlogContainer.tsx: 24', meta)
-
   const [viewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
   const [isLiked, setIsLiked] = useState(meta.isLiked)
