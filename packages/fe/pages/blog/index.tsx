@@ -99,7 +99,7 @@ export default function Blog(props: BlogProps) {
   )
 }
 
-export async function getStaticProps({ locale }: any) {
+export async function getServerSideProps({ locale }: any) {
   const blogs = (
     await http.get('GetBlogList', {
       page: 1,
