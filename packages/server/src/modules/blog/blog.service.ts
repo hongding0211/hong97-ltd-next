@@ -6,9 +6,14 @@ import { MockNames } from 'src/common/assets/mock-names'
 import { GeneralException } from 'src/exceptions/general-exceptions'
 import { v4 as uuidv4 } from 'uuid'
 import { UserService } from '../user/user.service'
-import { BlogDto, BlogResponseDto } from './dto/blog.dto'
+import {
+  BlogDto,
+  BlogResponseDto,
+  BlogsDto,
+  BlogsResponseDto,
+} from './dto/blog.dto'
 import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
-import { MetaDto } from './dto/meta.dto'
+import { MetaDto, MetaResponseDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
@@ -24,8 +29,9 @@ export class BlogService {
     blogTitle: string
     coverImg?: string
     keywords?: string[]
+    authRequired?: boolean
   }) {
-    const { blogId, blogTitle, coverImg, keywords = [] } = meta
+    const { blogId, blogTitle, coverImg, keywords = [], authRequired } = meta
     const blog = new this.blogModel({
       blogId,
       title: blogTitle,
@@ -35,6 +41,7 @@ export class BlogService {
       keywords,
       coverImg,
       time: Date.now(),
+      authRequired,
     })
     await blog.save()
     return blog
@@ -56,7 +63,7 @@ export class BlogService {
     return blog
   }
 
-  async meta(metaDto: MetaDto, userId?: string) {
+  async meta(metaDto: MetaDto, userId?: string): Promise<MetaResponseDto> {
     const { blogId } = metaDto
 
     const blog = await this.blogModel.findOne({ blogId })
@@ -71,9 +78,14 @@ export class BlogService {
 
     return {
       blogId,
+      blogTitle: blog.title,
       viewCount: blog.viewHistory.length,
       likeCount: blog.likeHistory.length,
       isLiked,
+      time: blog.time,
+      coverImg: blog.coverImg,
+      keywords: blog.keywords,
+      authRequired: blog.authRequired,
     }
   }
 
@@ -212,6 +224,30 @@ export class BlogService {
       time: blog.time,
       keywords,
       coverImg,
+    }
+  }
+
+  async list(blogsDto: BlogsDto): Promise<BlogsResponseDto> {
+    const { page = 1, pageSize = 20 } = blogsDto
+
+    const blogs = await this.blogModel
+      .find()
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .sort({ time: -1 })
+
+    return {
+      data: blogs.map((e) => ({
+        key: e.blogId,
+        title: e.title,
+        coverImg: e.coverImg,
+        keywords: e.keywords,
+        time: e.time,
+        authRequired: e.authRequired,
+      })),
+      total: blogs.length,
+      page,
+      pageSize,
     }
   }
 }

@@ -1,5 +1,5 @@
 import Avatar from '@components/common/Avatar'
-import { CommentsResponseDto } from '@server/modules/blog/dto/comment'
+import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { useTranslation } from 'next-i18next'
 import React from 'react'
 

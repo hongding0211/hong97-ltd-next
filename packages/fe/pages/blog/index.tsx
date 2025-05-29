@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import BlogConfig from '@config/blog.json'
+import { http } from '@services/http'
 import dayjs from 'dayjs'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
@@ -20,8 +20,9 @@ export default function Blog(props: BlogProps) {
   const { t } = useTranslation('common')
 
   const handleClickLink = (blog: IBlogConfig) => {
-    router.push(`/blog/markdowns/${blog.path}?key=${blog.key}`)
+    router.push(`/blog/markdowns/${blog.key}?key=${blog.key}`)
   }
+
   const groupedBlogs = blogs
     .reduce<[string, IBlogConfig[]][]>(
       (acc, blog) => {
@@ -99,10 +100,17 @@ export default function Blog(props: BlogProps) {
 }
 
 export async function getStaticProps({ locale }: any) {
+  const blogs = (
+    await http.get('GetBlogList', {
+      page: 1,
+      pageSize: 1000,
+    })
+  ).data.data
+  // TODO - HongD 05/27 01:26 加一个错误处理页面
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'toast'])),
-      blogs: BlogConfig,
+      blogs,
     },
   }
 }

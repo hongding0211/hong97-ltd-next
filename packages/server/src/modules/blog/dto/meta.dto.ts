@@ -1,4 +1,10 @@
-import { IsBoolean, IsNumber, IsString } from 'class-validator'
+import {
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator'
 
 export class MetaDto {
   @IsString()
@@ -20,4 +26,18 @@ export class MetaResponseDto {
 
   @IsBoolean()
   isLiked: boolean
+
+  @IsNumber()
+  time: number
+
+  @IsString()
+  @IsOptional()
+  coverImg?: string
+
+  @IsArray()
+  keywords: string[]
+
+  @IsBoolean()
+  @IsOptional()
+  authRequired?: boolean
 }

@@ -1,6 +1,6 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
-import BlogConfig from '../../../config/blog'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
+import { http } from '@services/http'
 
 上一篇说到自己经常会强迫自己去思考一些问题，随之给自己带来了很多精力上的消耗
 
@@ -97,12 +97,13 @@ export default BlogContainer
 
 export async function getServerSideProps(context) {
   const { locale, query } = context
-  const { key } = query || {}
-  const meta = BlogConfig.find(item => item.key === key)
+  const meta = await http.get('GetBlogMeta', {
+    blogId: query?.key
+  })
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog'])),
-      meta,
+      meta: meta?.data,
     },
   }
 }

@@ -1,4 +1,8 @@
-import { IsArray, IsOptional, IsString } from 'class-validator'
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator'
+import {
+  PaginationQueryDto,
+  PaginationResponseDto,
+} from 'src/dtos/pagination.dto'
 export class BlogDto {
   @IsString()
   title: string
@@ -9,6 +13,10 @@ export class BlogDto {
   @IsString()
   @IsOptional()
   coverImg?: string
+
+  @IsBoolean()
+  @IsOptional()
+  authRequired?: boolean
 }
 
 export class BlogResponseDto {
@@ -17,4 +25,9 @@ export class BlogResponseDto {
   time: number
   keywords: string[]
   coverImg?: string
+  authRequired?: boolean
 }
+
+export class BlogsDto extends PaginationQueryDto {}
+
+export class BlogsResponseDto extends PaginationResponseDto<BlogResponseDto> {}

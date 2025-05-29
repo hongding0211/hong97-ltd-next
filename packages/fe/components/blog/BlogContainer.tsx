@@ -1,13 +1,13 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
+import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import dayjs from 'dayjs'
 import { Eye, Heart } from 'lucide-react'
 import Head from 'next/head'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
-import { IBlogConfig } from '../../types/blog'
 import AppLayout from '../app-layout/AppLayout'
 import MdxLayout from '../mdx-layout'
 import { Comments } from './common/comment/comments'
@@ -15,22 +15,24 @@ import { CommentEdit } from './common/comment/edit'
 
 interface IBlogContainer {
   children: React.ReactNode
-  meta: IBlogConfig
+  meta: BlogAPIS['GetBlogMeta']['responseData']
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const { children, meta } = props
 
-  const [viewCnt, setViewCnt] = useState(0)
-  const [likeCnt, setLikeCnt] = useState(0)
-  const [isLiked, setIsLiked] = useState(false)
+  console.log('!!👉 BlogContainer.tsx: 24', meta)
+
+  const [viewCnt] = useState(meta.viewCount)
+  const [likeCnt, setLikeCnt] = useState(meta.likeCount)
+  const [isLiked, setIsLiked] = useState(meta.isLiked)
 
   const [comments, setComments] = useState<CommentsResponseDto['comments']>([])
 
   useEffect(() => {
     http
       .get('GetBlogComments', {
-        blogId: meta.key,
+        blogId: meta.blogId,
       })
       .then((res) => {
         if (res.isSuccess && res?.data?.comments?.length) {
@@ -58,7 +60,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     setIsLiked(!isLiked)
     http
       .post('PostBlogLike', {
-        blogId: meta.key,
+        blogId: meta.blogId,
       })
       .then((res) => {
         if (!res.isSuccess) {
@@ -77,7 +79,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const fetchComments = useCallback(() => {
     http
       .get('GetBlogComments', {
-        blogId: meta.key,
+        blogId: meta.blogId,
       })
       .then((res) => {
         if (res.isSuccess && res?.data?.comments?.length) {
@@ -89,21 +91,9 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   useEffect(() => {
     http
       .post('PostBlogView', {
-        blogId: meta.key,
+        blogId: meta.blogId,
       })
-      .then(() => {
-        return http.get('GetBlogMeta', {
-          blogId: meta.key,
-        })
-      })
-      .then((res) => {
-        if (!res.isSuccess) {
-          return
-        }
-        setViewCnt(res.data.viewCount)
-        setLikeCnt(res.data.likeCount)
-        setIsLiked(res.data.isLiked)
-      })
+      .then()
   }, [meta])
 
   useEffect(() => {
@@ -113,7 +103,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   return (
     <>
       <Head>
-        <title>{meta.title}</title>
+        <title>{meta.blogTitle}</title>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -132,7 +122,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         )}
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
-            <h2 className="mb-2">{meta.title}</h2>
+            <h2 className="mb-2">{meta.blogTitle}</h2>
             <figcaption className="m-0 !mt-1 text-sm">
               {dayjs(meta.time).format('MMM DD, YYYY')}
               {meta.keywords?.length && <span> | </span>}
@@ -159,7 +149,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               </div>
             </div>
             <div className="flex flex-col mt-12">
-              <CommentEdit blogId={meta.key} onSubmit={fetchComments} />
+              <CommentEdit blogId={meta.blogId} onSubmit={fetchComments} />
               <Comments comments={comments} />
             </div>
           </MdxLayout>

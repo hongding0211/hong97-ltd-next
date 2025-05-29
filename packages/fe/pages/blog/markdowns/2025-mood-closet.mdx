@@ -1,6 +1,6 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
-import BlogConfig from '@config/blog.json'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
+import { http } from '@services/http'
 
 > 一些和朋友聊完的碎碎念
 
@@ -49,12 +49,13 @@ export default BlogContainer
 
 export async function getServerSideProps(context) {
   const { locale, query } = context
-  const { key } = query || {}
-  const meta = BlogConfig.find(item => item.key === key)
+  const meta = await http.get('GetBlogMeta', {
+    blogId: query?.key
+  })
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common'])),
-      meta,
+      ...(await serverSideTranslations(locale, ['common', 'blog'])),
+      meta: meta?.data,
     },
   }
 }

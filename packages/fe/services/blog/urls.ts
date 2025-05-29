@@ -6,4 +6,5 @@ export const BLOG_PATHS: Record<keyof BlogAPIS, string> = {
   PostBlogLike: 'blog/like',
   PostBlogComment: 'blog/comment',
   GetBlogComments: 'blog/comments',
+  GetBlogList: 'blog/list',
 }

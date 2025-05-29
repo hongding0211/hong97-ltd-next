@@ -10,7 +10,7 @@ import {
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { BlogService } from './blog.service'
-import { BlogDto } from './dto/blog.dto'
+import { BlogDto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
 import { MetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
@@ -24,6 +24,12 @@ export class BlogController {
   @HttpCode(HttpStatus.OK)
   async new(@Body() blogDto: BlogDto) {
     return this.blogService.new(blogDto)
+  }
+
+  @Get('list')
+  @HttpCode(HttpStatus.OK)
+  async blogs(@Query() blogsDto: BlogsDto) {
+    return this.blogService.list(blogsDto)
   }
 
   @Post('view')

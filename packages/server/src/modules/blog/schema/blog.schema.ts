@@ -41,6 +41,9 @@ export class Blog {
 
   @Prop({ required: true })
   time: number
+
+  @Prop()
+  authRequired?: boolean
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)
