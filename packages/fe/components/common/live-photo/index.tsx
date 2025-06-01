@@ -1,13 +1,12 @@
-// @ts-nocheck
 import { cn } from '@/lib/utils'
 import { runOnClient } from '@utils/run-on-client'
-import type * as LivePhotosKit from 'LivePhotosKit'
+import type * as LivePhotosKit from 'livephotoskit'
 import React, { useEffect, useId, useRef } from 'react'
 
 let livePhotosKit: typeof LivePhotosKit
 
 runOnClient(() => {
-  import('LivePhotosKit').then((mod) => {
+  import('livephotoskit').then((mod) => {
     livePhotosKit = mod
   })
 })
