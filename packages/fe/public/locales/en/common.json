@@ -25,5 +25,8 @@
       "description": "Click to login",
       "login": "Login"
     }
-  }
+  },
+  "loading": "Loading",
+  "loadMore": "Load More",
+  "noMore": "No more"
 }

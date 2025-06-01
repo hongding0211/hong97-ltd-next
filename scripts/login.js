@@ -3,7 +3,7 @@ const fs = require('fs')
 
 const LOGIN_URL = 'https://hong97.ltd/api/auth/login'
 
-async function main() {
+async function login() {
   const user = (
     await prompts.input({
       message: 'Enter your user:',
@@ -40,8 +40,6 @@ async function main() {
   }
 }
 
-main()
-
 module.exports = {
-  login: main,
+  login,
 }

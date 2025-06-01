@@ -229,7 +229,7 @@ export class BlogService {
   }
 
   async list(blogsDto: BlogsDto): Promise<BlogsResponseDto> {
-    const { page = 1, pageSize = 20 } = blogsDto
+    const { page = 1, pageSize = 10 } = blogsDto
 
     const blogs = await this.blogModel
       .find()

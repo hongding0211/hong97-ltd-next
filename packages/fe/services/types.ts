@@ -1,6 +1,7 @@
 import { AuthAPIS } from './auth/types'
 import { BlogAPIS } from './blog/types'
 import { OssAPIS } from './oss/types'
+import { UCPAPIS } from './ucp/types'
 type ExtractFromDto<T> = T extends abstract new (
   ..._args: any
 ) => infer R
@@ -22,4 +23,4 @@ export type HttpResponse<K extends keyof APIs> = {
   errCode?: number
 }
 
-export type APIs = AuthAPIS & OssAPIS & BlogAPIS
+export type APIs = AuthAPIS & OssAPIS & BlogAPIS & UCPAPIS

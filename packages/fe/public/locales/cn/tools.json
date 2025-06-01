@@ -9,6 +9,16 @@
       "upload": "上传",
       "noFiles": "还没有选中文件",
       "clickToCopy": "点击复制"
+    },
+    "ucp": {
+      "title": "UCP",
+      "subTitle": "统一配置平台",
+      "nodata": "暂无数据",
+      "add": "添加一个配置项",
+      "new": "新配置",
+      "newConfig": "新配置",
+      "desc": "配置描述必须为英文, 数字, -, _, 长度不超过30个字符",
+      "inputLabel": "配置描述"
     }
   }
 }

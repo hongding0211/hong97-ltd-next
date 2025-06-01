@@ -9,6 +9,16 @@
       "upload": "Upload",
       "noFiles": "No files selected",
       "clickToCopy": "Click to copy"
+    },
+    "ucp": {
+      "title": "UCP",
+      "subTitle": "A Unified Configuration Platform",
+      "nodata": "No data",
+      "add": "Add a configuration item",
+      "new": "New",
+      "newConfig": "New Configuration",
+      "desc": "The configuration description must be in English, numbers, -, _, and the length must be less than 30 characters",
+      "inputLabel": "Configuration Description"
     }
   }
 }

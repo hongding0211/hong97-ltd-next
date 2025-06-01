@@ -12,5 +12,7 @@
   "uploadSuccess": "Upload successfully",
   "fileTooLarge": "Cannot upload files larger than 20MB",
   "noFilesToUpload": "All files uploaded",
-  "copySuccess": "Copy successfully"
+  "copySuccess": "Copy successfully",
+  "inputEmpty": "Input cannot be empty",
+  "inputInvalid": "Input format is incorrect"
 }

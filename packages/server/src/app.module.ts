@@ -16,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
 import { UserModule } from './modules/user/user.module'
+import { UCPModule } from './modules/ucp/ucp.module'
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { UserModule } from './modules/user/user.module'
     AuthModule,
     OssModule,
     BlogModule,
+    UCPModule,
   ],
   controllers: [AppController],
   providers: [

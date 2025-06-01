@@ -25,5 +25,8 @@
       "description": "点击跳转登录",
       "login": "登录"
     }
-  }
+  },
+  "loading": "加载中",
+  "loadMore": "加载更多",
+  "noMore": "没有更多了"
 }

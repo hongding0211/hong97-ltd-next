@@ -11,8 +11,9 @@ import React from 'react'
 const ITEMS = [
   {
     key: 'oss',
-    title: 'OSS',
-    subTitle: 'Object Storage Upload Tool',
+  },
+  {
+    key: 'ucp',
   },
 ]
 
