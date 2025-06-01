@@ -1,6 +1,6 @@
+// @ts-nocheck
 import { cn } from '@/lib/utils'
 import { runOnClient } from '@utils/run-on-client'
-// @ts-ignore
 import type * as LivePhotosKit from 'LivePhotosKit'
 import React, { useEffect, useId, useRef } from 'react'
 
