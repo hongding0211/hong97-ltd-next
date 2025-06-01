@@ -1,15 +1,8 @@
 import { cn } from '@/lib/utils'
-import { runOnClient } from '@utils/run-on-client'
 import type * as LivePhotosKit from 'livephotoskit'
 import React, { useEffect, useId, useRef } from 'react'
 
 let livePhotosKit: typeof LivePhotosKit
-
-runOnClient(() => {
-  import('livephotoskit').then((mod) => {
-    livePhotosKit = mod
-  })
-})
 
 interface LivePhotoProps {
   imgSrc: string
@@ -53,45 +46,48 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
   }, [autoPlay, id])
 
   useEffect(() => {
-    if (!livePhotosKit) {
-      return
-    }
-    const container = document.getElementById(id)
-    const img = document.getElementById(id + 'img')
+    const fn = async () => {
+      if (!livePhotosKit) {
+        livePhotosKit = await import('livephotoskit')
+      }
+      const container = document.getElementById(id)
+      const img = document.getElementById(id + 'img')
 
-    if (!container || !img) {
-      return
-    }
+      if (!container || !img) {
+        return
+      }
 
-    // measure the size of the img
-    const { width, height } = img.getBoundingClientRect()
-    ratio.current = width / height
-    // hide img
-    img.style.opacity = '0'
-    // set the width and height of the container
-    container.style.width = `${width}px`
-    container.style.height = `${height}px`
+      // measure the size of the img
+      const { width, height } = img.getBoundingClientRect()
+      ratio.current = width / height
+      // hide img
+      img.style.opacity = '0'
+      // set the width and height of the container
+      container.style.width = `${width}px`
+      container.style.height = `${height}px`
 
-    player.current = livePhotosKit.augmentElementAsPlayer(
-      document.getElementById(id),
-      {
-        photoSrc: imgSrc,
-        videoSrc,
-      },
-    )
+      player.current = livePhotosKit.augmentElementAsPlayer(
+        document.getElementById(id),
+        {
+          photoSrc: imgSrc,
+          videoSrc,
+        },
+      )
 
-    // measure the width of measure elem when it's size changes, set the size of player
-    const observer = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        const { width } = entry.contentRect
-        player.current.updateSize(width, width / ratio.current)
+      // measure the width of measure elem when it's size changes, set the size of player
+      const observer = new ResizeObserver((entries) => {
+        entries.forEach((entry) => {
+          const { width } = entry.contentRect
+          player.current.updateSize(width, width / ratio.current)
+        })
       })
-    })
-    observer.observe(img)
+      observer.observe(img)
 
-    return () => {
-      observer.disconnect()
+      return () => {
+        observer.disconnect()
+      }
     }
+    fn()
   }, [id, imgSrc, videoSrc])
 
   return (
