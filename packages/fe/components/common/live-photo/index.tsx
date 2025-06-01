@@ -57,11 +57,19 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
         return
       }
 
+      const waitImgLoad = new Promise((r) => {
+        img.addEventListener('load', r)
+      })
+
       // measure the size of the img
-      const { width, height } = img.getBoundingClientRect()
+      let { width, height } = img.getBoundingClientRect()
+      if (width === 0 || height === 0) {
+        await waitImgLoad
+        ;({ width, height } = img.getBoundingClientRect())
+      }
       ratio.current = width / height
       // hide img
-      img.style.opacity = '0'
+      // img.style.opacity = '0'
       // set the width and height of the container
       container.style.width = `${width}px`
       container.style.height = `${height}px`
@@ -95,14 +103,14 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
       <div
         id={id}
         className={cn(
-          'rounded-sm overflow-hidden absolute top-0 left-0',
+          'rounded-sm overflow-hidden absolute top-0 left-0 z-2',
           className,
         )}
       />
       <img
         src={imgSrc}
         alt="live"
-        className={cn('rounded-sm !m-0', className)}
+        className={cn('rounded-sm !m-0 relative z-1', className)}
         id={id + 'img'}
       />
     </div>
