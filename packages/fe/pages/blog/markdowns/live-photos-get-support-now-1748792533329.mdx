@@ -7,18 +7,22 @@ import { http } from '@services/http'
 
 #### Apple, 你的 SDK 真的很糟糕 💢
 
-本来打算直接使用 [Apple 官方的 Live Photo 的 JS SDK](https://developer.apple.com/documentation/LivePhotosKitJS)，没想到竟然这么难用。除了它走的是 Canvas 渲染,在性能上有那么 🤏 一点点优势以外,真的很难用!
+[Apple 官方的 Live Photo 的 JS SDK](https://developer.apple.com/documentation/LivePhotosKitJS)，真的很难用。要不是我先前自己写了一版本 Bugs 一堆，打死我也不用这个破玩意儿！
 
-这玩意儿也没多难,不就是一个 `<img />` + `<video />` 标签吗？
+由于是 Canvas 绘制，为了保证可以根据窗口大小调整尺寸，写了非常多的脏代码
 
-我干脆自己写一个算了，目前就是 HEIC 的格式浏览器不支持直接渲染。从相册导出出来有之后，还需要把静态图片转成 JPEG 才可以正常渲染
+**请欣赏：**
 
-后续，把 [@Innei](https://innei.in/) 的代码抄一抄，他已经实现了用 `WASM` 渲染 HEIC 的能力
+<ImagesV2
+  images={[
+    {
+      img: 'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/carbon%20(1)_mbdyvws2.png'
+    }
+  ]}
+/>
 
 
-#### 好吧，来看看效果吧 😍
-
-> 一些限制，必须点击之后才可以播放，后面再支持自动播放
+#### 不管怎么样，看看效果吧 😍
 
 <ImagesV2
   images={[
@@ -42,8 +46,10 @@ import { http } from '@services/http'
   markdown
 />
 
+看起来还行，就是不知道这玩意儿对我的 OSS 消耗大不大
 
-**感觉性能上还有很多优化空间，过两天再说吧**
+**前两天已经收到欠费警告了！**
+
 
 export default BlogContainer
 

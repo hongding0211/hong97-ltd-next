@@ -123,6 +123,9 @@ importers:
       i18next:
         specifier: ^22.0.6
         version: 22.5.1
+      livephotoskit:
+        specifier: ^1.5.6
+        version: 1.5.6
       lucide-react:
         specifier: ^0.448.0
         version: 0.448.0(react@18.3.1)
@@ -6887,6 +6890,10 @@ packages:
       rfdc: 1.4.1
       wrap-ansi: 9.0.0
     dev: true
+
+  /livephotoskit@1.5.6:
+    resolution: {integrity: sha512-dsD6EzQnExuYfYvBSxf3t1bdl2Juw7NnlpWZrsGxdYq2x4pnxyOYrkOG6LGHmklytdFdxaru86GvviLpUhaIBQ==}
+    dev: false
 
   /loader-runner@4.3.0:
     resolution: {integrity: sha512-3R/1M+yS3j5ou80Me59j7F9IMs4PXs3VqRrm0TU3AbKPxlmpoY1TNscJV/oGJXo8qCatFGTfDbY6W6ipGOYXfg==}

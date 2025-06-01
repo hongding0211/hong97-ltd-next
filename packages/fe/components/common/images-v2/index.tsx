@@ -4,7 +4,6 @@ import {
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import Autoplay from 'embla-carousel-autoplay'
 import { Circle } from 'lucide-react'
@@ -31,21 +30,16 @@ const MonoImage: React.FC<{
 
   if (isLivePhoto(img)) {
     return (
-      <div className="relative">
-        <LivePhoto
-          imgSrc={img.img}
-          videoSrc={img.video}
-          autoPlay={img.autoPlay}
-        />
-      </div>
+      <LivePhoto
+        imgSrc={img.img}
+        videoSrc={img.video}
+        autoPlay={img.autoPlay}
+      />
     )
   }
 
   return (
-    <div className="relative">
-      <Skeleton className="w-full h-full absolute top-0 left-0 rounded-sm z-1" />
-      <img src={img.img} className="rounded-sm !my-0 z-2 relative" alt={id} />
-    </div>
+    <img src={img.img} className="rounded-sm !my-0 z-2 relative" alt={id} />
   )
 }
 
@@ -86,14 +80,16 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
     return (
       <div
         className={cn(
-          'flex flex-col items-center gap-3',
+          'flex flex-col items-center gap-2',
           markdown && 'w-full sm:w-[75%] mx-auto my-8',
         )}
       >
         <MonoImage img={images[0]} />
-        <div className="text-sm text-neutral-600 dark:text-neutral-400">
-          {_caption}
-        </div>
+        {_caption && (
+          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+            {_caption}
+          </div>
+        )}
       </div>
     )
   }
@@ -101,7 +97,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-y-3',
+        'flex flex-col items-center gap-y-2',
         markdown && 'w-full sm:w-[75%] mx-auto my-8',
       )}
     >
@@ -141,9 +137,11 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
           ))}
         </div>
       </div>
-      <div className="text-sm text-neutral-600 dark:text-neutral-400">
-        {_caption}
-      </div>
+      {_caption && (
+        <div className="text-sm text-neutral-600 dark:text-neutral-400">
+          {_caption}
+        </div>
+      )}
     </div>
   )
 }

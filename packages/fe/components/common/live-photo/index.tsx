@@ -1,7 +1,15 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { runOnClient } from '@utils/run-on-client'
+import type * as LivePhotosKit from 'LivePhotosKit'
+import React, { useEffect, useId, useRef } from 'react'
+
+let livePhotosKit: typeof LivePhotosKit
+
+runOnClient(() => {
+  import('LivePhotosKit').then((mod) => {
+    livePhotosKit = mod
+  })
+})
 
 interface LivePhotoProps {
   imgSrc: string
@@ -10,89 +18,15 @@ interface LivePhotoProps {
   className?: string
 }
 
-const LIVE_SVG = (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  >
-    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-    <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-    <path d="M12 12m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" />
-    <path d="M15.9 20.11l0 .01" />
-    <path d="M19.04 17.61l0 .01" />
-    <path d="M20.77 14l0 .01" />
-    <path d="M20.77 10l0 .01" />
-    <path d="M19.04 6.39l0 .01" />
-    <path d="M15.9 3.89l0 .01" />
-    <path d="M12 3l0 .01" />
-    <path d="M8.1 3.89l0 .01" />
-    <path d="M4.96 6.39l0 .01" />
-    <path d="M3.23 10l0 .01" />
-    <path d="M3.23 14l0 .01" />
-    <path d="M4.96 17.61l0 .01" />
-    <path d="M8.1 20.11l0 .01" />
-    <path d="M12 21l0 .01" />
-  </svg>
-)
-
 export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
-  const { imgSrc, videoSrc, autoPlay = false, className } = props
+  const { imgSrc, videoSrc, autoPlay = true, className } = props
 
-  const [videoShow, setVideoShow] = useState(false)
-  const [videoLoading, setVideoLoading] = useState(false)
+  const id = useId()
 
-  const imgRef = useRef<HTMLImageElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const tagRef = useRef<HTMLDivElement>(null)
-
+  const player = useRef<LivePhotosKit.Player | null>(null)
   const exposed = useRef(false)
 
-  const firstPlayed = useRef(false)
-
-  const play = useCallback(() => {
-    if (videoRef.current?.currentTime > 0) {
-      videoRef.current.currentTime = 0
-    }
-    videoRef.current?.play()
-    if (firstPlayed.current) {
-      setVideoShow(true)
-    } else {
-      setVideoLoading(true)
-    }
-    firstPlayed.current = true
-    videoRef.current!.muted = false
-  }, [])
-
-  const pause = useCallback(() => {
-    setVideoShow(false)
-    videoRef.current?.pause()
-  }, [])
-
-  useEffect(() => {
-    // tagRef.current?.addEventListener('mouseover', play)
-    // tagRef.current?.addEventListener('mouseout', pause)
-    tagRef.current?.addEventListener('click', play)
-    videoRef.current?.addEventListener('ended', pause)
-    const onPlayRead = () => {
-      setVideoShow(true)
-      setVideoLoading(false)
-    }
-    videoRef.current?.addEventListener('canplaythrough', onPlayRead)
-    return () => {
-      // tagRef.current?.removeEventListener('mouseover', play)
-      // tagRef.current?.removeEventListener('mouseout', pause)
-      tagRef.current?.removeEventListener('click', play)
-      videoRef.current?.removeEventListener('ended', pause)
-      videoRef.current?.removeEventListener('canplaythrough', onPlayRead)
-    }
-  }, [play, pause])
+  const ratio = useRef(1)
 
   useEffect(() => {
     if (!autoPlay) {
@@ -102,8 +36,8 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !exposed.current) {
+            player.current?.play()
             exposed.current = true
-            play()
           }
         })
       },
@@ -111,51 +45,70 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
         threshold: 0.8,
       },
     )
-
-    if (videoRef.current) {
-      observer.observe(videoRef.current)
-    }
+    observer.observe(document.getElementById(id))
 
     return () => {
       observer.disconnect()
     }
-  }, [autoPlay, play])
+  }, [autoPlay, id])
+
+  useEffect(() => {
+    if (!livePhotosKit) {
+      return
+    }
+    const container = document.getElementById(id)
+    const img = document.getElementById(id + 'img')
+
+    if (!container || !img) {
+      return
+    }
+
+    // measure the size of the img
+    const { width, height } = img.getBoundingClientRect()
+    ratio.current = width / height
+    // hide img
+    img.style.opacity = '0'
+    // set the width and height of the container
+    container.style.width = `${width}px`
+    container.style.height = `${height}px`
+
+    player.current = livePhotosKit.augmentElementAsPlayer(
+      document.getElementById(id),
+      {
+        photoSrc: imgSrc,
+        videoSrc,
+      },
+    )
+
+    // measure the width of measure elem when it's size changes, set the size of player
+    const observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const { width } = entry.contentRect
+        player.current.updateSize(width, width / ratio.current)
+      })
+    })
+    observer.observe(img)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [id, imgSrc, videoSrc])
 
   return (
-    <div
-      className={cn('relative rounded-sm relative cursor-pointer', className)}
-      onClick={play}
-    >
-      <Skeleton className="w-full h-full absolute top-0 left-0 rounded-sm z-1" />
-      <img
-        alt="live"
-        src={imgSrc}
-        ref={imgRef}
-        className="rounded-sm !my-0 z-2 relative"
-      />
-      <video
-        autoPlay={false}
-        src={videoSrc}
-        ref={videoRef}
-        className="absolute top-0 left-0 transition-opacity duration-300 rounded-sm z-3 !my-0"
-        playsInline
-        style={{
-          opacity: videoShow ? 1 : 0,
-        }}
-      />
+    <div className="relative">
       <div
-        ref={tagRef}
-        className="cursor-pointer flex items-center gap-0.5 absolute top-2 left-2 px-1 py-0.5 text-xs font-medium rounded bg-white/70 text-black backdrop-blur-md"
-      >
-        <div className="flex items-center justify-center w-4 h-4">
-          {videoLoading ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            LIVE_SVG
-          )}
-        </div>
-        LIVE
-      </div>
+        id={id}
+        className={cn(
+          'rounded-sm overflow-hidden absolute top-0 left-0',
+          className,
+        )}
+      />
+      <img
+        src={imgSrc}
+        alt="live"
+        className={cn('rounded-sm !m-0', className)}
+        id={id + 'img'}
+      />
     </div>
   )
 }
