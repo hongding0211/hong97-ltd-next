@@ -24,7 +24,8 @@
       "a11y": {
         "noSvgWithoutTitle": "off",
         "useKeyWithClickEvents": "off",
-        "useValidAnchor": "off"
+        "useValidAnchor": "off",
+        "useMediaCaption": "off"
       },
       "complexity": {
         "noForEach": "off",

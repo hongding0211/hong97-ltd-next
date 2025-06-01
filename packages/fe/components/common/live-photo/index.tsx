@@ -1,9 +1,11 @@
+import { cn } from '@/lib/utils'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 interface LivePhotoProps {
   imgSrc: string
   videoSrc: string
   autoPlay?: boolean
+  className?: string
 }
 
 const LIVE_SVG = (
@@ -39,7 +41,7 @@ const LIVE_SVG = (
 )
 
 export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
-  const { imgSrc, videoSrc, autoPlay = false } = props
+  const { imgSrc, videoSrc, autoPlay = true, className } = props
 
   const [videoShow, setVideoShow] = useState(false)
 
@@ -107,13 +109,13 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
   }, [autoPlay, play])
 
   return (
-    <div className="relative">
-      <img alt="live" src={imgSrc} ref={imgRef} />
+    <div className={cn('relative rounded-sm', className)}>
+      <img alt="live" src={imgSrc} ref={imgRef} className="rounded-sm" />
       <video
         autoPlay={false}
         src={videoSrc}
         ref={videoRef}
-        className="absolute top-0 left-0 transition-opacity duration-300"
+        className="absolute top-0 left-0 transition-opacity duration-300 rounded-sm"
         style={{
           opacity: videoShow ? 1 : 0,
         }}
