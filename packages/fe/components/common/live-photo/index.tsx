@@ -61,6 +61,10 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
         img.addEventListener('load', r)
       })
 
+      const videoArrayBuff = await fetch(videoSrc).then((res) =>
+        res.arrayBuffer(),
+      )
+
       // measure the size of the img
       let { width, height } = img.getBoundingClientRect()
       if (width === 0 || height === 0) {
@@ -78,7 +82,8 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
         document.getElementById(id),
         {
           photoSrc: imgSrc,
-          videoSrc,
+          videoMimeType: 'video/mp4',
+          videoSrc: videoArrayBuff,
         },
       )
 
