@@ -1,0 +1,62 @@
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
+import { BlogContainer } from '../../../components/blog/BlogContainer'
+import { ImagesV2 } from '@components/common/images-v2'
+import { http } from '@services/http'
+
+> 既然微信都支持 Live Photo 了，为什么我不可以支持？
+
+#### Apple, 你的 SDK 真的很糟糕 💢
+
+本来打算直接使用 [Apple 官方的 Live Photo 的 JS SDK](https://developer.apple.com/documentation/LivePhotosKitJS)，没想到竟然这么难用。除了它走的是 Canvas 渲染,在性能上有那么 🤏 一点点优势以外,真的很难用!
+
+这玩意儿也没多难,不就是一个 `<img />` + `<video />` 标签吗？
+
+我干脆自己写一个算了，目前就是 HEIC 的格式浏览器不支持直接渲染。从相册导出出来有之后，还需要把静态图片转成 JPEG 才可以正常渲染
+
+后续，把 [@Innei](https://innei.in/) 的代码抄一抄，他已经实现了用 `WASM` 渲染 HEIC 的能力
+
+
+#### 好吧，来看看效果吧 😍
+
+> 一些限制，必须点击之后才可以播放，后面再支持自动播放
+
+<ImagesV2
+  images={[
+    {
+      img: 'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421%20Large_mbduvgnz.jpeg',
+      video: 'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421_mbduvg7c.mov',
+      caption: 'A bunny 🐰'
+    }
+  ]}
+  markdown
+/>
+
+<ImagesV2
+  images={[
+    {
+      img: 'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428%20Large_mbdvde5s.jpeg',
+      video: 'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428_mbdvde5f.mov',
+      caption: '@ 千岛湖，随便拍一拍'
+    }
+  ]}
+  markdown
+/>
+
+
+**感觉性能上还有很多优化空间，过两天再说吧**
+
+export default BlogContainer
+
+export async function getServerSideProps(context) {
+  const { locale, query } = context
+  const meta = await http.get('GetBlogMeta', {
+    blogId: query?.key
+  })
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ['common', 'blog'])),
+      meta: meta?.data,
+    },
+  }
+}
+

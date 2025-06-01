@@ -1,4 +1,6 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 interface LivePhotoProps {
@@ -41,9 +43,10 @@ const LIVE_SVG = (
 )
 
 export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
-  const { imgSrc, videoSrc, autoPlay = true, className } = props
+  const { imgSrc, videoSrc, autoPlay = false, className } = props
 
   const [videoShow, setVideoShow] = useState(false)
+  const [videoLoading, setVideoLoading] = useState(false)
 
   const imgRef = useRef<HTMLImageElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -51,16 +54,19 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
 
   const exposed = useRef(false)
 
+  const firstPlayed = useRef(false)
+
   const play = useCallback(() => {
     if (videoRef.current?.currentTime > 0) {
       videoRef.current.currentTime = 0
     }
     videoRef.current?.play()
-    const fn = setVideoShow.bind(null, true)
-    videoRef.current?.addEventListener('canplay', () => {
-      fn()
-      videoRef.current?.removeEventListener('canplay', fn)
-    })
+    if (firstPlayed.current) {
+      setVideoShow(true)
+    } else {
+      setVideoLoading(true)
+    }
+    firstPlayed.current = true
     videoRef.current!.muted = false
   }, [])
 
@@ -70,14 +76,21 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
   }, [])
 
   useEffect(() => {
-    tagRef.current?.addEventListener('mouseover', play)
-    tagRef.current?.addEventListener('mouseout', pause)
+    // tagRef.current?.addEventListener('mouseover', play)
+    // tagRef.current?.addEventListener('mouseout', pause)
     tagRef.current?.addEventListener('click', play)
     videoRef.current?.addEventListener('ended', pause)
+    const onPlayRead = () => {
+      setVideoShow(true)
+      setVideoLoading(false)
+    }
+    videoRef.current?.addEventListener('canplaythrough', onPlayRead)
     return () => {
-      tagRef.current?.removeEventListener('mouseover', play)
-      tagRef.current?.removeEventListener('mouseout', pause)
+      // tagRef.current?.removeEventListener('mouseover', play)
+      // tagRef.current?.removeEventListener('mouseout', pause)
       tagRef.current?.removeEventListener('click', play)
+      videoRef.current?.removeEventListener('ended', pause)
+      videoRef.current?.removeEventListener('canplaythrough', onPlayRead)
     }
   }, [play, pause])
 
@@ -109,13 +122,23 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
   }, [autoPlay, play])
 
   return (
-    <div className={cn('relative rounded-sm', className)}>
-      <img alt="live" src={imgSrc} ref={imgRef} className="rounded-sm" />
+    <div
+      className={cn('relative rounded-sm relative cursor-pointer', className)}
+      onClick={play}
+    >
+      <Skeleton className="w-full h-full absolute top-0 left-0 rounded-sm z-1" />
+      <img
+        alt="live"
+        src={imgSrc}
+        ref={imgRef}
+        className="rounded-sm !my-0 z-2 relative"
+      />
       <video
         autoPlay={false}
         src={videoSrc}
         ref={videoRef}
-        className="absolute top-0 left-0 transition-opacity duration-300 rounded-sm"
+        className="absolute top-0 left-0 transition-opacity duration-300 rounded-sm z-3 !my-0"
+        playsInline
         style={{
           opacity: videoShow ? 1 : 0,
         }}
@@ -124,7 +147,13 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
         ref={tagRef}
         className="cursor-pointer flex items-center gap-0.5 absolute top-2 left-2 px-1 py-0.5 text-xs font-medium rounded bg-white/70 text-black backdrop-blur-md"
       >
-        {LIVE_SVG}
+        <div className="flex items-center justify-center w-4 h-4">
+          {videoLoading ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            LIVE_SVG
+          )}
+        </div>
         LIVE
       </div>
     </div>

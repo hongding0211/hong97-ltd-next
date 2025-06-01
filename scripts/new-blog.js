@@ -78,7 +78,6 @@ async function main() {
 
   const mdxPath = path.join(MARKDOWNS_DIR, `${key}.mdx`)
   const mdxTemplate = `import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
-import BlogConfig from '../../../config/blog'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
 import { http } from '@services/http'
 

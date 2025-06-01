@@ -4,6 +4,8 @@ import {
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import Autoplay from 'embla-carousel-autoplay'
 import { Circle } from 'lucide-react'
 import React, { useEffect, useId, useState } from 'react'
@@ -29,15 +31,22 @@ const MonoImage: React.FC<{
 
   if (isLivePhoto(img)) {
     return (
-      <LivePhoto
-        imgSrc={img.img}
-        videoSrc={img.video}
-        autoPlay={img.autoPlay}
-      />
+      <div className="relative">
+        <LivePhoto
+          imgSrc={img.img}
+          videoSrc={img.video}
+          autoPlay={img.autoPlay}
+        />
+      </div>
     )
   }
 
-  return <img src={img.img} className="rounded-sm" alt={id} />
+  return (
+    <div className="relative">
+      <Skeleton className="w-full h-full absolute top-0 left-0 rounded-sm z-1" />
+      <img src={img.img} className="rounded-sm !my-0 z-2 relative" alt={id} />
+    </div>
+  )
 }
 
 interface ImagesV2Props {
@@ -45,10 +54,11 @@ interface ImagesV2Props {
   caption?: string
   autoLoop?: boolean
   loopSpan?: number
+  markdown?: boolean
 }
 
 export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
-  const { images, caption, autoLoop, loopSpan = 3000 } = props
+  const { images, caption, autoLoop, loopSpan = 3000, markdown } = props
 
   const [idx, setIdx] = useState(0)
   const [api, setApi] = useState<CarouselApi | null>(null)
@@ -74,7 +84,12 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
 
   if (images.length === 1) {
     return (
-      <div className="flex flex-col items-center gap-2">
+      <div
+        className={cn(
+          'flex flex-col items-center gap-3',
+          markdown && 'w-full sm:w-[75%] mx-auto my-8',
+        )}
+      >
         <MonoImage img={images[0]} />
         <div className="text-sm text-neutral-600 dark:text-neutral-400">
           {_caption}
@@ -84,7 +99,12 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
   }
 
   return (
-    <div className="flex flex-col items-center gap-y-3">
+    <div
+      className={cn(
+        'flex flex-col items-center gap-y-3',
+        markdown && 'w-full sm:w-[75%] mx-auto my-8',
+      )}
+    >
       <div className="relative">
         <Carousel
           opts={{
