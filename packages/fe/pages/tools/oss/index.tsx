@@ -136,6 +136,7 @@ function OSS({ locale }: { locale: string }) {
         toast('uploadSuccess', {
           type: 'success',
         })
+        setUploading(false)
       },
     )
   }
@@ -182,9 +183,8 @@ function OSS({ locale }: { locale: string }) {
             )}
 
             {files.map((f, idx) => (
-              <>
+              <React.Fragment key={f.name + idx}>
                 <Item
-                  key={f.name}
                   file={f}
                   onRemove={() => {
                     setFiles(files.filter((_f) => _f.name !== f.name))
@@ -203,7 +203,7 @@ function OSS({ locale }: { locale: string }) {
                 {idx !== files.length - 1 && (
                   <div className="w-full h-[0.5px] my-1 bg-neutral-300 dark:bg-neutral-700" />
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
           <div className="flex gap-x-3">

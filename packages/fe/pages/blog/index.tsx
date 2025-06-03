@@ -1,26 +1,30 @@
 import { Badge } from '@/components/ui/badge'
 import { http } from '@services/http'
+import { time } from '@utils/time'
 import dayjs from 'dayjs'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import { useTranslation } from 'react-i18next'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { IBlogConfig } from '../../types/blog'
 
 type BlogProps = {
   blogs: IBlogConfig[]
+  locale: string
 }
 
 export default function Blog(props: BlogProps) {
-  const { blogs } = props
+  const { blogs, locale } = props
 
-  const router = useRouter()
+  time.setLocale(locale)
 
   const { t } = useTranslation('common')
 
   const handleClickLink = (blog: IBlogConfig) => {
-    router.push(`/blog/markdowns/${blog.key}?key=${blog.key}`)
+    window.open(
+      `${window.location.href}/markdowns/${blog.key}?key=${blog.key}`,
+      '_blank',
+    )
   }
 
   const groupedBlogs = blogs
@@ -84,7 +88,7 @@ export default function Blog(props: BlogProps) {
                     )}
                   </a>
                   <figcaption className="m-0 !mt-0.5 !text-sm">
-                    {dayjs(blog.time).format('MMM DD, YYYY')}
+                    {time.format(blog.time, 'date')}
                     {blog.keywords?.map((k, _i) => (
                       <span key={k}>{` #${k}`}</span>
                     ))}
@@ -111,6 +115,7 @@ export async function getServerSideProps({ locale }: any) {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'toast'])),
       blogs,
+      locale,
     },
   }
 }

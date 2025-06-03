@@ -3,8 +3,8 @@ import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
+import { time } from '@utils/time'
 import { toast } from '@utils/toast'
-import dayjs from 'dayjs'
 import { Eye, Heart } from 'lucide-react'
 import Head from 'next/head'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -17,16 +17,19 @@ import { CommentEdit } from './common/comment/edit'
 interface IBlogContainer {
   children: React.ReactNode
   meta: BlogAPIS['GetBlogMeta']['responseData']
+  locale: string
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, meta } = props
+  const { children, meta, locale } = props
 
   const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
   const [isLiked, setIsLiked] = useState(meta.isLiked)
 
   const [comments, setComments] = useState<CommentsResponseDto['comments']>([])
+
+  time.setLocale(locale)
 
   useEffect(() => {
     http
@@ -81,7 +84,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         blogId: meta.blogId,
       })
       .then((res) => {
-        if (res.isSuccess && res?.data?.comments?.length) {
+        if (res.isSuccess && res?.data?.comments?.length !== undefined) {
           setComments(res.data.comments)
         }
       })
@@ -154,8 +157,8 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           <MdxLayout>
             <h2 className="mb-2">{meta.blogTitle}</h2>
             <figcaption className="m-0 !mt-1 text-sm">
-              {dayjs(meta.time).format('MMM DD, YYYY')}
-              {meta.keywords?.length && <span> | </span>}
+              {time.format(meta.time, 'datetimeShort')}
+              {!!meta.keywords?.length && <span> | </span>}
               {meta.keywords?.map((k, _i) => (
                 <span key={k}>{` #${k}`}</span>
               ))}

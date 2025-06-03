@@ -2,14 +2,14 @@ import dayjs from 'dayjs'
 
 const TIME_FORMAT_STR = {
   cn: {
-    date: 'YYYY-MM-DD',
+    date: 'YYYY/M/D',
     datetime: 'YYYY-MM-DD HH:mm:ss',
-    datetimeShort: 'YYYY/MM/DD HH:mm',
+    datetimeShort: 'YYYY/M/D H:m',
   },
   en: {
-    date: 'MM/DD/YYYY',
+    date: 'MMM D, YYYY',
     datetime: 'MM/DD/YYYY HH:mm:ss',
-    datetimeShort: 'MM/DD/YYYY HH:mm',
+    datetimeShort: 'MMM D, YYYY H:m',
   },
 }
 
@@ -29,18 +29,21 @@ const TIME_DYNAMIC_FORMAT_STR = {
 type FormatType = 'date' | 'datetime' | 'datetimeShort' | 'time'
 
 class Time {
-  private local: string
+  private locale: string
 
   constructor() {
-    this.local = 'cn'
+    this.locale = 'cn'
   }
 
-  setLocale(local: string) {
-    this.local = local
+  setLocale(locale: string) {
+    if (!locale) {
+      return
+    }
+    this.locale = locale
   }
 
   format(date: number | Date, type: FormatType = 'date') {
-    return dayjs(date).format(TIME_FORMAT_STR[this.local][type])
+    return dayjs(date).format(TIME_FORMAT_STR[this.locale][type])
   }
 
   formatDynamic(date: number | Date) {
@@ -52,16 +55,16 @@ class Time {
     }
     // yesterday
     if (d.isSame(now.subtract(1, 'day'), 'day')) {
-      return `${TIME_DYNAMIC_FORMAT_STR[this.local].yesterday}, ${d.format(
+      return `${TIME_DYNAMIC_FORMAT_STR[this.locale].yesterday}, ${d.format(
         'HH:mm',
       )}`
     }
     // same year
     if (d.isSame(now, 'year')) {
-      return d.format(TIME_DYNAMIC_FORMAT_STR[this.local].monthDayTime)
+      return d.format(TIME_DYNAMIC_FORMAT_STR[this.locale].monthDayTime)
     }
     // different year, full date time
-    return d.format(TIME_DYNAMIC_FORMAT_STR[this.local].full)
+    return d.format(TIME_DYNAMIC_FORMAT_STR[this.locale].full)
   }
 }
 

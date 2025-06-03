@@ -17,7 +17,7 @@ import AppLayout from '../../components/app-layout/AppLayout'
 import AnimatedGradientText from '../../components/magicui/animated-gradient-text'
 
 const COVER = getCompressImage(
-  'http://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202505/DSC_3651_mazkbx1n.jpeg',
+  'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202505/DSC_3651_mazkbx1n.jpeg',
   1000,
 )
 

@@ -22,7 +22,7 @@ export async function uploadFile2Oss(file: File, app?: string) {
     }
 
     await axiosInstance.put(
-      url.replace('http', 'https'),
+      url,
       new File([file], fileName, {
         type: file.type,
         lastModified: file.lastModified,

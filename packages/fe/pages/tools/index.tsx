@@ -68,12 +68,12 @@ function Tools() {
       <AppLayout>
         <div className="max-w-[500px] mx-auto mt-6 md:mt-12 flex-col">
           {ITEMS.map((item, index) => (
-            <>
-              <Item key={item.key} itemKey={item.key} />
+            <React.Fragment key={item.key}>
+              <Item itemKey={item.key} />
               {index !== ITEMS.length - 1 && (
                 <div className="w-full h-[0.5px] my-3 bg-neutral-300 dark:bg-neutral-700" />
               )}
-            </>
+            </React.Fragment>
           ))}
         </div>
       </AppLayout>

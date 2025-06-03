@@ -46,12 +46,14 @@ export class OssService {
     const { path, name } = this.genFilePath(fileName, app)
 
     return {
-      url: this.oss.signatureUrl(path, {
-        method: 'PUT',
-        process: compress ? `image/quality,q_${quality}` : undefined,
-        'Content-Type': contentType,
-      }),
-      filePath: this.oss.generateObjectUrl(path),
+      url: this.oss
+        .signatureUrl(path, {
+          method: 'PUT',
+          process: compress ? `image/quality,q_${quality}` : undefined,
+          'Content-Type': contentType,
+        })
+        .replace('http', 'https'),
+      filePath: this.oss.generateObjectUrl(path).replace('http', 'https'),
       fileName: name,
     }
   }
