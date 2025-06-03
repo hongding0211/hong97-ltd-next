@@ -2,33 +2,33 @@
 
 /* eslint-disable */
 /* prettier-ignore */
-import { Path } from 'nestjs-i18n'
+import { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
-  auth: {
-    invalidRegisterType: string
-    emailOrPhoneRequired: string
-    emailExists: string
-    phoneExists: string
-    phoneRegistrationNotImplemented: string
-    oauthRegistrationNotImplemented: string
-    invalidLoginType: string
-    invalidCredentials: string
-    phoneLoginNotImplemented: string
-    oauthLoginNotImplemented: string
-    userNotFound: string
-    wrongPassword: string
-    wrongOldPassword: string
-    userHasNoLocalAuth: string
-    passwordCannotBeSameAsOriginalPassword: string
-    passwordTooShort: string
-  }
-  blog: {
-    blogNotFound: string
-    commentTooLong: string
-    commentNotAuthor: string
-    commentNotFound: string
-  }
-}
+    "auth": {
+        "invalidRegisterType": string;
+        "emailOrPhoneRequired": string;
+        "emailExists": string;
+        "phoneExists": string;
+        "phoneRegistrationNotImplemented": string;
+        "oauthRegistrationNotImplemented": string;
+        "invalidLoginType": string;
+        "invalidCredentials": string;
+        "phoneLoginNotImplemented": string;
+        "oauthLoginNotImplemented": string;
+        "userNotFound": string;
+        "wrongPassword": string;
+        "wrongOldPassword": string;
+        "userHasNoLocalAuth": string;
+        "passwordCannotBeSameAsOriginalPassword": string;
+        "passwordTooShort": string;
+    };
+    "blog": {
+        "blogNotFound": string;
+        "commentTooLong": string;
+        "commentNotAuthor": string;
+        "commentNotFound": string;
+    };
+};
 /* prettier-ignore */
-export type I18nPath = Path<I18nTranslations>
+export type I18nPath = Path<I18nTranslations>;
