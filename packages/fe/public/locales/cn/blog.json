@@ -5,5 +5,9 @@
   "commentTooLong": "评论不能超过500字",
   "comment": "评论",
   "sendCommentSuccess": "发布成功",
-  "allComments": "所有评论"
+  "allComments": "所有评论",
+  "deleteComment": {
+    "text": "删除",
+    "confirmTitle": "确定删除这条评论吗？"
+  }
 }

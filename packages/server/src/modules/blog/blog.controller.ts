@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -12,6 +13,7 @@ import { UserId } from 'src/decorators/user-id.decorator'
 import { BlogService } from './blog.service'
 import { BlogDto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
+import { DeleteCommentDto } from './dto/deleteComment.dto'
 import { MetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 
@@ -60,5 +62,14 @@ export class BlogController {
   @HttpCode(HttpStatus.OK)
   async comments(@Query() commentsDto: CommentsDto) {
     return this.blogService.comments(commentsDto)
+  }
+
+  @Delete('comment')
+  @HttpCode(HttpStatus.OK)
+  async deleteComment(
+    @Query() deleteCommentDto: DeleteCommentDto,
+    @UserId() userId?: string,
+  ) {
+    return this.blogService.deleteComment(deleteCommentDto, userId)
   }
 }

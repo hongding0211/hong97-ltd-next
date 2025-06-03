@@ -13,6 +13,7 @@ import {
   BlogsResponseDto,
 } from './dto/blog.dto'
 import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
+import { DeleteCommentDto } from './dto/deleteComment.dto'
 import { MetaDto, MetaResponseDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
@@ -248,6 +249,35 @@ export class BlogService {
       total: blogs.length,
       page,
       pageSize,
+    }
+  }
+
+  async deleteComment(deleteCommentDto: DeleteCommentDto, userId?: string) {
+    const { commentId, blogId } = deleteCommentDto
+
+    const blog = await this.blogModel.findOne({ blogId })
+
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+
+    const comment = blog.comments.find((c) => c.commentId === commentId)
+
+    if (!comment) {
+      throw new GeneralException('blog.commentNotFound')
+    }
+
+    if (comment.userId !== userId) {
+      throw new GeneralException('blog.commentNotAuthor')
+    }
+
+    blog.comments = blog.comments.filter((c) => c.commentId !== commentId)
+
+    await blog.save()
+
+    return {
+      commentId,
+      blogId,
     }
   }
 }

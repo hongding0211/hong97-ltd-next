@@ -2,6 +2,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
 import { ImagesV2 } from '@components/common/images-v2'
 import { http } from '@services/http'
+import { time } from '@utils/time'
 
 > 既然微信都支持 Live Photo 了，为什么我不可以支持？
 
@@ -58,6 +59,7 @@ export async function getServerSideProps(context) {
   const meta = await http.get('GetBlogMeta', {
     blogId: query?.key
   })
+  time.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog'])),

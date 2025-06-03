@@ -26,6 +26,8 @@ export type I18nTranslations = {
   blog: {
     blogNotFound: string
     commentTooLong: string
+    commentNotAuthor: string
+    commentNotFound: string
   }
 }
 /* prettier-ignore */

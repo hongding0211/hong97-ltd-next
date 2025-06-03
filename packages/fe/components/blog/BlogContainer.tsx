@@ -3,6 +3,7 @@ import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
+import { toast } from '@utils/toast'
 import dayjs from 'dayjs'
 import { Eye, Heart } from 'lucide-react'
 import Head from 'next/head'
@@ -10,7 +11,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
 import AppLayout from '../app-layout/AppLayout'
 import MdxLayout from '../mdx-layout'
-import { Comments } from './common/comment/comments'
+import { CommentAction, Comments } from './common/comment/comments'
 import { CommentEdit } from './common/comment/edit'
 
 interface IBlogContainer {
@@ -86,6 +87,25 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       })
   }, [meta])
 
+  const handleCommentAction = (commentId: string, action: CommentAction) => {
+    if (action === 'delete') {
+      http
+        .delete('DeleteBlogComment', {
+          commentId,
+          blogId: meta.blogId,
+        })
+        .then((res) => {
+          if (res.isSuccess) {
+            fetchComments()
+          } else {
+            toast(res.msg, {
+              type: 'error',
+            })
+          }
+        })
+    }
+  }
+
   useEffect(() => {
     http
       .post('PostBlogView', {
@@ -160,7 +180,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             </div>
             <div className="flex flex-col mt-12">
               <CommentEdit blogId={meta.blogId} onSubmit={fetchComments} />
-              <Comments comments={comments} />
+              <Comments comments={comments} onAction={handleCommentAction} />
             </div>
           </MdxLayout>
         </div>

@@ -17,6 +17,7 @@
   "cropAvatar": "Edit Avatar",
   "apply": "Apply",
   "cancel": "Cancel",
+  "confirm": "Confirm",
   "useLogin": {
     "fallback": {
       "title": "Oops!",

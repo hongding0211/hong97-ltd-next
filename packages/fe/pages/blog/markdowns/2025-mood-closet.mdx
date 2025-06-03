@@ -1,6 +1,7 @@
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
 import { http } from '@services/http'
+import { time } from '@utils/time'
 
 > 一些和朋友聊完的碎碎念
 
@@ -52,6 +53,7 @@ export async function getServerSideProps(context) {
   const meta = await http.get('GetBlogMeta', {
     blogId: query?.key
   })
+  time.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog'])),

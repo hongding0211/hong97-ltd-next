@@ -17,6 +17,7 @@
   "cropAvatar": "编辑头像",
   "apply": "应用",
   "cancel": "取消",
+  "confirm": "确定",
   "useLogin": {
     "fallback": {
       "title": "Oops!",

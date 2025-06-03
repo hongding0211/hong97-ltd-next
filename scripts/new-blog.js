@@ -80,6 +80,7 @@ async function main() {
   const mdxTemplate = `import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { BlogContainer } from '../../../components/blog/BlogContainer'
 import { http } from '@services/http'
+import { time } from '@utils/time'
 
 > Start writing your blog here...
 
@@ -90,6 +91,7 @@ export async function getServerSideProps(context) {
   const meta = await http.get('GetBlogMeta', {
     blogId: query?.key
   })
+  time.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog'])),

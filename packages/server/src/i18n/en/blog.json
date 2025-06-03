@@ -1,4 +1,6 @@
 {
   "blogNotFound": "Blog not found",
-  "commentTooLong": "Comment cannot be longer than 500 characters"
+  "commentTooLong": "Comment cannot be longer than 500 characters",
+  "commentNotAuthor": "You are not the creator of this comment",
+  "commentNotFound": "Comment not found"
 }

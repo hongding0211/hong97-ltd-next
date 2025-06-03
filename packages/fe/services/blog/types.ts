@@ -5,6 +5,7 @@ import {
   CommentsDto,
   CommentsResponseDto,
 } from '@server/modules/blog/dto/comment.dto'
+import { DeleteCommentDto } from '@server/modules/blog/dto/deleteComment.dto'
 import { MetaDto, MetaResponseDto } from '@server/modules/blog/dto/meta.dto'
 import { ViewDto } from '@server/modules/blog/dto/view.dto'
 import { API } from '../types'
@@ -20,4 +21,9 @@ export type BlogAPIS = {
     typeof CommentsResponseDto
   >
   GetBlogList: API<typeof BlogsDto, undefined, typeof BlogsResponseDto>
+  DeleteBlogComment: API<
+    typeof DeleteCommentDto,
+    undefined,
+    typeof DeleteCommentDto
+  >
 }

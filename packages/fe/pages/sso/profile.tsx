@@ -618,7 +618,7 @@ export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
 
   http.setLocale(locale)
-  time.setLocal(locale)
+  time.setLocale(locale)
 
   return {
     props: {

@@ -7,4 +7,5 @@ export const BLOG_PATHS: Record<keyof BlogAPIS, string> = {
   PostBlogComment: 'blog/comment',
   GetBlogComments: 'blog/comments',
   GetBlogList: 'blog/list',
+  DeleteBlogComment: 'blog/comment',
 }

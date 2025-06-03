@@ -5,5 +5,9 @@
   "commentTooLong": "Comment cannot be longer than 500 characters",
   "comment": "Comment",
   "sendCommentSuccess": "Send success",
-  "allComments": "All comments"
+  "allComments": "All comments",
+  "deleteComment": {
+    "text": "Delete",
+    "confirmTitle": "Confirm delete this comment?"
+  }
 }
