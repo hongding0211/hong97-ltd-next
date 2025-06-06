@@ -1,3 +1,4 @@
 {
-  "detailNotFound": "Config not found"
+  "detailNotFound": "Config not found",
+  "configNotFound": "Config item not found"
 }

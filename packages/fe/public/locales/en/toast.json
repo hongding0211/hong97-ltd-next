@@ -14,5 +14,9 @@
   "noFilesToUpload": "All files uploaded",
   "copySuccess": "Copy successfully",
   "inputEmpty": "Input cannot be empty",
-  "inputInvalid": "Input format is incorrect"
+  "inputInvalid": "Input format is incorrect",
+  "ucp": {
+    "invalidJson": "Input content is not a valid JSON format",
+    "saveSuccess": "Save successfully"
+  }
 }

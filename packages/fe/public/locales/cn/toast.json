@@ -14,5 +14,9 @@
   "noFilesToUpload": "所有文件已上传",
   "copySuccess": "复制成功",
   "inputEmpty": "输入不能为空",
-  "inputInvalid": "输入格式不正确"
+  "inputInvalid": "输入格式不正确",
+  "ucp": {
+    "invalidJson": "输入内容不是有效的JSON格式",
+    "saveSuccess": "保存成功"
+  }
 }

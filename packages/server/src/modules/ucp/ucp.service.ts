@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
+import { GeneralException } from 'src/exceptions/general-exceptions'
+import { v4 as uuidv4 } from 'uuid'
+import { AppendDto } from './dto/append.dto'
+import { CreateDto } from './dto/create.dto'
+import { DetailDto, DetailResponseDto } from './dto/detail.dto'
+import { EditConfigItemDto } from './dto/editConfigItem'
+import { ListDto, ListResponseDto } from './dto/list.dto'
 import { UCPDocument } from './schema/ucp.schema'
 import { UCP } from './schema/ucp.schema'
-import { Model } from 'mongoose'
-import { InjectModel } from '@nestjs/mongoose'
-import { ListDto, ListResponseDto } from './dto/list.dto'
-import { CreateDto } from './dto/create.dto'
-import { v4 as uuidv4 } from 'uuid'
-import { DetailDto, DetailResponseDto } from './dto/detail.dto'
-import { GeneralException } from 'src/exceptions/general-exceptions'
-import { AppendDto } from './dto/append.dto'
+import { ConfigListDto } from './dto/config-list'
 
 @Injectable()
 export class UCPService {
@@ -58,9 +60,45 @@ export class UCPService {
     }
   }
 
-  async listByUcpId(id: string) {
-    const data = await this.ucpModel.findOne({ id })
+  async configList(query: ConfigListDto) {
+    const { page = 1, pageSize = 10, id } = query
 
+    const result = await this.ucpModel.aggregate([
+      { $match: { id } },
+      { $unwind: '$data' },
+      { $sort: { 'data.createdAt': -1 } },
+      {
+        $group: {
+          _id: '$_id',
+          total: { $sum: 1 },
+          data: { $push: '$data' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          data: {
+            $slice: ['$data', (page - 1) * pageSize, pageSize]
+          },
+          total: 1
+        }
+      }
+    ])
+
+    if (!result.length) {
+      throw new GeneralException('ucp.detailNotFound')
+    }
+
+    return {
+      data: result[0].data,
+      total: result[0].total,
+      page,
+      pageSize,
+    }
+  }
+
+  async listAll(id: string) {
+    const data = await this.ucpModel.findOne({ id })
     if (!data) {
       throw new GeneralException('ucp.detailNotFound')
     }
@@ -75,10 +113,70 @@ export class UCPService {
       throw new GeneralException('ucp.detailNotFound')
     }
 
-    ucp.data.push(appendDto.data)
+    const item = {
+      id: uuidv4(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      raw: appendDto.data,
+    }
+
+    ucp.data.push(item)
 
     await ucp.save()
 
-    return ucp
+    return item
+  }
+
+  async update(updateDto: EditConfigItemDto) {
+    const ucp = await this.ucpModel.findOne({ id: updateDto.ucpId })
+
+    if (!ucp) {
+      throw new GeneralException('ucp.detailNotFound')
+    }
+
+    const index = ucp.data.findIndex((e) => e.id === updateDto.itemId)
+
+    if (index === -1) {
+      throw new GeneralException('ucp.configNotFound')
+    }
+
+    const res = await this.ucpModel.updateOne(
+      { 
+        id: updateDto.ucpId,
+        'data.id': updateDto.itemId 
+      },
+      {
+        $set: {
+          [`data.${index}.updatedAt`]: Date.now(),
+          [`data.${index}.raw`]: updateDto.data
+        }
+      }
+    )
+
+    if (res.matchedCount === 0) {
+      throw new GeneralException('common.updateFailed')
+    }
+
+    return updateDto
+  }
+
+  async deleteConfig(query: EditConfigItemDto) {
+    const ucp = await this.ucpModel.findOne({ id: query.ucpId })
+
+    if (!ucp) {
+      throw new GeneralException('ucp.detailNotFound')
+    }
+
+    const index = ucp.data.findIndex((e) => e.id === query.itemId)
+
+    if (index === -1) {
+      throw new GeneralException('ucp.configNotFound')
+    }
+
+    ucp.data.splice(index, 1)
+
+    await ucp.save()
+
+    return query
   }
 }

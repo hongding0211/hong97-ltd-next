@@ -1,21 +1,21 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Breadcrumb,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-  BreadcrumbPage,
   BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
-  DialogFooter,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
   DialogClose,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -99,9 +99,11 @@ const AddNewData: React.FC<{
           toast(res.msg, {
             type: 'error',
           })
+          return
         }
         onSubmit?.()
         onOpenChange?.(false)
+        setValue('')
       })
       .finally(() => {
         setLoading(false)
@@ -208,19 +210,19 @@ function UCP({ locale }: { locale: string }) {
           </div>
         ) : (
           <div className=" mt-6 md:mt-12 flex-col">
-            <div className="flex w-full justify-end mb-6">
-              <Button size="sm" variant="outline" onClick={handleAdd}>
+            <div className="flex w-full mb-6">
+              <Button size="sm" onClick={handleAdd}>
                 <Plus className="w-4 h-4" />
                 {t('items.ucp.new')}
               </Button>
             </div>
             {items.map((item, index) => (
-              <>
-                <Item key={item.id} item={item} />
+              <div key={item.id}>
+                <Item item={item} />
                 {index !== items.length - 1 && (
                   <div className="w-full h-[0.5px] my-3 bg-neutral-300 dark:bg-neutral-700" />
                 )}
-              </>
+              </div>
             ))}
             <div className="flex justify-center">
               <span
@@ -271,7 +273,7 @@ function UCP({ locale }: { locale: string }) {
         />
       </Head>
       <AppLayout authRequired simplifiedFooter>
-        <div className="max-w-[768px] mx-auto md:mt-2 flex-col">
+        <div className="max-w-[800px] mx-auto md:mt-2 flex-col">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

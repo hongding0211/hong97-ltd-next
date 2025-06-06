@@ -18,7 +18,20 @@
       "new": "New",
       "newConfig": "New Configuration",
       "desc": "The configuration description must be in English, numbers, -, _, and the length must be less than 30 characters",
-      "inputLabel": "Configuration Description"
+      "inputLabel": "Configuration Description",
+      "detail": {
+        "index": "Index",
+        "content": "Content",
+        "action": "Action",
+        "edit": "Edit",
+        "delete": "Delete",
+        "save": "Save",
+        "cancel": "Cancel",
+        "noData": "No data",
+        "deleteSuccess": "Delete success",
+        "editSuccess": "Edit success",
+        "addSuccess": "Add success"
+      }
     }
   }
 }

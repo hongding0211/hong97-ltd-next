@@ -29,6 +29,13 @@ export type I18nTranslations = {
         "commentNotAuthor": string;
         "commentNotFound": string;
     };
+    "common": {
+        "updateFailed": string;
+    };
+    "ucp": {
+        "detailNotFound": string;
+        "configNotFound": string;
+    };
 };
 /* prettier-ignore */
 export type I18nPath = Path<I18nTranslations>;

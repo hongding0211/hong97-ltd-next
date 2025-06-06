@@ -12,7 +12,12 @@ export class UCP {
   desc: string
 
   @Prop({ required: true })
-  data: any[]
+  data: {
+    id: string
+    createdAt: number
+    updatedAt: number
+    raw: Record<string, any>
+  }[]
 
   @Prop({ required: true })
   createdBy: string

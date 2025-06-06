@@ -1,11 +1,22 @@
-import { Controller, Get, Post, Query, Body, Param } from '@nestjs/common'
-import { UCPService } from './ucp.service'
-import { ListDto } from './dto/list.dto'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common'
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
+import { AppendDto } from './dto/append.dto'
 import { CreateDto } from './dto/create.dto'
 import { DetailDto } from './dto/detail.dto'
-import { AppendDto } from './dto/append.dto'
+import { EditConfigItemDto } from './dto/editConfigItem'
+import { ListDto } from './dto/list.dto'
+import { UCPService } from './ucp.service'
+import { ConfigListDto } from './dto/config-list'
 
 @Controller('ucp')
 export class UCPController {
@@ -29,15 +40,33 @@ export class UCPController {
     return this.ucpService.detail(detailDto)
   }
 
-  @Get('/ucpDetail')
+  @Get('/config/list')
   @RootOnly()
-  async listByUcpId(@Param('id') id: string) {
-    return this.ucpService.listByUcpId(id)
+  async listByUcpId(@Query() query: ConfigListDto) {
+    return this.ucpService.configList(query)
   }
 
-  @Post('append')
+  @Get('/config/all')
+  @RootOnly()
+  async listAll(@Param('id') id: string) {
+    return this.ucpService.listAll(id)
+  }
+
+  @Post('/config/append')
   @RootOnly()
   async append(@Body() appendDto: AppendDto) {
     return this.ucpService.append(appendDto)
+  }
+
+  @Put('/config/update')
+  @RootOnly()
+  async update(@Body() updateDto: EditConfigItemDto) {
+    return this.ucpService.update(updateDto)
+  }
+
+  @Delete('/config')
+  @RootOnly()
+  async delete(@Query() query: EditConfigItemDto) {
+    return this.ucpService.deleteConfig(query)
   }
 }

@@ -1,87 +1,109 @@
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { ConfigListResponseDto } from '@server/modules/ucp/dto/config-list'
+import { useTranslation } from 'next-i18next'
 
-const invoices = [
-  {
-    invoice: 'INV001',
-    paymentStatus: 'Paid',
-    totalAmount: '$250.00',
-    paymentMethod: 'Credit Card',
-  },
-  {
-    invoice: 'INV002',
-    paymentStatus: 'Pending',
-    totalAmount: '$150.00',
-    paymentMethod: 'PayPal',
-  },
-  {
-    invoice: 'INV003',
-    paymentStatus: 'Unpaid',
-    totalAmount: '$350.00',
-    paymentMethod: 'Bank Transfer',
-  },
-  {
-    invoice: 'INV004',
-    paymentStatus: 'Paid',
-    totalAmount: '$450.00',
-    paymentMethod: 'Credit Card',
-  },
-  {
-    invoice: 'INV005',
-    paymentStatus: 'Paid',
-    totalAmount: '$550.00',
-    paymentMethod: 'PayPal',
-  },
-  {
-    invoice: 'INV006',
-    paymentStatus: 'Pending',
-    totalAmount: '$200.00',
-    paymentMethod: 'Bank Transfer',
-  },
-  {
-    invoice: 'INV007',
-    paymentStatus: 'Unpaid',
-    totalAmount: '$300.00',
-    paymentMethod: 'Credit Card',
-  },
-]
+export type TableAction = 'edit' | 'delete'
 
-export const UCPTable: React.FC = (props) => {
+type TableProps = {
+  items: ConfigListResponseDto['data']
+  onAction?: (action: TableAction, item: ConfigListResponseDto['data'][number]) => void
+  page: number
+  total: number
+  onPageChange?: (page: number) => void
+  pageSize: number
+}
+
+export const UCPTable: React.FC<TableProps> = props => {
+  const { items, onAction, page, total, onPageChange, pageSize } = props
+
+  const { t } = useTranslation('tools')
+
+  const pageCount = Math.ceil(total / pageSize)
+
+  if (!items?.length) {
+    return (
+      <div className='flex text-sm text-neutral-500 mt-8 justify-center w-full'>
+        - {t('items.ucp.detail.noData')} -
+      </div>
+    )
+  }
+
   return (
-    <Table>
-      <TableCaption>A list of your recent invoices.</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[100px]">Invoice</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Method</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {invoices.map((invoice) => (
-          <TableRow key={invoice.invoice}>
-            <TableCell className="font-medium">{invoice.invoice}</TableCell>
-            <TableCell>{invoice.paymentStatus}</TableCell>
-            <TableCell>{invoice.paymentMethod}</TableCell>
-            <TableCell className="text-right">{invoice.totalAmount}</TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">
+              {t('items.ucp.detail.index')}
+            </TableHead>
+            <TableHead className='max-w-[calc(100%-150px)]'>{t('items.ucp.detail.content')}</TableHead>
+            <TableHead className="w-[100px]">
+              {t('items.ucp.detail.action')}
+            </TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell colSpan={3}>Total</TableCell>
-          <TableCell className="text-right">$2,500.00</TableCell>
-        </TableRow>
-      </TableFooter>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {items.map((e, i) => (
+            <TableRow key={e.id}>
+              <TableCell className="font-medium">{i + 1}</TableCell>
+              <TableCell
+                className='truncate max-w-0 cursor-pointer'
+                onClick={() => onAction?.('edit', e)}
+              >
+                {JSON.stringify(e.raw)}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <Button size="sm" variant="link" onClick={() => onAction?.('edit', e)}>
+                    {t('items.ucp.detail.edit')}
+                  </Button>
+                  <Button size="sm" variant="link" onClick={() => onAction?.('delete', e)}>
+                    {t('items.ucp.detail.delete')}
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {
+        pageCount > 1 && (
+          <Pagination className='mt-8 !justify-start'>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious onClick={() => onPageChange?.(page - 1)} />
+              </PaginationItem>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).map(pageNum => (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink onClick={() => onPageChange?.(pageNum)} isActive={pageNum === page}>
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext onClick={() => onPageChange?.(page + 1)} />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )
+      }
+    </>
   )
 }
