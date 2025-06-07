@@ -15,3 +15,10 @@ export class ConfigListResponseDto extends PaginationResponseDto<{
   updatedAt: number
   raw: Record<string, any>
 }> {}
+
+export class ConfigListAllResponseDto extends Array<{
+  id: string
+  createdAt: number
+  updatedAt: number
+  raw: Record<string, any>
+}> {}

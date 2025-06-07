@@ -116,7 +116,8 @@ export class UCPService {
     }
   }
 
-  async listAll(id: string, userId: string) {
+  async listAll(query: ConfigListDto, userId: string) {
+    const { id } = query
     const data = await this.ucpModel.findOne({ id })
     if (!data) {
       throw new GeneralException('ucp.detailNotFound')

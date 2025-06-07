@@ -27,6 +27,10 @@ export const menuConfig: IMenuItem[] = [
     path: '/tools',
   },
   {
+    key: 'cyberNeighbor',
+    path: '/cyberNeighbor',
+  },
+  {
     key: 'doc',
     path: 'https://docs.hong97.ltd',
     externalLink: true,

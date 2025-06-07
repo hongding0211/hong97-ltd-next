@@ -32,7 +32,9 @@
         "deleteSuccess": "Delete success",
         "editSuccess": "Edit success",
         "addSuccess": "Add success",
-        "duplicate": "Duplicate"
+        "duplicate": "Duplicate",
+        "copyId": "Copy ID",
+        "copyIdSuccess": "Copy ID success"
       }
     }
   }

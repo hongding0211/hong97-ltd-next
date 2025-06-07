@@ -13,7 +13,7 @@ import { Edit, EditType } from '@components/ucp/table/edit'
 import { ConfigListResponseDto } from '@server/modules/ucp/dto/config-list'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
-import { Plus } from 'lucide-react'
+import { Copy, Plus } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
@@ -164,6 +164,13 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
     setTimeout(fetch, 0)
   }
 
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(id)
+    toast(t('items.ucp.detail.copyIdSuccess'), {
+      type: 'success',
+    })
+  }
+
   useEffect(() => {
     if (!id) {
       return
@@ -219,10 +226,14 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
           </Breadcrumb>
 
           <div className="mt-8 w-full">
-            <div className="flex w-full mb-4">
+            <div className="flex w-full items-center mb-4 gap-x-2">
               <Button size="sm" onClick={handleNew}>
                 <Plus className="w-4 h-4" />
                 {t('items.ucp.new')}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCopyId}>
+                <Copy className="w-4 h-4" />
+                {t('items.ucp.detail.copyId')}
               </Button>
             </div>
             <UCPTable

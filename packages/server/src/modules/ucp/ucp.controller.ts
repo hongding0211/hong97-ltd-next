@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common'
+import { Body, Controller, Delete, Get, Post, Put, Query } from '@nestjs/common'
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { AppendDto } from './dto/append.dto'
@@ -46,8 +37,8 @@ export class UCPController {
   }
 
   @Get('/config/all')
-  async listAll(@Param('id') id: string, @UserId() userId: string) {
-    return this.ucpService.listAll(id, userId)
+  async listAll(@Query() query: ConfigListDto, @UserId() userId: string) {
+    return this.ucpService.listAll(query, userId)
   }
 
   @Post('/config/append')
