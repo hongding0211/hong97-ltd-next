@@ -1,8 +1,11 @@
-import { IsArray, IsString } from 'class-validator'
+import { IsArray, IsBoolean, IsString } from 'class-validator'
 
 export class CreateDto {
   @IsString()
   desc: string
+
+  @IsBoolean()
+  publicRead: boolean
 }
 
 export class CreateResponseDto {

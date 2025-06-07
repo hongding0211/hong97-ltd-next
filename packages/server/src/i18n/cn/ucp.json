@@ -1,4 +1,5 @@
 {
   "detailNotFound": "配置不存在",
-  "configNotFound": "配置项不存在"
+  "configNotFound": "配置项不存在",
+  "noPermission": "无权限访问"
 }

@@ -6,6 +6,6 @@ export default registerAs('auth', () => ({
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
   },
   ignore: ['/auth/login', '/auth/register', '/oss/requestUpload'],
-  softIgnore: ['/blog/*'],
+  softIgnore: ['/blog/*', '/ucp/config/list', '/ucp/config/all'],
   rootUsers: process.env.ROOT_USERS ? process.env.ROOT_USERS.split(',') : [],
 }))

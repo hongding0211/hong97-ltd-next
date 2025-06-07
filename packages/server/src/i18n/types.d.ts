@@ -35,6 +35,7 @@ export type I18nTranslations = {
     "ucp": {
         "detailNotFound": string;
         "configNotFound": string;
+        "noPermission": string;
     };
 };
 /* prettier-ignore */

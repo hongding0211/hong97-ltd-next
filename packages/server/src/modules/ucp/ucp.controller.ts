@@ -11,12 +11,12 @@ import {
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { AppendDto } from './dto/append.dto'
+import { ConfigListDto } from './dto/config-list'
 import { CreateDto } from './dto/create.dto'
 import { DetailDto } from './dto/detail.dto'
 import { EditConfigItemDto } from './dto/editConfigItem'
 import { ListDto } from './dto/list.dto'
 import { UCPService } from './ucp.service'
-import { ConfigListDto } from './dto/config-list'
 
 @Controller('ucp')
 export class UCPController {
@@ -41,15 +41,13 @@ export class UCPController {
   }
 
   @Get('/config/list')
-  @RootOnly()
-  async listByUcpId(@Query() query: ConfigListDto) {
-    return this.ucpService.configList(query)
+  async listByUcpId(@Query() query: ConfigListDto, @UserId() userId: string) {
+    return this.ucpService.configList(query, userId)
   }
 
   @Get('/config/all')
-  @RootOnly()
-  async listAll(@Param('id') id: string) {
-    return this.ucpService.listAll(id)
+  async listAll(@Param('id') id: string, @UserId() userId: string) {
+    return this.ucpService.listAll(id, userId)
   }
 
   @Post('/config/append')

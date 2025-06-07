@@ -19,6 +19,7 @@
       "newConfig": "新配置",
       "desc": "配置描述必须为英文, 数字, -, _, 长度不超过30个字符",
       "inputLabel": "配置描述",
+      "publicRead": "公开可读",
       "detail": {
         "index": "序号",
         "content": "配置内容" ,

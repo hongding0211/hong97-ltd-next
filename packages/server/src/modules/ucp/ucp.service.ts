@@ -4,13 +4,13 @@ import { Model } from 'mongoose'
 import { GeneralException } from 'src/exceptions/general-exceptions'
 import { v4 as uuidv4 } from 'uuid'
 import { AppendDto } from './dto/append.dto'
+import { ConfigListDto } from './dto/config-list'
 import { CreateDto } from './dto/create.dto'
 import { DetailDto, DetailResponseDto } from './dto/detail.dto'
 import { EditConfigItemDto } from './dto/editConfigItem'
 import { ListDto, ListResponseDto } from './dto/list.dto'
 import { UCPDocument } from './schema/ucp.schema'
 import { UCP } from './schema/ucp.schema'
-import { ConfigListDto } from './dto/config-list'
 
 @Injectable()
 export class UCPService {
@@ -42,6 +42,7 @@ export class UCPService {
       desc: createDto.desc,
       data: [],
       createdBy: userId,
+      publicRead: createDto.publicRead,
     })
 
     return data
@@ -60,8 +61,17 @@ export class UCPService {
     }
   }
 
-  async configList(query: ConfigListDto) {
+  async configList(query: ConfigListDto, userId: string) {
     const { page = 1, pageSize = 10, id } = query
+
+    const ucp = await this.ucpModel.findOne({ id })
+
+    if (!ucp) {
+      throw new GeneralException('ucp.detailNotFound')
+    }
+    if (!ucp.publicRead && !userId) {
+      throw new GeneralException('ucp.noPermission')
+    }
 
     const result = await this.ucpModel.aggregate([
       { $match: { id } },
@@ -71,18 +81,18 @@ export class UCPService {
         $group: {
           _id: '$_id',
           total: { $sum: 1 },
-          data: { $push: '$data' }
-        }
+          data: { $push: '$data' },
+        },
       },
       {
         $project: {
           _id: 0,
           data: {
-            $slice: ['$data', (page - 1) * pageSize, pageSize]
+            $slice: ['$data', (page - 1) * pageSize, pageSize],
           },
-          total: 1
-        }
-      }
+          total: 1,
+        },
+      },
     ])
 
     if (!result.length) {
@@ -97,12 +107,14 @@ export class UCPService {
     }
   }
 
-  async listAll(id: string) {
+  async listAll(id: string, userId: string) {
     const data = await this.ucpModel.findOne({ id })
     if (!data) {
       throw new GeneralException('ucp.detailNotFound')
     }
-
+    if (!data.publicRead && !userId) {
+      throw new GeneralException('ucp.noPermission')
+    }
     return data.data
   }
 
@@ -141,16 +153,16 @@ export class UCPService {
     }
 
     const res = await this.ucpModel.updateOne(
-      { 
+      {
         id: updateDto.ucpId,
-        'data.id': updateDto.itemId 
+        'data.id': updateDto.itemId,
       },
       {
         $set: {
           [`data.${index}.updatedAt`]: Date.now(),
-          [`data.${index}.raw`]: updateDto.data
-        }
-      }
+          [`data.${index}.raw`]: updateDto.data,
+        },
+      },
     )
 
     if (res.matchedCount === 0) {

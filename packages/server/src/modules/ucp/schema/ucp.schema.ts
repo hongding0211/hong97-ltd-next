@@ -21,6 +21,9 @@ export class UCP {
 
   @Prop({ required: true })
   createdBy: string
+
+  @Prop({ required: true })
+  publicRead: boolean
 }
 
 export const UCPSchema = SchemaFactory.createForClass(UCP)

@@ -18,6 +18,7 @@
       "new": "New",
       "newConfig": "New Configuration",
       "desc": "The configuration description must be in English, numbers, -, _, and the length must be less than 30 characters",
+      "publicRead": "Public Read",
       "inputLabel": "Configuration Description",
       "detail": {
         "index": "Index",

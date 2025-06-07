@@ -18,6 +18,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import AppLayout from '@components/app-layout/AppLayout'
 import { ListResponseDto } from '@server/modules/ucp/dto/list.dto'
@@ -62,6 +64,7 @@ const AddNewData: React.FC<{
 
   const [value, setValue] = useState('')
   const [loading, setLoading] = useState(false)
+  const [publicRead, setPublicRead] = useState(true)
 
   const { t } = useTranslation('tools')
   const { t: tCommon } = useTranslation('common')
@@ -130,6 +133,14 @@ const AddNewData: React.FC<{
               />
             </div>
           </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="publicRead"
+              checked={publicRead}
+              onCheckedChange={setPublicRead}
+            />
+            <Label htmlFor="publicRead">{t('items.ucp.publicRead')}</Label>
+          </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button disabled={loading} variant="outline">
@@ -153,6 +164,8 @@ function UCP({ locale }: { locale: string }) {
   const [showAddNewData, setShowAddNewData] = useState(false)
   const [total, setTotal] = useState(0)
 
+  const [loading, setLoading] = useState(true)
+
   const { t } = useTranslation('tools')
   const { t: tCommon } = useTranslation('common')
 
@@ -164,6 +177,7 @@ function UCP({ locale }: { locale: string }) {
       page.current = 1
       size.current = PAGE_SIZE
     }
+    setLoading(true)
     return http
       .get('GetUcpList', {
         page: page.current,
@@ -176,6 +190,9 @@ function UCP({ locale }: { locale: string }) {
           setItems((prev) => [...prev, ...res.data.data])
         }
         setTotal(res.data.total)
+      })
+      .finally(() => {
+        setLoading(false)
       })
   }, [])
 
@@ -191,7 +208,7 @@ function UCP({ locale }: { locale: string }) {
   const content = useMemo(() => {
     return (
       <div>
-        {!items.length ? (
+        {!items.length && !loading ? (
           <div className="flex justify-center">
             <div className="w-[80%] max-w-[400px] mt-24 md:mt-48">
               <Alert>
@@ -225,24 +242,30 @@ function UCP({ locale }: { locale: string }) {
               </div>
             ))}
             <div className="flex justify-center">
-              <span
-                className={cn(
-                  'mt-4 cursor-pointer text-sm text-neutral-500',
-                  total > items.length ? 'cursor-pointer' : 'cursor-default',
-                  total > items.length
-                    ? 'hover:underline active:underline'
-                    : undefined,
-                )}
-                onClick={total > items.length ? handleLoadMore : undefined}
-              >
-                {total > items.length ? tCommon('loadMore') : tCommon('noMore')}
-              </span>
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <span
+                  className={cn(
+                    'mt-4 cursor-pointer text-sm text-neutral-500',
+                    total > items.length ? 'cursor-pointer' : 'cursor-default',
+                    total > items.length
+                      ? 'hover:underline active:underline'
+                      : undefined,
+                  )}
+                  onClick={total > items.length ? handleLoadMore : undefined}
+                >
+                  {total > items.length
+                    ? tCommon('loadMore')
+                    : tCommon('noMore')}
+                </span>
+              )}
             </div>
           </div>
         )}
       </div>
     )
-  }, [items, handleAdd, t, handleLoadMore, total, tCommon])
+  }, [items, handleAdd, t, handleLoadMore, total, tCommon, loading])
 
   useEffect(() => {
     fetch()
