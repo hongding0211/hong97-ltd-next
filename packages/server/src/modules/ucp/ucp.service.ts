@@ -73,6 +73,15 @@ export class UCPService {
       throw new GeneralException('ucp.noPermission')
     }
 
+    if (!ucp.data.length) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        pageSize,
+      }
+    }
+
     const result = await this.ucpModel.aggregate([
       { $match: { id } },
       { $unwind: '$data' },
