@@ -18,7 +18,7 @@ import {
 import { ConfigListResponseDto } from '@server/modules/ucp/dto/config-list'
 import { useTranslation } from 'next-i18next'
 
-export type TableAction = 'edit' | 'delete'
+export type TableAction = 'edit' | 'delete' | 'duplicate'
 
 type TableProps = {
   items: ConfigListResponseDto['data']
@@ -78,18 +78,28 @@ export const UCPTable: React.FC<TableProps> = (props) => {
                 {JSON.stringify(e.raw)}
               </TableCell>
               <TableCell>
-                <div className="flex items-center">
+                <div className="flex items-center gap-x-2">
                   <Button
                     size="sm"
                     variant="link"
                     onClick={() => onAction?.('edit', e)}
+                    className="!p-0"
                   >
                     {t('items.ucp.detail.edit')}
                   </Button>
                   <Button
                     size="sm"
                     variant="link"
+                    onClick={() => onAction?.('duplicate', e)}
+                    className="!p-0"
+                  >
+                    {t('items.ucp.detail.duplicate')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="link"
                     onClick={() => onAction?.('delete', e)}
+                    className="!p-0"
                   >
                     {t('items.ucp.detail.delete')}
                   </Button>

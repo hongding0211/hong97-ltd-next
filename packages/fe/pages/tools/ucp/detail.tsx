@@ -32,7 +32,9 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
   const [title, setTitle] = useState(tCommon('loading'))
   const [_showItemDrawer, _setShowItemDrawer] = useState(false)
 
-  const [editData, setEditData] = useState<ConfigListResponseDto['data'][number] | undefined>()
+  const [editData, setEditData] = useState<
+    ConfigListResponseDto['data'][number] | undefined
+  >()
   const [showEdit, setShowEdit] = useState(false)
   const [editTitle, setEditTitle] = useState('')
 
@@ -45,20 +47,22 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
   const firstFetched = useRef(false)
 
   const fetch = useCallback(() => {
-    http.get('GetUcpConfigList', {
-      id,
-      page,
-      pageSize: PAGE_SIZE,
-    }).then(res => {
-      if (!res.isSuccess) {
-        toast(res.msg, {
-          type: 'error',
-        })
-        return
-      }
-      setItems(res.data.data)
-      setTotal(res.data.total)
-    })
+    http
+      .get('GetUcpConfigList', {
+        id,
+        page,
+        pageSize: PAGE_SIZE,
+      })
+      .then((res) => {
+        if (!res.isSuccess) {
+          toast(res.msg, {
+            type: 'error',
+          })
+          return
+        }
+        setItems(res.data.data)
+        setTotal(res.data.total)
+      })
   }, [id, page])
 
   const handleNew = () => {
@@ -68,59 +72,78 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
     setEditTitle(t('items.ucp.new'))
   }
 
-  const handleSave = (data: ConfigListResponseDto['data'][number], type: EditType) => {
+  const handleSave = (
+    data: ConfigListResponseDto['data'][number],
+    type: EditType,
+  ) => {
     if (type === 'new') {
-      http.post('PostUcpAppend', {
-        id,
-        data: data.raw,
-      }).then(res => {
-        if (!res.isSuccess) {
-          toast(res.msg, {
-            type: 'error',
-          })
-          return
-        }
-        setPage(1)
-        setTimeout(fetch, 0)
-        toast(t('items.ucp.detail.addSuccess'), {
-          type: 'success',
+      http
+        .post('PostUcpAppend', {
+          id,
+          data: data.raw,
         })
-      })
+        .then((res) => {
+          if (!res.isSuccess) {
+            toast(res.msg, {
+              type: 'error',
+            })
+            return
+          }
+          setPage(1)
+          setTimeout(fetch, 0)
+          toast(t('items.ucp.detail.addSuccess'), {
+            type: 'success',
+          })
+        })
     }
 
     if (type === 'edit') {
-      http.put('PutUcpConfigUpdate', {
-        ucpId: id,
-        itemId: data.id,
-        data: data.raw
-      }).then(res => {
-        if (!res.isSuccess) {
-          toast(res.msg, {
-            type: 'error',
-          })
-          return
-        }
-        fetch()
-        toast(t('items.ucp.detail.editSuccess'), {
-          type: 'success',
+      http
+        .put('PutUcpConfigUpdate', {
+          ucpId: id,
+          itemId: data.id,
+          data: data.raw,
         })
-      })
+        .then((res) => {
+          if (!res.isSuccess) {
+            toast(res.msg, {
+              type: 'error',
+            })
+            return
+          }
+          fetch()
+          toast(t('items.ucp.detail.editSuccess'), {
+            type: 'success',
+          })
+        })
     }
   }
 
-  const handleTableAction = (action: TableAction, item: ConfigListResponseDto['data'][number]) => {
+  const handleTableAction = (
+    action: TableAction,
+    item: ConfigListResponseDto['data'][number],
+  ) => {
     if (action === 'edit') {
       editType.current = 'edit'
       setEditData(item)
       setShowEdit(true)
       setEditTitle(t('items.ucp.detail.edit'))
     }
-    if (action === 'delete') {
-      http.delete('DeleteUcpConfig', {
-        ucpId: id,
-        itemId: item.id,
+    if (action === 'duplicate') {
+      editType.current = 'new'
+      setEditData({
+        raw: item.raw,
       })
-        .then(res => {
+      setShowEdit(true)
+      setEditTitle(t('items.ucp.new'))
+    }
+    if (action === 'delete') {
+      http
+        .delete('DeleteUcpConfig', {
+          ucpId: id,
+          itemId: item.id,
+        })
+        .then((res) => {
           if (!res.isSuccess) {
             toast(res.msg, {
               type: 'error',

@@ -31,7 +31,8 @@
         "noData": "No data",
         "deleteSuccess": "Delete success",
         "editSuccess": "Edit success",
-        "addSuccess": "Add success"
+        "addSuccess": "Add success",
+        "duplicate": "Duplicate"
       }
     }
   }
