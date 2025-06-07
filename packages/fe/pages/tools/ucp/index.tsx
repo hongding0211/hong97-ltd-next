@@ -96,6 +96,7 @@ const AddNewData: React.FC<{
     http
       .post('PostUcpCreate', {
         desc: trimmedValue,
+        publicRead,
       })
       .then((res) => {
         if (!res.isSuccess) {
