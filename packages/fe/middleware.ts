@@ -1,8 +1,14 @@
+import { http } from '@services/http'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()
+
+  const t = request.cookies.get('token')
+  if (t) {
+    http.setCookieToken(t.value)
+  }
 
   if (url.pathname === '/') {
     url.pathname = '/about'

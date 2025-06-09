@@ -5,13 +5,16 @@ const createMDX = require('@next/mdx')
 const nextConfig = {
   i18n,
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3500/:path*',
+      },
+    ]
+  },
 }
 
 const withMDX = createMDX({})
 
-// 根据环境变量选择配置文件
-const config = process.env.NODE_ENV === 'development' 
-  ? require('./next.config.dev')
-  : withMDX(nextConfig)
-
-module.exports = config
+module.exports = withMDX(nextConfig) 

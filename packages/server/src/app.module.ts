@@ -8,7 +8,7 @@ import { ThrottlerModule } from '@nestjs/throttler'
 import { HeaderResolver, I18nModule } from 'nestjs-i18n'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
-import { StructuredResponseInterceptor } from './common/response/structured-response'
+import { StructuredResponseInterceptor } from './interceptors/response/structured-response'
 import config from './config'
 import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
@@ -17,6 +17,7 @@ import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
 import { UserModule } from './modules/user/user.module'
 import { UCPModule } from './modules/ucp/ucp.module'
+import { AuthInterceptor } from './interceptors/auth'
 
 @Module({
   imports: [
@@ -84,6 +85,10 @@ import { UCPModule } from './modules/ucp/ucp.module'
     {
       provide: APP_INTERCEPTOR,
       useClass: StructuredResponseInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuthInterceptor,
     },
   ],
 })

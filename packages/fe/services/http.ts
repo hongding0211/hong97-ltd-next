@@ -4,15 +4,20 @@ import { runOnClient } from '../utils/run-on-client'
 import { toast } from '../utils/toast'
 import { APIs, HttpResponse } from './types'
 import { BASE_URL, PATHS } from './urls'
+import { runOnServer } from '@utils/run-on-server'
 
 class Http {
   private axiosInstance: AxiosInstance
   private locale: string
+  private cookieToken: string
 
   constructor() {
     let accessToken = ''
     runOnClient(() => {
       accessToken = localStorage.getItem(ACCESS_TOKEN_KEY) ?? ''
+    })
+    runOnServer(() => {
+      this.cookieToken && (accessToken = this.cookieToken)
     })
     this.locale = 'cn'
     this.axiosInstance = axios.create({
@@ -62,6 +67,10 @@ class Http {
 
   setLocale(locale?: string) {
     this.locale = locale ?? 'cn'
+  }
+
+  setCookieToken(token: string) {
+    this.cookieToken = token
   }
 
   get<K extends keyof APIs>(
