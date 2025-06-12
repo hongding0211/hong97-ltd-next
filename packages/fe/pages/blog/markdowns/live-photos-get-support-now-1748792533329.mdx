@@ -10,23 +10,7 @@ import { time } from '@utils/time'
 
 [Apple 官方的 Live Photo 的 JS SDK](https://developer.apple.com/documentation/LivePhotosKitJS)，真的很难用。要不是我先前自己写了一版本 Bugs 一堆，打死我也不用这个破玩意儿！
 
-由于是 `Canvas` 绘制，为了保证可以根据窗口大小调整尺寸，写了非常多的脏代码
-
-
-```js filename="index.js"
-export function useMDXComponents(components: MDXComponents): MDXComponents {
-  return {
-    ...components,
-    code: (props) => {
-      return (
-        <span className="bg-neutral-100 dark:bg-neutral-800 text-sm font-medium rounded-md p-1">
-          {props.children}
-        </span>
-      )
-    },
-  }
-}
-```
+由于是 Canvas 绘制，为了保证可以根据窗口大小调整尺寸，写了非常多的脏代码
 
 **请欣赏：**
 
@@ -44,8 +28,8 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 <ImagesV2
   images={[
     {
-      img: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421%20Large_mbduvgnz.jpeg?v=1',
-      video: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421_mbduvg7c.mov?v=1',
+      img: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421%20Large_mbduvgnz.jpeg',
+      video: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4421_mbduvg7c.mov',
       caption: 'A bunny 🐰'
     }
   ]}
@@ -55,9 +39,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 <ImagesV2
   images={[
     {
-      img: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428%20Large_mbdvde5s.jpeg?v=1',
-      video: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428_mbdvde5f.mov?v=1',
-      caption: '@ 千岛湖，随便拍一拍'
+      img: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428%20Large_mbdvde5s.jpeg',
+      video: 'https://ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com/uploader/202506/IMG_4428_mbdvde5f.mov',
+      caption: '@千岛湖，随便拍一拍'
     }
   ]}
   markdown
