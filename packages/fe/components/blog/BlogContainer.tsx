@@ -10,9 +10,9 @@ import Head from 'next/head'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
 import AppLayout from '../app-layout/AppLayout'
-import MdxLayout from '../mdx-layout'
 import { CommentAction, Comments } from './common/comment/comments'
 import { CommentEdit } from './common/comment/edit'
+import MdxLayout from './mdx-layout'
 
 interface IBlogContainer {
   children: React.ReactNode

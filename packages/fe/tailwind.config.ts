@@ -19,6 +19,19 @@ const config = {
       },
     },
     extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            '--tw-prose-pre-code': 'rgb(0, 0, 0, 1)',
+            '--tw-prose-pre-bg': 'rgb(0 0 0 / 0.03)',
+          },
+        },
+        invert: {
+          css: {
+            '--tw-prose-pre-bg': 'rgb(255 255 255 / 0.1)',
+          },
+        },
+      },
       keyframes: {
         'accordion-down': {
           from: {

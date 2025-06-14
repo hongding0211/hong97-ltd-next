@@ -4,11 +4,19 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     ...components,
     code: (props) => {
-      return (
-        <span className="bg-neutral-100 dark:bg-neutral-800 text-sm font-medium rounded-md p-1">
-          {props.children}
-        </span>
-      )
+      if (typeof props.children === 'string') {
+        return (
+          <span
+            className="p-1 text-neutral-700 dark:text-neutral-300 rounded font-medium bg-neutral-100 dark:bg-neutral-800"
+            style={{
+              margin: '0 2px',
+            }}
+          >
+            {props.children}
+          </span>
+        )
+      }
+      return props.children
     },
   }
 }
