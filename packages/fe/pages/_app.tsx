@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import { Toaster } from 'sonner'
 import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
 import { http } from '../services/http'
+import '../styles/code.css'
 import '../styles/globals.css'
 import { registerToast } from '../utils/toast'
 
