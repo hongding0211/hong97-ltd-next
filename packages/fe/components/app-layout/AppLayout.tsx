@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { useLogin } from '@hooks/useLogin'
 import { useAppStore } from '@stores/general'
 import { truncate } from '@utils/truncate'
-import { Mail, UserRound } from 'lucide-react'
-import { footerConfig, menuConfig } from '../../config'
+import cx from 'classnames'
+import { UserRound } from 'lucide-react'
+import { menuConfig } from '../../config'
 import Avatar from '../common/Avatar'
 import Divider from '../common/Divider'
 import Logo from '../common/Logo'
@@ -244,53 +245,22 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
         </div>
 
         <footer
-          className={`w-full p-5 text-xs font-light ${
-            props?.simplifiedFooter ? '' : 'bg-neutral-50 dark:bg-black'
-          } text-neutral-800 dark:text-neutral-300`}
-        >
-          {!props?.simplifiedFooter && (
-            <div className="flex flex-col gap-x-10 gap-y-3 sm:flex-row">
-              <div className="flex flex-col gap-y-1">
-                <span className="font-medium">{t('contact')}</span>
-                <span className="flex items-center">
-                  <img
-                    src="https://www.xiaohongshu.com/favicon.ico"
-                    alt="xhs"
-                    className="mr-1 h-[11px] w-[11px]"
-                  />
-                  <a
-                    href="https://www.xiaohongshu.com/user/profile/5b4cb655f7e8b918f05ca063"
-                    target="__blank"
-                  >
-                    {t('xhs')} @弘
-                  </a>
-                </span>
-                <div className="flex items-center">
-                  <Mail className="mr-1 w-[12px] h-[12px]" />
-                  keith.dh@hotmail.com
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-y-1">
-                <span className="font-medium">{t('myProject')}</span>
-                {footerConfig.map((i) => (
-                  <a
-                    href={i.path}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="cursor-pointer text-neutral-800 hover:underline dark:text-neutral-300"
-                    key={i.key}
-                  >
-                    {i.title}
-                  </a>
-                ))}
-              </div>
-            </div>
+          className={cx(
+            'text-xs flex justify-center mb-6 font-light text-neutral-600 dark:text-neutral-400 ',
+            {
+              '!mb-4': props?.simplifiedFooter,
+              'opacity-[80%]': props?.simplifiedFooter,
+            },
           )}
-
-          <div className="my-3 h-[1px] bg-neutral-200 dark:bg-neutral-800" />
-
-          <p className="text-neutral-600 dark:text-neutral-400">
+        >
+          <p
+            className={cx(
+              'rounded-full py-2 px-4 flex w-max items-center gap-1 justify-center',
+              {
+                'bg-neutral-100 dark:bg-neutral-900': !props?.simplifiedFooter,
+              },
+            )}
+          >
             <span>Copyright © {new Date().getFullYear()} hong97.ltd. </span>
             <a
               href="https://beian.miit.gov.cn/#/Integrated/index"
