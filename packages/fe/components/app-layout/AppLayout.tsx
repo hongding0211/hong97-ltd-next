@@ -266,7 +266,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
               href="https://beian.miit.gov.cn/#/Integrated/index"
               target="_blank"
               rel="noreferrer"
-              className="cursor-pointer hover:underline"
+              className="cursor-pointer hover:underline hidden sm:block"
             >
               沪 ICP 备 2022003448 号
             </a>
