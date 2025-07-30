@@ -14,6 +14,7 @@
       "title": "UCP",
       "subTitle": "统一配置平台",
       "nodata": "暂无数据",
+      "noPermission": "您没有权限访问该页面",
       "add": "添加一个配置项",
       "new": "新配置",
       "newConfig": "新配置",

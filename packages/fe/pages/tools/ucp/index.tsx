@@ -167,6 +167,8 @@ function UCP({ locale }: { locale: string }) {
 
   const [loading, setLoading] = useState(true)
 
+  const [noPermission, setNoPermission] = useState(false)
+
   const { t } = useTranslation('tools')
   const { t: tCommon } = useTranslation('common')
 
@@ -192,6 +194,11 @@ function UCP({ locale }: { locale: string }) {
         }
         setTotal(res.data.total)
       })
+      .catch((err) => {
+        if (err?.status === 403) {
+          setNoPermission(true)
+        }
+      })
       .finally(() => {
         setLoading(false)
       })
@@ -207,6 +214,22 @@ function UCP({ locale }: { locale: string }) {
   }
 
   const content = useMemo(() => {
+    if (noPermission) {
+      return (
+        <div className="flex justify-center">
+          <div className="w-[80%] max-w-[400px] mt-24 md:mt-48">
+            <Alert>
+              <CircleSlash className="w-4 h-4" />
+              <AlertTitle>{t('items.ucp.title')}</AlertTitle>
+              <AlertDescription className="mt-5">
+                {t('items.ucp.noPermission')}
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div>
         {!items.length && !loading ? (

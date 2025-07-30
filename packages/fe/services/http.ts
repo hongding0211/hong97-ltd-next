@@ -30,27 +30,30 @@ class Http {
       .then((v) => v.data as HttpResponse<K>)
       .catch((err: AxiosError) => {
         /** Lost login session */
-        if (err.response?.status === 401 || err.response?.status === 403) {
+        if (err.response?.status === 401) {
           toast('unauthorized', {
             type: 'error',
           })
           runOnClient(() => {
             localStorage.removeItem(ACCESS_TOKEN_KEY)
           })
-          return Promise.reject()
+          return Promise.reject(err)
+        }
+        if (err.response?.status === 403) {
+          return Promise.reject(err)
         }
         /** Rate limiting */
         if (err.response?.status === 429) {
           toast('ratelimited', {
             type: 'error',
           })
-          return Promise.reject()
+          return Promise.reject(err)
         }
         /** Common error */
         toast('commonError', {
           type: 'error',
         })
-        return Promise.reject()
+        return Promise.reject(err)
       })
   }
 
