@@ -275,4 +275,11 @@ export class AuthService {
       hasLocalAuth: user.authProviders.includes('local'),
     }
   }
+
+  async isAdmin(userId: string): ServiceResponse<{ isAdmin: boolean }> {
+    const rootUsers = this.configService.get<string[]>('auth.rootUsers') || []
+    return {
+      isAdmin: rootUsers.includes(userId),
+    }
+  }
 }

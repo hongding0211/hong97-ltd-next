@@ -65,4 +65,10 @@ export class AuthController {
   async hasLocalAuth(@UserId() userId: string) {
     return this.authService.hasLocalAuth(userId)
   }
+
+  @Get('isAdmin')
+  @HttpCode(HttpStatus.OK)
+  async isAdmin(@UserId() userId: string) {
+    return this.authService.isAdmin(userId)
+  }
 }

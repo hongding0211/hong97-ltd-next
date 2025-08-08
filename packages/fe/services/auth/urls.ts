@@ -8,4 +8,5 @@ export const AUTH_PATHS: Record<keyof AuthAPIS, string> = {
   PostModifyPassword: 'auth/modifyPassword',
   GetRefreshToken: 'auth/refreshToken',
   GetHasLocalAuth: 'auth/hasLocalAuth',
+  GetIsAdmin: 'auth/isAdmin',
 }

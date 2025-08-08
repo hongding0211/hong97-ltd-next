@@ -15,8 +15,9 @@ import { CustomThrottleGuard } from './guards/throttle'
 import { AuthModule } from './modules/auth/auth.module'
 import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
-import { UserModule } from './modules/user/user.module'
+import { TrashModule } from './modules/trash/trash.module'
 import { UCPModule } from './modules/ucp/ucp.module'
+import { UserModule } from './modules/user/user.module'
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { UCPModule } from './modules/ucp/ucp.module'
     OssModule,
     BlogModule,
     UCPModule,
+    TrashModule,
   ],
   controllers: [AppController],
   providers: [

@@ -18,7 +18,10 @@ interface EditProps {
   data?: ConfigListResponseDto['data'][number]
   visible: boolean
   onVisibleChange?: (visible: boolean) => void
-  onSave?: (content: ConfigListResponseDto['data'][number], type: EditType) => void
+  onSave?: (
+    content: ConfigListResponseDto['data'][number],
+    type: EditType,
+  ) => void
   type: EditType
 }
 
@@ -46,10 +49,13 @@ export const Edit: React.FC<EditProps> = (props) => {
     const content = editorRef.current.getValue()
     try {
       const obj = JSON.parse(content)
-      onSave?.({
-        ...data,
-        raw: obj,
-      }, type)
+      onSave?.(
+        {
+          ...data,
+          raw: obj,
+        },
+        type,
+      )
       onVisibleChange?.(false)
     } catch {
       toast('ucp.invalidJson')

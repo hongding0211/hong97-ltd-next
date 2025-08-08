@@ -1,0 +1,25 @@
+{
+  "title": "废纸篓",
+  "subtitle": "一个装废话的地方",
+  "empty": {
+    "title": "废纸篓是空的",
+    "description": "开始往废纸篓里扔点废话吧",
+    "adminDescription": "开始往废纸篓里扔点废话吧",
+    "userDescription": "等待废话中..."
+  },
+  "form": {
+    "publishButton": "扔进废纸篓",
+    "title": "往废纸篓里扔点什么",
+    "content": "内容",
+    "contentPlaceholder": "说点废话...",
+    "contentRequired": "内容不能为空",
+    "images": "图片",
+    "addImage": "添加图片",
+    "imagePlaceholder": "https://example.com/image.jpg",
+    "cancel": "取消",
+    "publish": "扔进去",
+    "publishing": "正在扔...",
+    "publishSuccess": "扔进去了！",
+    "publishFailed": "扔失败了"
+  }
+}

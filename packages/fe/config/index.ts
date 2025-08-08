@@ -23,6 +23,10 @@ export const menuConfig: IMenuItem[] = [
     path: '/blog',
   },
   {
+    key: 'trash',
+    path: '/trash',
+  },
+  {
     key: 'tools',
     path: '/tools',
   },

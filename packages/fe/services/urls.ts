@@ -1,6 +1,7 @@
 import { AUTH_PATHS } from './auth/urls'
 import { BLOG_PATHS } from './blog/urls'
 import { OSS_PATHS } from './oss/urls'
+import { TRASH_PATHS } from './trash/urls'
 import { APIs } from './types'
 import { UCP_PATHS } from './ucp/urls'
 
@@ -11,4 +12,5 @@ export const PATHS: Record<keyof APIs, string> = {
   ...OSS_PATHS,
   ...BLOG_PATHS,
   ...UCP_PATHS,
+  ...TRASH_PATHS,
 }

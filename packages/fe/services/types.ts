@@ -1,12 +1,15 @@
 import { AuthAPIS } from './auth/types'
 import { BlogAPIS } from './blog/types'
 import { OssAPIS } from './oss/types'
+import { TrashAPIS } from './trash/types'
 import { UCPAPIS } from './ucp/types'
 type ExtractFromDto<T> = T extends abstract new (
   ..._args: any
 ) => infer R
   ? R
-  : never
+  : T extends (...args: any[]) => infer R
+    ? R
+    : T
 
 export type API<P = unknown, B = unknown, R = unknown> = {
   request: {
@@ -23,4 +26,4 @@ export type HttpResponse<K extends keyof APIs> = {
   errCode?: number
 }
 
-export type APIs = AuthAPIS & OssAPIS & BlogAPIS & UCPAPIS
+export type APIs = AuthAPIS & OssAPIS & BlogAPIS & UCPAPIS & TrashAPIS

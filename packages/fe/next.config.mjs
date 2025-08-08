@@ -14,7 +14,7 @@ const nextConfig = {
 const withMDX = createMDX({
   options: {
     rehypePlugins: [rehypeStarryNight],
-  }
+  },
 })
 
 export default withMDX(nextConfig)

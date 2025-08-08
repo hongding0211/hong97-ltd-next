@@ -1,0 +1,25 @@
+{
+  "title": "Trash",
+  "subtitle": "A place for random thoughts",
+  "empty": {
+    "title": "Trash is empty",
+    "description": "Start throwing some thoughts into the trash",
+    "adminDescription": "Start throwing some thoughts into the trash",
+    "userDescription": "Waiting to be filled with thoughts..."
+  },
+  "form": {
+    "publishButton": "Throw into Trash",
+    "title": "Throw something into the trash",
+    "content": "Content",
+    "contentPlaceholder": "Share your thoughts...",
+    "contentRequired": "Content cannot be empty",
+    "images": "Images",
+    "addImage": "Add Image",
+    "imagePlaceholder": "https://example.com/image.jpg",
+    "cancel": "Cancel",
+    "publish": "Throw it in",
+    "publishing": "Throwing...",
+    "publishSuccess": "Thrown in!",
+    "publishFailed": "Failed to throw"
+  }
+}

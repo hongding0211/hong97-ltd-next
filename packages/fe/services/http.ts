@@ -63,6 +63,23 @@ class Http {
     }
   }
 
+  private buildUrl<K extends keyof APIs>(
+    name: K,
+    params?: APIs[K]['request']['params'],
+  ): string {
+    let url = PATHS[name]
+
+    if (params && typeof params === 'object') {
+      // Replace URL parameters like :id with actual values
+      Object.keys(params).forEach((key) => {
+        const value = (params as any)[key]
+        url = url.replace(`:${key}`, encodeURIComponent(value))
+      })
+    }
+
+    return url
+  }
+
   setLocale(locale?: string) {
     this.locale = locale ?? 'cn'
   }
@@ -71,8 +88,9 @@ class Http {
     name: K,
     params?: APIs[K]['request']['params'],
   ): Promise<HttpResponse<K>> {
+    const url = this.buildUrl(name, params)
     return this.handler<K>(
-      this.axiosInstance.get(PATHS[name], {
+      this.axiosInstance.get(url, {
         params,
         headers: this.getCustomHeaders(),
       }),
@@ -83,8 +101,9 @@ class Http {
     name: K,
     body?: APIs[K]['request']['body'],
   ): Promise<HttpResponse<K>> {
+    const url = this.buildUrl(name)
     return this.handler<K>(
-      this.axiosInstance.post(PATHS[name], body, {
+      this.axiosInstance.post(url, body, {
         headers: this.getCustomHeaders(),
       }),
     )
@@ -94,8 +113,9 @@ class Http {
     name: K,
     body?: APIs[K]['request']['body'],
   ): Promise<HttpResponse<K>> {
+    const url = this.buildUrl(name)
     return this.handler<K>(
-      this.axiosInstance.put(PATHS[name], body, {
+      this.axiosInstance.put(url, body, {
         headers: this.getCustomHeaders(),
       }),
     )
@@ -105,8 +125,9 @@ class Http {
     name: K,
     params?: APIs[K]['request']['params'],
   ): Promise<HttpResponse<K>> {
+    const url = this.buildUrl(name, params)
     return this.handler<K>(
-      this.axiosInstance.delete(PATHS[name], {
+      this.axiosInstance.delete(url, {
         params,
         headers: this.getCustomHeaders(),
       }),
@@ -117,8 +138,9 @@ class Http {
     name: K,
     body?: APIs[K]['request']['body'],
   ): Promise<HttpResponse<K>> {
+    const url = this.buildUrl(name)
     return this.handler<K>(
-      this.axiosInstance.patch(PATHS[name], body, {
+      this.axiosInstance.patch(url, body, {
         headers: this.getCustomHeaders(),
       }),
     )

@@ -19,6 +19,10 @@ const config = {
       },
     },
     extend: {
+      screens: {
+        sm: '800px',
+        md: '800px',
+      },
       typography: {
         DEFAULT: {
           css: {

@@ -23,7 +23,7 @@
       "publicRead": "公开可读",
       "detail": {
         "index": "序号",
-        "content": "配置内容" ,
+        "content": "配置内容",
         "action": "操作",
         "edit": "编辑",
         "delete": "删除",
