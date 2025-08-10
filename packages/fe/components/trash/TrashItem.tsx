@@ -202,7 +202,7 @@ export function TrashItem({
   }
 
   return (
-    <div className="py-4 border-b border-neutral-100 dark:border-neutral-950">
+    <div className="py-4 border-b border-neutral-100 dark:border-neutral-950 last:border-b-0">
       <div className="space-y-2">
         {/* 内容 */}
         {item.content && (
