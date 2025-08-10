@@ -202,18 +202,18 @@ export function TrashItem({
   }
 
   return (
-    <div className="border-b border-neutral-100 dark:border-neutral-800 py-4 last:border-b-0">
-      <div className="space-y-3">
+    <div className="py-4 border-b border-neutral-100 dark:border-neutral-950">
+      <div className="space-y-2">
         {/* 内容 */}
         {item.content && (
-          <div className="text-neutral-900 text-sm dark:text-neutral-100 whitespace-pre-wrap">
+          <div className="text-neutral-900 dark:text-neutral-100 whitespace-pre-wrap">
             {item.content}
           </div>
         )}
 
         {/* 图片 */}
         {item.media && item.media.length > 0 && (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 gap-x-1.5 mt-1">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 gap-x-1.5 mr-12">
             {item.media.map((media, index) => (
               <ImageWithSkeleton
                 key={index}
@@ -241,7 +241,7 @@ export function TrashItem({
         )}
 
         {/* 时间和操作 */}
-        <div className="flex items-center gap-2 text-sm pt-1">
+        <div className="flex items-center gap-2 text-sm">
           <div className="relative opacity-80 text-neutral-500 dark:text-neutral-400">
             {time.formatDynamic(item.timestamp)}
           </div>
