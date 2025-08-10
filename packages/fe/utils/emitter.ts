@@ -7,6 +7,7 @@ type Event = {
       type?: 'success' | 'error'
     }
   }
+  trashCommentSent: undefined
 }
 
 class Emitter<K extends keyof Event> {

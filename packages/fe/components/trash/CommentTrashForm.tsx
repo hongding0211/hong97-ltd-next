@@ -1,5 +1,6 @@
 import { Textarea } from '@/components/ui/textarea'
 import { useLogin } from '@hooks/useLogin'
+import { emitter } from '@utils/emitter'
 import { Send } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useState } from 'react'
@@ -29,6 +30,7 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
       await onComment(content.trim())
       setContent('')
       onCommentSuccess?.()
+      emitter.emit('trashCommentSent')
     } catch (_error) {
       // noop
     } finally {

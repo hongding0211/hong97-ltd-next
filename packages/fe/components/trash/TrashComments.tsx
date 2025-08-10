@@ -7,8 +7,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useLogin } from '@hooks/useLogin'
+import { emitter } from '@utils/emitter'
 import { useTranslation } from 'next-i18next'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export interface TrashComment {
   commentId: string
@@ -95,6 +96,12 @@ export const TrashComments: React.FC<TrashCommentsProps> = (props) => {
   const { comments, onAction } = props
   const { t } = useTranslation('trash')
   const [showAll, setShowAll] = useState(false)
+
+  useEffect(() => {
+    emitter.on('trashCommentSent', () => {
+      setShowAll(true)
+    })
+  }, [])
 
   if (!comments.length) {
     return null

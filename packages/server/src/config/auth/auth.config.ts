@@ -17,7 +17,7 @@ export default registerAs('auth', () => ({
     '/ucp/config/all',
     '/trash/like',
     '/trash/list',
-    '/trash/comment',
+    '/trash/comment/*',
   ],
   rootUsers: process.env.ROOT_USERS ? process.env.ROOT_USERS.split(',') : [],
 }))
