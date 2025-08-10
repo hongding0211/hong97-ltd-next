@@ -66,6 +66,21 @@ class Time {
     // different year, full date time
     return d.format(TIME_DYNAMIC_FORMAT_STR[this.locale].full)
   }
+
+  formatDateGroupTitle(date: number | Date) {
+    const d = dayjs(date)
+    const now = dayjs()
+
+    // same year - only show month and day
+    if (d.isSame(now, 'year')) {
+      return this.locale === 'cn' ? d.format('M月D日') : d.format('MMM D')
+    }
+
+    // different year - show full date
+    return this.locale === 'cn'
+      ? d.format('YYYY年M月D日')
+      : d.format('MMM D, YYYY')
+  }
 }
 
 export const time = new Time()

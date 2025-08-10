@@ -202,7 +202,7 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
     return (
       <div className={`space-y-4 ${className}`}>
         {/* Image Scroll View */}
-        <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-600">
+        <div className="flex overflow-x-auto gap-1.5 pb-2 scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-600">
           {/* Add button */}
           {images.length < maxCount && !disabled && (
             <button
@@ -220,7 +220,7 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
           )}
 
           {images.map((image) => (
-            <div key={image.id} className="relative flex-shrink-0 p-1">
+            <div key={image.id} className="relative flex-shrink-0">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-md bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
                 <img
                   src={image.preview}

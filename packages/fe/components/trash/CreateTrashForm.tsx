@@ -19,9 +19,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { http } from '@services/http'
 import { CreateTrashDto } from '@services/trash/types'
 import { toast } from '@utils/toast'
-import { Ban, Check, Loader2, PlusCircle } from 'lucide-react'
+import { Loader2, PlusCircle } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ImageUploader, { ImageUploaderRef } from '../common/ImageUploader'
 
 interface CreateTrashFormProps {
@@ -36,6 +36,7 @@ const Form: React.FC<{
   disabled?: boolean
   onKeyApply?: () => void
   imageUploaderRef: React.RefObject<ImageUploaderRef>
+  autoFocus?: boolean
 }> = (props) => {
   const {
     content,
@@ -45,9 +46,21 @@ const Form: React.FC<{
     disabled,
     onKeyApply,
     imageUploaderRef,
+    autoFocus = false,
   } = props
 
   const { t } = useTranslation('trash')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (autoFocus && textareaRef.current && !disabled) {
+      // 延迟一下确保 Dialog/Drawer 动画完成后再聚焦
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [autoFocus, disabled])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Enter') {
@@ -61,6 +74,7 @@ const Form: React.FC<{
       <div className="flex flex-col gap-y-4 pb-4">
         <div className="flex flex-col gap-y-3">
           <Textarea
+            ref={textareaRef}
             id="content"
             placeholder={t('form.contentPlaceholder')}
             value={content}
@@ -168,23 +182,19 @@ export function CreateTrashForm({ onSuccess }: CreateTrashFormProps) {
               disabled={loading}
               onKeyApply={handleSubmit}
               imageUploaderRef={imageUploaderRef}
+              autoFocus={isOpen}
             />
           </div>
           <div className="grid mt-2 grid-cols-2 gap-x-2">
             <Button
-              variant="outline"
+              variant="ghost"
               disabled={loading}
               onClick={() => setIsOpen(false)}
             >
-              <Ban className="w-4 h-4" />
               {t('form.cancel')}
             </Button>
             <Button disabled={loading} onClick={handleSubmit}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               {loading ? t('form.publishing') : t('form.publish')}
             </Button>
           </div>
@@ -209,22 +219,18 @@ export function CreateTrashForm({ onSuccess }: CreateTrashFormProps) {
             disabled={loading}
             onKeyApply={handleSubmit}
             imageUploaderRef={imageUploaderRef}
+            autoFocus={isOpen}
           />
         </div>
         <DrawerFooter className="pt-2">
           <div className="grid grid-cols-2 gap-x-2">
             <DrawerClose asChild>
-              <Button variant="outline" disabled={loading}>
-                <Ban className="w-4 h-4" />
+              <Button variant="ghost" disabled={loading}>
                 {t('form.cancel')}
               </Button>
             </DrawerClose>
             <Button disabled={loading} onClick={handleSubmit}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               {loading ? t('form.publishing') : t('form.publish')}
             </Button>
           </div>

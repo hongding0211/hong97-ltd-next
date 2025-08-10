@@ -17,6 +17,8 @@ export interface TrashResponseDto {
   media?: LivePhotoMedia[]
   tags: string[]
   timestamp: number
+  likeCount: number
+  isLiked: boolean
   createdAt: string
   updatedAt: string
 }
@@ -25,6 +27,10 @@ export interface QueryTrashDto {
   page?: number
   pageSize?: number
   tags?: string[]
+}
+
+export interface LikeTrashDto {
+  trashId: string
 }
 
 export interface PaginationResponseDto<T> {
@@ -42,4 +48,6 @@ export type TrashAPIS = {
     PaginationResponseDto<TrashResponseDto>
   >
   GetTrashById: API<{ id: string }, undefined, TrashResponseDto>
+  DeleteTrash: API<{ id: string }, undefined, { success: boolean }>
+  PostLikeTrash: API<undefined, LikeTrashDto, TrashResponseDto>
 }

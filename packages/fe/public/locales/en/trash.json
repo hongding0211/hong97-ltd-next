@@ -31,5 +31,11 @@
     "publishing": "Throwing...",
     "publishSuccess": "Thrown in!",
     "publishFailed": "Failed to throw"
+  },
+  "delete": {
+    "text": "Delete",
+    "confirmTitle": "Are you sure you want to delete this post?",
+    "success": "Deleted successfully",
+    "failed": "Failed to delete"
   }
 }

@@ -31,5 +31,11 @@
     "publishing": "正在扔...",
     "publishSuccess": "扔进去了！",
     "publishFailed": "扔失败了"
+  },
+  "delete": {
+    "text": "删除",
+    "confirmTitle": "确定要删除这条推文吗？",
+    "success": "删除成功",
+    "failed": "删除失败"
   }
 }

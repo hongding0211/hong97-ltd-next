@@ -1,15 +1,32 @@
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useImagePreview } from '@hooks/useImagePreview'
+import { useLogin } from '@hooks/useLogin'
+import { http } from '@services/http'
 import { TrashResponseDto } from '@services/trash/types'
+import { getCompressImage } from '@utils/oss'
 import { time } from '@utils/time'
+import { toast } from '@utils/toast'
+import { Heart } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface TrashItemProps {
   item: TrashResponseDto
+  onDelete?: (itemId: string) => void
+  onLikeUpdate?: (itemId: string, newItem: TrashResponseDto) => void
+  isAdmin?: boolean
 }
 
 // 图片骨架屏组件
 const ImageSkeleton = () => (
-  <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded-md" />
+  <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded-md absolute" />
 )
 
 // 带骨架屏的图片组件
@@ -17,12 +34,18 @@ const ImageWithSkeleton: React.FC<{
   src: string
   alt: string
   className?: string
-}> = ({ src, alt, className }) => {
+  onClick?: () => void
+}> = ({ src, alt, className, onClick }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
   return (
-    <div className="aspect-square relative">
+    <div
+      className={`aspect-square relative ${
+        onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''
+      }`}
+      onClick={onClick}
+    >
       {loading && <ImageSkeleton />}
       <img
         src={src}
@@ -46,33 +69,105 @@ const ImageWithSkeleton: React.FC<{
   )
 }
 
-export function TrashItem({ item }: TrashItemProps) {
-  const { i18n } = useTranslation()
+export function TrashItem({
+  item,
+  onDelete,
+  onLikeUpdate,
+  isAdmin = false,
+}: TrashItemProps) {
+  const { t, i18n } = useTranslation('trash')
+  const { t: tCommon } = useTranslation('common')
+  const { isLogin } = useLogin()
+  const imagePreview = useImagePreview()
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [likeCount, setLikeCount] = useState(item.likeCount)
+  const [isLiked, setIsLiked] = useState(item.isLiked)
+  const loading = useRef(false)
 
   // 设置时间工具的语言
   useEffect(() => {
     time.setLocale(i18n.language)
   }, [i18n.language])
 
+  // 当 item 的点赞状态更新时，同步本地状态
+  useEffect(() => {
+    setLikeCount(item.likeCount)
+    setIsLiked(item.isLiked)
+  }, [item.likeCount, item.isLiked])
+
+  const handleImageClick = (index: number) => {
+    if (!item.media || item.media.length === 0) return
+
+    const previewImages = item.media.map((media) => ({
+      img: media.imageUrl,
+    }))
+
+    imagePreview.show(previewImages, index)
+  }
+
+  const handleLike = async () => {
+    if (loading.current) return
+    if (isLiked && !isLogin) return // 匿名用户不能取消点赞
+
+    loading.current = true
+    const newLikeCount = likeCount + (isLiked ? -1 : 1)
+    const newIsLiked = !isLiked
+
+    // 乐观更新 UI
+    setLikeCount(newLikeCount)
+    setIsLiked(newIsLiked)
+
+    try {
+      const response = await http.post('PostLikeTrash', {
+        trashId: item._id,
+      })
+
+      if (response.isSuccess) {
+        // 对于已登录用户，使用服务端返回的 isLiked 状态
+        // 对于匿名用户，保持乐观更新的状态（因为服务端无法跟踪匿名用户的点赞状态）
+        const finalLikeCount = response.data.likeCount
+        const finalIsLiked = isLogin ? response.data.isLiked : newIsLiked
+
+        setLikeCount(finalLikeCount)
+        setIsLiked(finalIsLiked)
+        onLikeUpdate?.(item._id, { ...response.data, isLiked: finalIsLiked })
+      } else {
+        // 恢复之前的状态
+        setLikeCount(likeCount)
+        setIsLiked(isLiked)
+        toast(response.msg || '点赞失败', { type: 'error' })
+      }
+    } catch (error) {
+      console.error('Like error:', error)
+      // 恢复之前的状态
+      setLikeCount(likeCount)
+      setIsLiked(isLiked)
+      toast('点赞失败', { type: 'error' })
+    } finally {
+      loading.current = false
+    }
+  }
+
   return (
-    <div className="border-b border-neutral-200 dark:border-neutral-700 py-4 last:border-b-0">
+    <div className="border-b border-neutral-100 dark:border-neutral-800 py-4 last:border-b-0">
       <div className="space-y-3">
         {/* 内容 */}
         {item.content && (
-          <div className="text-neutral-900 dark:text-neutral-100 whitespace-pre-wrap">
+          <div className="text-neutral-900 text-sm dark:text-neutral-100 whitespace-pre-wrap">
             {item.content}
           </div>
         )}
 
         {/* 图片 */}
         {item.media && item.media.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 gap-x-1.5">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 gap-x-1.5">
             {item.media.map((media, index) => (
               <ImageWithSkeleton
                 key={index}
-                src={media.imageUrl}
+                src={getCompressImage(media.imageUrl, 180)}
                 alt={`Media ${index + 1}`}
                 className="w-full h-full object-cover rounded-md bg-neutral-100 dark:bg-neutral-800"
+                onClick={() => handleImageClick(index)}
               />
             ))}
           </div>
@@ -92,11 +187,67 @@ export function TrashItem({ item }: TrashItemProps) {
           </div>
         )}
 
-        {/* 时间 */}
-        <div className="text-xs text-neutral-500 dark:text-neutral-400">
-          {time.formatDynamic(item.timestamp)}
+        {/* 时间和操作 */}
+        <div className="flex items-center gap-2 text-xs">
+          <div className="relative opacity-80 font-medium text-neutral-500 dark:text-neutral-400">
+            {time.formatDynamic(item.timestamp)}
+          </div>
+          <button
+            type="button"
+            onClick={handleLike}
+            className="flex items-center gap-1 text-neutral-400 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
+            disabled={loading.current}
+          >
+            {isLiked ? (
+              <Heart className="w-3.5 h-3.5" fill="red" stroke="none" />
+            ) : (
+              <Heart className="w-3.5 h-3.5" />
+            )}
+            {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
+          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteDialog(true)}
+              className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            >
+              {t('delete.text')}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* 图片预览组件 */}
+      {imagePreview.component}
+
+      {/* 删除确认对话框 */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="rounded-md !w-[90%] max-w-[350px] py-4 pt-5 px-4">
+          <DialogHeader>
+            <DialogTitle className="!text-left">{t('delete.text')}</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>{t('delete.confirmTitle')}</DialogDescription>
+          <div className="flex items-center justify-end gap-x-2">
+            <Button
+              onClick={() => setShowDeleteDialog(false)}
+              size="sm"
+              variant="ghost"
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => {
+                setShowDeleteDialog(false)
+                onDelete?.(item._id)
+              }}
+            >
+              {t('delete.text')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

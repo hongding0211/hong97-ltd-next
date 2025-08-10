@@ -22,6 +22,12 @@ export class Trash {
   @Prop({ required: true, default: Date.now })
   timestamp: number
 
+  @Prop({ required: false, default: [] })
+  likeHistory: {
+    userId?: string
+    time: number
+  }[]
+
   createdAt: Date
   updatedAt: Date
 }

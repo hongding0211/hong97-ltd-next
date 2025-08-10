@@ -9,9 +9,14 @@ export default registerAs('auth', () => ({
     '/auth/login',
     '/auth/register',
     '/oss/requestUpload',
-    '/trash/list',
     '/trash/detail/*',
   ],
-  softIgnore: ['/blog/*', '/ucp/config/list', '/ucp/config/all'],
+  softIgnore: [
+    '/blog/*',
+    '/ucp/config/list',
+    '/ucp/config/all',
+    '/trash/like',
+    '/trash/list',
+  ],
   rootUsers: process.env.ROOT_USERS ? process.env.ROOT_USERS.split(',') : [],
 }))

@@ -6,6 +6,8 @@ export class TrashResponseDto {
   media?: LivePhotoMedia[]
   tags: string[]
   timestamp: number
+  likeCount: number
+  isLiked: boolean
   createdAt: Date
   updatedAt: Date
 }
