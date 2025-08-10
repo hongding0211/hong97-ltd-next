@@ -261,7 +261,7 @@ export function TrashItem({
           <button
             type="button"
             onClick={() => setShowCommentForm(!showCommentForm)}
-            className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400 transition-colors"
+            className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400  hover:text-blue-500 dark:hover:text-blue-500 transition-colors"
           >
             {t('comment.text')}
           </button>
