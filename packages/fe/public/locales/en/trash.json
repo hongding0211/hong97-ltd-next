@@ -7,12 +7,22 @@
     "adminDescription": "Start throwing some thoughts into the trash",
     "userDescription": "Waiting to be filled with thoughts..."
   },
+  "dateGroups": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "lastWeek": "Last Week",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "earlier": "Earlier"
+  },
   "form": {
     "publishButton": "Throw into Trash",
     "title": "Throw something into the trash",
     "content": "Content",
     "contentPlaceholder": "Share your thoughts...",
     "contentRequired": "Content cannot be empty",
+    "contentOrImageRequired": "Please enter content or add images",
     "images": "Images",
     "addImage": "Add Image",
     "imagePlaceholder": "https://example.com/image.jpg",

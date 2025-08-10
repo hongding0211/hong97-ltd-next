@@ -4,7 +4,7 @@ import { GetServerSideProps } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { CreateTrashForm } from '../../components/trash/CreateTrashForm'
 import { TrashItem } from '../../components/trash/TrashItem'
@@ -19,8 +19,37 @@ interface TrashPageProps {
   initialData: PaginationResponseDto<TrashResponseDto>
 }
 
+interface GroupedTrashItems {
+  [key: string]: TrashResponseDto[]
+}
+
+// 日期分组函数
+function getDateGroup(timestamp: number, _locale: string): string {
+  const now = new Date()
+  const date = new Date(timestamp)
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+  const thisWeekStart = new Date(
+    today.getTime() - (today.getDay() || 7) * 24 * 60 * 60 * 1000,
+  )
+  const lastWeekStart = new Date(
+    thisWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000,
+  )
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  if (date >= today) return 'today'
+  if (date >= yesterday) return 'yesterday'
+  if (date >= thisWeekStart) return 'thisWeek'
+  if (date >= lastWeekStart) return 'lastWeek'
+  if (date >= thisMonthStart) return 'thisMonth'
+  if (date >= lastMonthStart) return 'lastMonth'
+  return 'earlier'
+}
+
 export default function TrashPage({ initialData }: TrashPageProps) {
-  const { t } = useTranslation('trash')
+  const { t, i18n } = useTranslation('trash')
   const { isAdmin, adminLoading } = useIsAdmin()
 
   const [items, setItems] = useState<TrashResponseDto[]>(initialData.data)
@@ -29,6 +58,38 @@ export default function TrashPage({ initialData }: TrashPageProps) {
     initialData.total > initialData.data.length,
   )
   const [page, setPage] = useState(1)
+
+  // 按日期分组推文
+  const groupedItems = useMemo(() => {
+    const groups: GroupedTrashItems = {}
+    const groupOrder = [
+      'today',
+      'yesterday',
+      'thisWeek',
+      'lastWeek',
+      'thisMonth',
+      'lastMonth',
+      'earlier',
+    ]
+
+    items.forEach((item) => {
+      const group = getDateGroup(item.timestamp, i18n.language)
+      if (!groups[group]) {
+        groups[group] = []
+      }
+      groups[group].push(item)
+    })
+
+    // 按预定义顺序返回分组
+    const result: GroupedTrashItems = {}
+    groupOrder.forEach((group) => {
+      if (groups[group] && groups[group].length > 0) {
+        result[group] = groups[group]
+      }
+    })
+
+    return result
+  }, [items, i18n.language])
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
@@ -116,14 +177,28 @@ export default function TrashPage({ initialData }: TrashPageProps) {
               </div>
             </div>
           ) : (
-            <div className="space-y-0">
-              {items.map((item) => (
-                <TrashItem key={item._id} item={item} />
+            <div className="space-y-6">
+              {Object.entries(groupedItems).map(([groupKey, groupItems]) => (
+                <div key={groupKey} className="space-y-0">
+                  {/* 日期组标题 */}
+                  <div className="mt-6 mb-1">
+                    <h2 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
+                      {t(`dateGroups.${groupKey}`)}
+                    </h2>
+                  </div>
+
+                  {/* 该日期组的推文 */}
+                  <div className="space-y-0">
+                    {groupItems.map((item) => (
+                      <TrashItem key={item._id} item={item} />
+                    ))}
+                  </div>
+                </div>
               ))}
 
               {loading && (
                 <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-neutral-500" />
                 </div>
               )}
             </div>

@@ -10,8 +10,8 @@ export interface LivePhotoMedia {
 export class Trash {
   _id: Types.ObjectId
 
-  @Prop({ required: true })
-  content: string
+  @Prop({ required: false })
+  content?: string
 
   @Prop({ required: false })
   media?: LivePhotoMedia[]

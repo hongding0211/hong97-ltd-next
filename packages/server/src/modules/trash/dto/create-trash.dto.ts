@@ -19,9 +19,9 @@ export class LivePhotoMediaDto {
 }
 
 export class CreateTrashDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  content: string
+  content?: string
 
   @IsOptional()
   @IsArray()

@@ -6,14 +6,14 @@ export interface LivePhotoMedia {
 }
 
 export interface CreateTrashDto {
-  content: string
+  content?: string
   media?: LivePhotoMedia[]
   tags?: string[]
 }
 
 export interface TrashResponseDto {
   _id: string
-  content: string
+  content?: string
   media?: LivePhotoMedia[]
   tags: string[]
   timestamp: number

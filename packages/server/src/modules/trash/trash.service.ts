@@ -14,6 +14,14 @@ export class TrashService {
   ) {}
 
   async create(createTrashDto: CreateTrashDto): Promise<TrashResponseDto> {
+    // Validate: must have either content or media
+    const hasContent = createTrashDto.content?.trim()
+    const hasMedia = createTrashDto.media && createTrashDto.media.length > 0
+
+    if (!hasContent && !hasMedia) {
+      throw new Error('Either content or media must be provided')
+    }
+
     const trash = new this.trashModel({
       ...createTrashDto,
       timestamp: Date.now(),

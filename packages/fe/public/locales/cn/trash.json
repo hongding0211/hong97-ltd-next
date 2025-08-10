@@ -7,12 +7,22 @@
     "adminDescription": "开始往废纸篓里扔点废话吧",
     "userDescription": "等待废话中..."
   },
+  "dateGroups": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "thisWeek": "本周",
+    "lastWeek": "上周",
+    "thisMonth": "本月",
+    "lastMonth": "上个月",
+    "earlier": "更早"
+  },
   "form": {
     "publishButton": "扔进废纸篓",
     "title": "往废纸篓里扔点什么",
     "content": "内容",
     "contentPlaceholder": "说点废话...",
     "contentRequired": "内容不能为空",
+    "contentOrImageRequired": "请输入内容或添加图片",
     "images": "图片",
     "addImage": "添加图片",
     "imagePlaceholder": "https://example.com/image.jpg",

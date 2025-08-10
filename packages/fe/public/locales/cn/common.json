@@ -30,5 +30,12 @@
   },
   "loading": "加载中",
   "loadMore": "加载更多",
-  "noMore": "没有更多了"
+  "noMore": "没有更多了",
+  "pleaseSelectImageFile": "请选择图片文件",
+  "fileSizeExceeded": "文件大小不能超过 {{size}}",
+  "maxImagesExceeded": "最多只能选择 {{count}} 张图片",
+  "uploadFailed": "上传失败",
+  "addImage": "添加图片",
+  "preview": "预览",
+  "imageUploadHint": "最多可上传 {{count}} 张图片，单张图片大小不超过 {{size}}"
 }

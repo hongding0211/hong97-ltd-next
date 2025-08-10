@@ -30,5 +30,12 @@
   },
   "loading": "Loading",
   "loadMore": "Load More",
-  "noMore": "No more"
+  "noMore": "No more",
+  "pleaseSelectImageFile": "Please select image files",
+  "fileSizeExceeded": "File size cannot exceed {{size}}",
+  "maxImagesExceeded": "Maximum {{count}} images allowed",
+  "uploadFailed": "Upload failed",
+  "addImage": "Add Image",
+  "preview": "Preview",
+  "imageUploadHint": "Upload up to {{count}} images, max {{size}} per image"
 }
