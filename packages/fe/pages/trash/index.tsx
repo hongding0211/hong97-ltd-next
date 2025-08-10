@@ -1,10 +1,10 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Loader2, RefreshCw, Trash } from 'lucide-react'
+import { Loader2, Trash } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { CreateTrashForm } from '../../components/trash/CreateTrashForm'
 import { TrashItem } from '../../components/trash/TrashItem'
@@ -74,14 +74,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
   )
   const [page, setPage] = useState(1)
 
-  // 下拉刷新相关状态
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [pullDistance, setPullDistance] = useState(0)
-  const [isPulling, setIsPulling] = useState(false)
-  const touchStartY = useRef(0)
-  const scrollTop = useRef(0)
-  const containerRef = useRef<HTMLDivElement>(null)
-
   // 设置时间工具的语言
   useEffect(() => {
     time.setLocale(i18n.language)
@@ -108,84 +100,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
       hydrateItems()
     }
   }, [isLogin])
-
-  // 下拉刷新处理函数
-  const handleRefresh = useCallback(async () => {
-    if (isRefreshing) return
-
-    setIsRefreshing(true)
-    try {
-      const response = await http.get('GetTrashList', {
-        page: 1,
-        pageSize: 10,
-      })
-
-      if (response.isSuccess) {
-        setItems(response.data.data)
-        setPage(1)
-        setHasMore(response.data.total > response.data.data.length)
-        toast(t('refresh.success'), { type: 'success' })
-      } else {
-        toast(response.msg || t('refresh.failed'), { type: 'error' })
-      }
-    } catch (error) {
-      console.error('Refresh error:', error)
-      toast(t('refresh.failed'), { type: 'error' })
-    } finally {
-      setIsRefreshing(false)
-      setPullDistance(0)
-      setIsPulling(false)
-    }
-  }, [isRefreshing, t])
-
-  // 触摸事件处理
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop === 0) {
-        touchStartY.current = e.touches[0].clientY
-        scrollTop.current = container.scrollTop
-      }
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (container.scrollTop === 0) {
-        const touchY = e.touches[0].clientY
-        const deltaY = touchY - touchStartY.current
-
-        if (deltaY > 0) {
-          e.preventDefault()
-          const distance = Math.min(deltaY * 0.5, 100)
-          setPullDistance(distance)
-          setIsPulling(distance > 50)
-        }
-      }
-    }
-
-    const handleTouchEnd = () => {
-      if (isPulling && pullDistance > 50) {
-        handleRefresh()
-      } else {
-        setPullDistance(0)
-        setIsPulling(false)
-      }
-    }
-
-    // 使用 passive: true 来允许 preventDefault
-    container.addEventListener('touchstart', handleTouchStart, {
-      passive: true,
-    })
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd, { passive: true })
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart)
-      container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [isPulling, pullDistance, handleRefresh])
 
   // 按日期分组推文
   const groupedItems = useMemo(() => {
@@ -336,39 +250,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
             )}
           </div>
 
-          {/* 下拉刷新指示器 */}
-          {pullDistance > 0 && (
-            <div
-              className="flex items-center justify-center py-2 text-neutral-500 dark:text-neutral-400 transition-all duration-200"
-              style={{
-                transform: `translateY(${Math.min(pullDistance, 100)}px)`,
-                opacity: Math.min(pullDistance / 100, 1),
-              }}
-            >
-              {isPulling ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  <span className="text-sm">
-                    {t('refresh.releaseToRefresh')}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  <span className="text-sm">{t('refresh.pullToRefresh')}</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* 刷新中指示器 */}
-          {isRefreshing && (
-            <div className="flex items-center justify-center py-4 text-neutral-500 dark:text-neutral-400">
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              <span className="text-sm">{t('refresh.refreshing')}</span>
-            </div>
-          )}
-
           {items.length === 0 ? (
             <div className="flex justify-center">
               <div className="w-[80%] max-w-[400px] mt-24 md:mt-48">
@@ -384,14 +265,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
               </div>
             </div>
           ) : (
-            <div
-              ref={containerRef}
-              className="space-y-6 overflow-auto"
-              style={{
-                transform: `translateY(${Math.min(pullDistance, 100)}px)`,
-                transition: isPulling ? 'none' : 'transform 0.2s ease-out',
-              }}
-            >
+            <div className="space-y-6">
               {Object.entries(groupedItems).map(([groupKey, groupData]) => (
                 <div key={groupKey} className="space-y-0">
                   {/* 日期组标题 */}

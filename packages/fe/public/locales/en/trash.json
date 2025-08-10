@@ -38,13 +38,6 @@
     "success": "Deleted successfully",
     "failed": "Failed to delete"
   },
-  "refresh": {
-    "pullToRefresh": "Pull to refresh",
-    "releaseToRefresh": "Release to refresh",
-    "refreshing": "Refreshing...",
-    "success": "Refreshed successfully",
-    "failed": "Refresh failed"
-  },
   "comment": {
     "text": "Comment",
     "title": "Comments",
