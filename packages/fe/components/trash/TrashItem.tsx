@@ -16,11 +16,14 @@ import { toast } from '@utils/toast'
 import { Heart } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import { useEffect, useRef, useState } from 'react'
+import { CommentTrashForm } from './CommentTrashForm'
+import { TrashCommentAction, TrashComments } from './TrashComments'
 
 interface TrashItemProps {
   item: TrashResponseDto
   onDelete?: (itemId: string) => void
   onLikeUpdate?: (itemId: string, newItem: TrashResponseDto) => void
+  onCommentUpdate?: (itemId: string, newItem: TrashResponseDto) => void
   isAdmin?: boolean
 }
 
@@ -73,6 +76,7 @@ export function TrashItem({
   item,
   onDelete,
   onLikeUpdate,
+  onCommentUpdate,
   isAdmin = false,
 }: TrashItemProps) {
   const { t, i18n } = useTranslation('trash')
@@ -82,6 +86,8 @@ export function TrashItem({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [likeCount, setLikeCount] = useState(item.likeCount)
   const [isLiked, setIsLiked] = useState(item.isLiked)
+  const [comments, setComments] = useState(item.comments)
+  const [showCommentForm, setShowCommentForm] = useState(false)
   const loading = useRef(false)
 
   // 设置时间工具的语言
@@ -89,11 +95,12 @@ export function TrashItem({
     time.setLocale(i18n.language)
   }, [i18n.language])
 
-  // 当 item 的点赞状态更新时，同步本地状态
+  // 当 item 的状态更新时，同步本地状态
   useEffect(() => {
     setLikeCount(item.likeCount)
     setIsLiked(item.isLiked)
-  }, [item.likeCount, item.isLiked])
+    setComments(item.comments)
+  }, [item.likeCount, item.isLiked, item.comments])
 
   const handleImageClick = (index: number) => {
     if (!item.media || item.media.length === 0) return
@@ -148,6 +155,52 @@ export function TrashItem({
     }
   }
 
+  const handleComment = async (content: string) => {
+    try {
+      const response = await http.post('PostCommentTrash', {
+        trashId: item._id,
+        content,
+        anonymous: !isLogin,
+      })
+
+      if (response.isSuccess) {
+        setComments(response.data.comments)
+        onCommentUpdate?.(item._id, response.data)
+        toast(t('comment.success'), { type: 'success' })
+      } else {
+        toast(response.msg || t('comment.failed'), { type: 'error' })
+      }
+    } catch (error) {
+      console.error('Comment error:', error)
+      toast(t('comment.failed'), { type: 'error' })
+    }
+  }
+
+  const handleCommentAction = async (
+    commentId: string,
+    action: TrashCommentAction,
+  ) => {
+    if (action === 'delete') {
+      try {
+        const response = await http.delete('DeleteCommentTrash', {
+          trashId: item._id,
+          commentId,
+        })
+
+        if (response.isSuccess) {
+          setComments(response.data.comments)
+          onCommentUpdate?.(item._id, response.data)
+          toast(t('comment.delete.success'), { type: 'success' })
+        } else {
+          toast(response.msg || t('comment.delete.failed'), { type: 'error' })
+        }
+      } catch (error) {
+        console.error('Delete comment error:', error)
+        toast(t('comment.delete.failed'), { type: 'error' })
+      }
+    }
+  }
+
   return (
     <div className="border-b border-neutral-100 dark:border-neutral-800 py-4 last:border-b-0">
       <div className="space-y-3">
@@ -160,7 +213,7 @@ export function TrashItem({
 
         {/* 图片 */}
         {item.media && item.media.length > 0 && (
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 gap-x-1.5">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 gap-x-1.5 mt-1">
             {item.media.map((media, index) => (
               <ImageWithSkeleton
                 key={index}
@@ -188,8 +241,8 @@ export function TrashItem({
         )}
 
         {/* 时间和操作 */}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="relative opacity-80 font-medium text-neutral-500 dark:text-neutral-400">
+        <div className="flex items-center gap-2 text-sm pt-1">
+          <div className="relative opacity-80 text-neutral-500 dark:text-neutral-400">
             {time.formatDynamic(item.timestamp)}
           </div>
           <button
@@ -203,7 +256,14 @@ export function TrashItem({
             ) : (
               <Heart className="w-3.5 h-3.5" />
             )}
-            {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
+            {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCommentForm(!showCommentForm)}
+            className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400 transition-colors"
+          >
+            {t('comment.text')}
           </button>
           {isAdmin && (
             <button
@@ -215,6 +275,18 @@ export function TrashItem({
             </button>
           )}
         </div>
+
+        {/* 评论表单 */}
+        {showCommentForm && (
+          <CommentTrashForm
+            trashId={item._id}
+            onComment={handleComment}
+            onCommentSuccess={() => setShowCommentForm(false)}
+          />
+        )}
+
+        {/* 评论区域 */}
+        <TrashComments comments={comments} onAction={handleCommentAction} />
       </div>
 
       {/* 图片预览组件 */}

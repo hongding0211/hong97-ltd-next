@@ -6,4 +6,6 @@ export const TRASH_PATHS: Record<keyof TrashAPIS, string> = {
   GetTrashById: 'trash/detail/:id',
   DeleteTrash: 'trash/:id',
   PostLikeTrash: 'trash/like',
+  PostCommentTrash: 'trash/comment/append',
+  DeleteCommentTrash: 'trash/comment/delete',
 }

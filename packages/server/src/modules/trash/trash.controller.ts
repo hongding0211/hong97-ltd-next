@@ -12,7 +12,9 @@ import {
 import { RootOnly } from '../../decorators/root-only.decorator'
 import { UserId } from '../../decorators/user-id.decorator'
 import { PaginationResponseDto } from '../../dtos/pagination.dto'
+import { CommentTrashDto } from './dto/comment-trash.dto'
 import { CreateTrashDto } from './dto/create-trash.dto'
+import { DeleteCommentDto } from './dto/delete-comment.dto'
 import { LikeTrashDto } from './dto/like-trash.dto'
 import { QueryTrashDto } from './dto/query-trash.dto'
 import { TrashResponseDto } from './dto/trash-response.dto'
@@ -60,5 +62,23 @@ export class TrashController {
   @HttpCode(HttpStatus.OK)
   async like(@Body() likeDto: LikeTrashDto, @UserId() userId?: string) {
     return await this.trashService.like(likeDto, userId)
+  }
+
+  @Post('comment/append')
+  @HttpCode(HttpStatus.OK)
+  async comment(
+    @Body() commentDto: CommentTrashDto,
+    @UserId() userId?: string,
+  ) {
+    return await this.trashService.comment(commentDto, userId)
+  }
+
+  @Delete('comment/delete')
+  @HttpCode(HttpStatus.OK)
+  async deleteComment(
+    @Query() deleteCommentDto: DeleteCommentDto,
+    @UserId() userId?: string,
+  ) {
+    return await this.trashService.deleteComment(deleteCommentDto, userId)
   }
 }

@@ -11,6 +11,15 @@ export interface CreateTrashDto {
   tags?: string[]
 }
 
+export interface TrashComment {
+  commentId: string
+  userId?: string
+  anonymous: boolean
+  name?: string
+  time: number
+  content: string
+}
+
 export interface TrashResponseDto {
   _id: string
   content?: string
@@ -19,6 +28,7 @@ export interface TrashResponseDto {
   timestamp: number
   likeCount: number
   isLiked: boolean
+  comments: TrashComment[]
   createdAt: string
   updatedAt: string
 }
@@ -31,6 +41,17 @@ export interface QueryTrashDto {
 
 export interface LikeTrashDto {
   trashId: string
+}
+
+export interface CommentTrashDto {
+  trashId: string
+  content: string
+  anonymous?: boolean
+}
+
+export interface DeleteCommentDto {
+  trashId: string
+  commentId: string
 }
 
 export interface PaginationResponseDto<T> {
@@ -50,4 +71,6 @@ export type TrashAPIS = {
   GetTrashById: API<{ id: string }, undefined, TrashResponseDto>
   DeleteTrash: API<{ id: string }, undefined, { success: boolean }>
   PostLikeTrash: API<undefined, LikeTrashDto, TrashResponseDto>
+  PostCommentTrash: API<undefined, CommentTrashDto, TrashResponseDto>
+  DeleteCommentTrash: API<DeleteCommentDto, undefined, TrashResponseDto>
 }

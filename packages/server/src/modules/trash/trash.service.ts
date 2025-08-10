@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
+import { MockNames } from 'src/common/assets/mock-names'
+import { GeneralException } from 'src/exceptions/general-exceptions'
+import { v4 as uuidv4 } from 'uuid'
 import { PaginationResponseDto } from '../../dtos/pagination.dto'
+import { UserService } from '../user/user.service'
+import { CommentTrashDto } from './dto/comment-trash.dto'
 import { CreateTrashDto } from './dto/create-trash.dto'
+import { DeleteCommentDto } from './dto/delete-comment.dto'
 import { LikeTrashDto } from './dto/like-trash.dto'
 import { QueryTrashDto } from './dto/query-trash.dto'
 import { TrashResponseDto } from './dto/trash-response.dto'
@@ -12,6 +18,7 @@ import { Trash, TrashDocument } from './schema/trash.schema'
 export class TrashService {
   constructor(
     @InjectModel(Trash.name) private trashModel: Model<TrashDocument>,
+    private userService: UserService,
   ) {}
 
   async create(createTrashDto: CreateTrashDto): Promise<TrashResponseDto> {
@@ -27,6 +34,7 @@ export class TrashService {
       ...createTrashDto,
       timestamp: Date.now(),
       likeHistory: [],
+      comments: [],
     })
     const savedTrash = await trash.save()
     return this.toResponseDto(savedTrash)
@@ -84,7 +92,7 @@ export class TrashService {
     const trash = await this.trashModel.findById(trashId)
 
     if (!trash) {
-      throw new Error('Trash not found')
+      throw new GeneralException('trash.trashNotFound')
     }
 
     if (userId) {
@@ -105,6 +113,85 @@ export class TrashService {
     return this.toResponseDto(trash, userId)
   }
 
+  async comment(
+    commentDto: CommentTrashDto,
+    userId?: string,
+  ): Promise<TrashResponseDto> {
+    const { trashId, content, anonymous } = commentDto
+
+    const trash = await this.trashModel.findById(trashId)
+
+    if (!trash) {
+      throw new GeneralException('trash.trashNotFound')
+    }
+
+    if (trash.comments.length >= 50) {
+      throw new GeneralException('trash.commentLimitReached')
+    }
+
+    const commentId = uuidv4()
+
+    const name = await (async () => {
+      const randomIndex = Date.now() % MockNames.length
+      const mockName = MockNames[randomIndex]
+      if (anonymous || !userId) {
+        return mockName
+      }
+      if (userId) {
+        const user = await this.userService.findUserById(userId)
+        return user.profile.name
+      }
+      return mockName
+    })()
+
+    const comment = {
+      commentId,
+      userId: anonymous ? undefined : userId,
+      anonymous: !!anonymous,
+      name,
+      time: Date.now(),
+      content,
+    }
+
+    trash.comments.push(comment)
+    await trash.save()
+
+    return this.toResponseDto(trash, userId)
+  }
+
+  async deleteComment(
+    deleteCommentDto: DeleteCommentDto,
+    userId?: string,
+  ): Promise<TrashResponseDto> {
+    const { trashId, commentId } = deleteCommentDto
+
+    const trash = await this.trashModel.findById(trashId)
+
+    if (!trash) {
+      throw new GeneralException('trash.trashNotFound')
+    }
+
+    const commentIndex = trash.comments.findIndex(
+      (c) => c.commentId === commentId,
+    )
+
+    if (commentIndex === -1) {
+      throw new GeneralException('trash.commentNotFound')
+    }
+
+    const comment = trash.comments[commentIndex]
+
+    // 只有评论作者可以删除自己的评论
+    if (comment.userId !== userId) {
+      throw new GeneralException('trash.commentNotAuthor')
+    }
+
+    trash.comments.splice(commentIndex, 1)
+    await trash.save()
+
+    return this.toResponseDto(trash, userId)
+  }
+
   private toResponseDto(
     trash: TrashDocument,
     userId?: string,
@@ -121,6 +208,14 @@ export class TrashService {
       timestamp: trash.timestamp,
       likeCount: trash.likeHistory.length,
       isLiked,
+      comments: trash.comments.map((comment) => ({
+        commentId: comment.commentId || '',
+        userId: comment.userId,
+        anonymous: comment.anonymous,
+        name: comment.name,
+        time: comment.time,
+        content: comment.content,
+      })),
       createdAt: trash.createdAt,
       updatedAt: trash.updatedAt,
     }

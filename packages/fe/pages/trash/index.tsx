@@ -225,6 +225,14 @@ export default function TrashPage({ initialData }: TrashPageProps) {
     )
   }
 
+  const handleCommentUpdate = (itemId: string, newItem: TrashResponseDto) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item._id === itemId ? { ...item, comments: newItem.comments } : item,
+      ),
+    )
+  }
+
   return (
     <>
       <Head>
@@ -275,6 +283,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
                         item={item}
                         onDelete={handleDelete}
                         onLikeUpdate={handleLikeUpdate}
+                        onCommentUpdate={handleCommentUpdate}
                         isAdmin={isAdmin && !adminLoading}
                       />
                     ))}

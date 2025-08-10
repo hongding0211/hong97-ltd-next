@@ -1,0 +1,6 @@
+{
+  "commentLimitReached": "评论数量已达上限（最多50条）",
+  "trashNotFound": "推文不存在",
+  "commentNotFound": "评论不存在",
+  "commentNotAuthor": "只能删除自己的评论"
+}

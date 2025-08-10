@@ -37,5 +37,25 @@
     "confirmTitle": "确定要删除这条推文吗？",
     "success": "删除成功",
     "failed": "删除失败"
+  },
+  "comment": {
+    "text": "评论",
+    "title": "评论",
+    "count": "评论 ({{count}})",
+    "placeholder": "发表评论...",
+    "anonymousPlaceholder": "匿名发表评论...",
+    "publish": "发布",
+    "publishing": "发布中...",
+    "success": "评论成功",
+    "failed": "评论失败",
+    "expand": "展开更多 ({{count}})",
+    "collapse": "收起",
+    "limitExceeded": "评论数量已达上限（最多50条）",
+    "delete": {
+      "text": "删除",
+      "confirmTitle": "确定要删除这条评论吗？",
+      "success": "评论删除成功",
+      "failed": "删除失败"
+    }
   }
 }

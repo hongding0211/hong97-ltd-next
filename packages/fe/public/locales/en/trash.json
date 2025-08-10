@@ -37,5 +37,25 @@
     "confirmTitle": "Are you sure you want to delete this post?",
     "success": "Deleted successfully",
     "failed": "Failed to delete"
+  },
+  "comment": {
+    "text": "Comment",
+    "title": "Comments",
+    "count": "Comments ({{count}})",
+    "placeholder": "Add a comment...",
+    "anonymousPlaceholder": "Comment anonymously...",
+    "publish": "Post",
+    "publishing": "Posting...",
+    "success": "Comment posted successfully",
+    "failed": "Failed to post comment",
+    "expand": "Show more ({{count}})",
+    "collapse": "Show less",
+    "limitExceeded": "Comment limit reached (maximum 50 comments)",
+    "delete": {
+      "text": "Delete",
+      "confirmTitle": "Are you sure you want to delete this comment?",
+      "success": "Comment deleted successfully",
+      "failed": "Failed to delete comment"
+    }
   }
 }

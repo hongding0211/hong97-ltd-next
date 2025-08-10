@@ -28,6 +28,16 @@ export class Trash {
     time: number
   }[]
 
+  @Prop({ required: false, default: [] })
+  comments: {
+    commentId?: string
+    userId?: string
+    anonymous: boolean
+    name?: string
+    time: number
+    content: string
+  }[]
+
   createdAt: Date
   updatedAt: Date
 }
