@@ -243,7 +243,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
         />
       </Head>
       <AppLayout>
-        <div className="container mx-auto py-8 pt-4 max-w-2xl p-0">
+        <div className="container mx-auto pb-12 max-w-2xl p-0">
           <div className="flex items-center justify-end mb-4">
             {isAdmin && !adminLoading && (
               <CreateTrashForm onSuccess={handleCreateSuccess} />

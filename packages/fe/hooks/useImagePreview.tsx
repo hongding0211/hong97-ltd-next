@@ -64,13 +64,12 @@ export function useImagePreview(): UseImagePreviewReturn {
         `}
       >
         {/* 关闭按钮 */}
-        <button
-          type="button"
+        <div
           onClick={hide}
-          className="absolute top-4 right-4 md:top-0 md:right-0 z-50 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+          className="absolute cursor-pointer top-4 right-4 md:top-0 md:right-0 z-50 p-2 rounded-full text-white transition-colors"
         >
           <X className="w-6 h-6" />
-        </button>
+        </div>
 
         {/* 图片展示区域 */}
         <div
