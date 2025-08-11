@@ -248,11 +248,11 @@ export function TrashItem({
           <button
             type="button"
             onClick={handleLike}
-            className="flex items-center gap-1 text-neutral-400 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-neutral-500 dark:text-neutral-400 cursor-pointer"
             disabled={loading.current}
           >
             {isLiked ? (
-              <Heart className="w-3.5 h-3.5" fill="red" stroke="none" />
+              <Heart className="w-3.5 h-3.5" fill="red" stroke="red" />
             ) : (
               <Heart className="w-3.5 h-3.5" />
             )}
@@ -261,7 +261,7 @@ export function TrashItem({
           <button
             type="button"
             onClick={() => setShowCommentForm(!showCommentForm)}
-            className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400  hover:text-blue-500 dark:hover:text-blue-500 transition-colors"
+            className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400"
           >
             {t('comment.text')}
           </button>
@@ -269,7 +269,7 @@ export function TrashItem({
             <button
               type="button"
               onClick={() => setShowDeleteDialog(true)}
-              className="opacity-70 hover:underline active:underline cursor-pointer text-neutral-500 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+              className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400"
             >
               {t('delete.text')}
             </button>

@@ -17,6 +17,29 @@ a {
   text-decoration: none;
 }
 
+/* Remove focus outline from all elements to prevent blue outline on dialogs and modals */
+*:focus {
+  outline: none;
+}
+
+/* Remove focus-visible outline specifically for dialog and modal content */
+[data-radix-dialog-content]:focus,
+[data-radix-alert-dialog-content]:focus,
+button:focus,
+div:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure accessibility by providing custom focus styles where needed */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
 .light, html {
   background-color: white;
 }
