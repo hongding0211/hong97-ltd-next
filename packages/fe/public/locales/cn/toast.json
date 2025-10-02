@@ -18,5 +18,14 @@
   "ucp": {
     "invalidJson": "输入内容不是有效的JSON格式",
     "saveSuccess": "保存成功"
+  },
+  "shortlink": {
+    "copied": "短链已复制到剪贴板",
+    "urlRequired": "请输入原始URL",
+    "invalidUrl": "请输入有效的URL",
+    "invalidShortCode": "短码必须是6位小写字母",
+    "createSuccess": "短链创建成功",
+    "updateSuccess": "短链更新成功",
+    "deleteSuccess": "短链删除成功"
   }
 }

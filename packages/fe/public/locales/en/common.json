@@ -20,6 +20,7 @@
   "apply": "Apply",
   "cancel": "Cancel",
   "confirm": "Confirm",
+  "delete": "Delete",
   "useLogin": {
     "fallback": {
       "title": "Oops!",

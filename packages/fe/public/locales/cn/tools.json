@@ -37,6 +37,35 @@
         "copyId": "复制ID",
         "copyIdSuccess": "复制ID成功"
       }
+    },
+    "shortlink": {
+      "title": "短链管理",
+      "subTitle": "创建和管理短链接",
+      "nodata": "暂无短链",
+      "noPermission": "您没有权限访问该页面",
+      "add": "创建第一个短链",
+      "new": "新建短链",
+      "create": "创建短链",
+      "edit": "编辑短链",
+      "createDesc": "创建一个新的短链接，支持自定义短码、过期时间等功能",
+      "originalUrl": "原始URL",
+      "linkTitle": "标题",
+      "titlePlaceholder": "为短链设置一个描述性标题",
+      "description": "描述",
+      "descriptionPlaceholder": "为短链添加详细描述",
+      "shortCode": "自定义短码",
+      "tags": "标签",
+      "expiresAt": "过期时间",
+      "isActive": "激活状态",
+      "inactive": "已停用",
+      "expired": "已过期",
+      "searchPlaceholder": "搜索短链...",
+      "deleteTitle": "删除短链",
+      "deleteDesc": "确定要删除短链 \"{{title}}\" 吗？此操作不可撤销。",
+      "copied": "短链已复制到剪贴板",
+      "urlRequired": "请输入原始URL",
+      "invalidUrl": "请输入有效的URL",
+      "invalidShortCode": "短码必须是6位小写字母"
     }
   }
 }

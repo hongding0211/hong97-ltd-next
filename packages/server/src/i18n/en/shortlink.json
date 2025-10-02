@@ -1,0 +1,8 @@
+{
+  "notFound": "Short link not found",
+  "inactive": "Short link is inactive",
+  "expired": "Short link has expired",
+  "unauthorized": "Unauthorized to operate this short link",
+  "shortCodeExists": "Short code already exists",
+  "invalidUrl": "Invalid URL format"
+}

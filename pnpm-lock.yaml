@@ -96,6 +96,9 @@ importers:
       '@types/canvas-confetti':
         specifier: ^1.9.0
         version: 1.9.0
+      '@types/lodash':
+        specifier: ^4.17.20
+        version: 4.17.20
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
@@ -141,6 +144,9 @@ importers:
       livephotoskit:
         specifier: ^1.5.6
         version: 1.5.6
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lucide-react:
         specifier: ^0.448.0
         version: 0.448.0(react@18.3.1)
@@ -3676,6 +3682,10 @@ packages:
     resolution: {integrity: sha512-ugo316mmTYBl2g81zDFnZ7cfxlut3o+/EQdaP7J8QN2kY6lJ22hmQYCK5EHcJHbrW+dkCGSCPgbG8JtYj6qSrg==}
     dependencies:
       '@types/node': 22.14.0
+    dev: false
+
+  /@types/lodash@4.17.20:
+    resolution: {integrity: sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA==}
     dev: false
 
   /@types/mdast@4.0.4:

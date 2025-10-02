@@ -15,6 +15,7 @@ import { CustomThrottleGuard } from './guards/throttle'
 import { AuthModule } from './modules/auth/auth.module'
 import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
+import { ShortLinkModule } from './modules/shortlink/shortlink.module'
 import { TrashModule } from './modules/trash/trash.module'
 import { UCPModule } from './modules/ucp/ucp.module'
 import { UserModule } from './modules/user/user.module'
@@ -69,6 +70,7 @@ import { UserModule } from './modules/user/user.module'
     AuthModule,
     OssModule,
     BlogModule,
+    ShortLinkModule,
     UCPModule,
     TrashModule,
   ],

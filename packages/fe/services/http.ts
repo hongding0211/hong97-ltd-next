@@ -27,7 +27,16 @@ class Http {
     p: Promise<any>,
   ): Promise<HttpResponse<K>> {
     return p
-      .then((v) => v.data as HttpResponse<K>)
+      .then((v) => {
+        // 处理204 No Content响应
+        if (v.status === 204 || !v.data) {
+          return {
+            isSuccess: true,
+            data: undefined as any,
+          } as HttpResponse<K>
+        }
+        return v.data as HttpResponse<K>
+      })
       .catch((err: AxiosError) => {
         /** Lost login session */
         if (err.response?.status === 401) {
@@ -112,8 +121,9 @@ class Http {
   put<K extends keyof APIs>(
     name: K,
     body?: APIs[K]['request']['body'],
+    params?: APIs[K]['request']['params'],
   ): Promise<HttpResponse<K>> {
-    const url = this.buildUrl(name)
+    const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.put(url, body, {
         headers: this.getCustomHeaders(),

@@ -18,5 +18,14 @@
   "ucp": {
     "invalidJson": "Input content is not a valid JSON format",
     "saveSuccess": "Save successfully"
+  },
+  "shortlink": {
+    "copied": "Short link copied to clipboard",
+    "urlRequired": "Please enter the original URL",
+    "invalidUrl": "Please enter a valid URL",
+    "invalidShortCode": "Short code must be 6 lowercase letters",
+    "createSuccess": "Short link created successfully",
+    "updateSuccess": "Short link updated successfully",
+    "deleteSuccess": "Short link deleted successfully"
   }
 }
