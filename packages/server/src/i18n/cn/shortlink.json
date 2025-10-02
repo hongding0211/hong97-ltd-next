@@ -1,0 +1,8 @@
+{
+  "notFound": "短链不存在",
+  "inactive": "短链已停用",
+  "expired": "短链已过期",
+  "unauthorized": "无权限操作此短链",
+  "shortCodeExists": "短码已存在",
+  "invalidUrl": "无效的URL格式"
+}

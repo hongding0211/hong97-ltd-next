@@ -10,6 +10,7 @@ export default registerAs('auth', () => ({
     '/auth/register',
     '/oss/requestUpload',
     '/trash/detail/*',
+    '/shortlink/redirect/*',
   ],
   softIgnore: [
     '/blog/*',

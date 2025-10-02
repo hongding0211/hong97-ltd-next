@@ -37,6 +37,35 @@
         "copyId": "Copy ID",
         "copyIdSuccess": "Copy ID success"
       }
+    },
+    "shortlink": {
+      "title": "Short Link Manager",
+      "subTitle": "Create and manage short links",
+      "nodata": "No short links",
+      "noPermission": "You do not have permission to access this page",
+      "add": "Create your first short link",
+      "new": "New Short Link",
+      "create": "Create Short Link",
+      "edit": "Edit Short Link",
+      "createDesc": "Create a new short link with custom short code, expiration time and more",
+      "originalUrl": "Original URL",
+      "linkTitle": "Title",
+      "titlePlaceholder": "Set a descriptive title for the short link",
+      "description": "Description",
+      "descriptionPlaceholder": "Add a detailed description for the short link",
+      "shortCode": "Custom Short Code",
+      "tags": "Tags",
+      "expiresAt": "Expiration Time",
+      "isActive": "Active Status",
+      "inactive": "Inactive",
+      "expired": "Expired",
+      "searchPlaceholder": "Search short links...",
+      "deleteTitle": "Delete Short Link",
+      "deleteDesc": "Are you sure you want to delete short link \"{{title}}\"? This action cannot be undone.",
+      "copied": "Short link copied to clipboard",
+      "urlRequired": "Please enter the original URL",
+      "invalidUrl": "Please enter a valid URL",
+      "invalidShortCode": "Short code must be 6 lowercase letters"
     }
   }
 }

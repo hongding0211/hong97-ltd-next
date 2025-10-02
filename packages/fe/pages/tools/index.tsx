@@ -15,6 +15,9 @@ const ITEMS = [
   {
     key: 'ucp',
   },
+  {
+    key: 'shortlink',
+  },
 ]
 
 const Item: React.FC<{
