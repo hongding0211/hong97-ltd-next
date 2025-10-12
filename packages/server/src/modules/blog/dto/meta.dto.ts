@@ -40,4 +40,33 @@ export class MetaResponseDto {
   @IsBoolean()
   @IsOptional()
   authRequired?: boolean
+
+  @IsString()
+  @IsOptional()
+  shortCode?: string
+}
+
+export class UpdateMetaDto {
+  @IsString()
+  blogId: string
+
+  @IsString()
+  @IsOptional()
+  blogTitle?: string
+
+  @IsString()
+  @IsOptional()
+  coverImg?: string
+
+  @IsArray()
+  @IsOptional()
+  keywords?: string[]
+
+  @IsBoolean()
+  @IsOptional()
+  authRequired?: boolean
+
+  @IsString()
+  @IsOptional()
+  shortCode?: string
 }

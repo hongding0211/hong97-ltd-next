@@ -27,5 +27,9 @@
     "createSuccess": "Short link created successfully",
     "updateSuccess": "Short link updated successfully",
     "deleteSuccess": "Short link deleted successfully"
+  },
+  "blog": {
+    "shortLinkCopySuccess": "Short link copied to clipboard",
+    "shortLinkCopyFailed": "Copy failed"
   }
 }

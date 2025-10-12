@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Put,
   Query,
 } from '@nestjs/common'
 import { RootOnly } from 'src/decorators/root-only.decorator'
@@ -13,8 +14,9 @@ import { UserId } from 'src/decorators/user-id.decorator'
 import { BlogService } from './blog.service'
 import { BlogDto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
+import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
-import { MetaDto } from './dto/meta.dto'
+import { MetaDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 
 @Controller('blog')
@@ -44,6 +46,26 @@ export class BlogController {
   @HttpCode(HttpStatus.OK)
   async meta(@Query() metaDto: MetaDto, @UserId() userId?: string) {
     return this.blogService.meta(metaDto, userId)
+  }
+
+  @Put('meta')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async updateMeta(@Body() metaDto: UpdateMetaDto) {
+    return this.blogService.updateMeta(metaDto)
+  }
+
+  @Get('content')
+  @HttpCode(HttpStatus.OK)
+  async getContent(@Query() contentDto: GetContentDto) {
+    return this.blogService.getContent(contentDto)
+  }
+
+  @Post('content')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async postContent(@Body() contentDto: PostContentDto) {
+    return this.blogService.postContent(contentDto)
   }
 
   @Post('like')

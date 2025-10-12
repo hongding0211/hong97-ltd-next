@@ -9,5 +9,7 @@
   "deleteComment": {
     "text": "删除",
     "confirmTitle": "确定删除这条评论吗？"
-  }
+  },
+  "oops": "Oops!",
+  "blogNotFound": "博客不存在"
 }

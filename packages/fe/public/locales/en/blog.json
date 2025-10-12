@@ -9,5 +9,7 @@
   "deleteComment": {
     "text": "Delete",
     "confirmTitle": "Confirm delete this comment?"
-  }
+  },
+  "oops": "Oops!",
+  "blogNotFound": "Blog not found"
 }
