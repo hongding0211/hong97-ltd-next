@@ -4,11 +4,10 @@ import {
   IsDateString,
   IsOptional,
   IsString,
-  IsUrl,
 } from 'class-validator'
 
 export class CreateShortLinkDto {
-  @IsUrl({}, { message: 'Invalid URL format' })
+  @IsString()
   originalUrl: string
 
   @IsOptional()

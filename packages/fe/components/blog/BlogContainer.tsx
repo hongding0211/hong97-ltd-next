@@ -1,11 +1,12 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import { useIsAdmin } from '@hooks/useIsAdmin'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
-import { Eye, Heart } from 'lucide-react'
+import { Eye, Heart, Share2 } from 'lucide-react'
 import Head from 'next/head'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 // import { useTranslation } from 'react-i18next'
@@ -29,7 +30,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
 
   const [comments, setComments] = useState<CommentsResponseDto['comments']>([])
 
+  const [shortCode, setShortCode] = useState(meta.shortCode)
+
   time.setLocale(locale)
+
+  const { isAdmin } = useIsAdmin()
+
+  const showShareIcon = !!(isAdmin || shortCode)
 
   useEffect(() => {
     http
@@ -109,6 +116,36 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     }
   }
 
+  const handleShare = async () => {
+    let _shortCode = shortCode
+    if (!_shortCode) {
+      try {
+        // create a short link
+        const originalUrl = `${window.location.origin}/blog/markdowns/${meta.blogId}?key=${meta.blogId}`
+        const createRes = await http.post('PostShortLinkCreate', {
+          originalUrl,
+          title: meta.blogTitle,
+        })
+        if (!createRes.isSuccess || !createRes?.data?.shortCode) {
+          toast('blog.shortLinkCopyFailed', { type: 'error' })
+          return
+        }
+        await http.put('PutBlogMeta', {
+          blogId: meta.blogId,
+          shortCode: createRes.data.shortCode,
+        })
+        _shortCode = createRes.data.shortCode
+        setShortCode(_shortCode)
+      } catch {
+        return
+      }
+    }
+    const host = window.location.origin
+    const shortUrl = `${host}/s/${_shortCode}`
+    navigator.clipboard.writeText(shortUrl)
+    toast('blog.shortLinkCopySuccess', { type: 'success' })
+  }
+
   useEffect(() => {
     http
       .post('PostBlogView', {
@@ -156,12 +193,20 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
             <h2 className="mb-2">{meta.blogTitle}</h2>
-            <figcaption className="m-0 !mt-1 text-sm">
+            <figcaption className="m-0 !mt-1 text-sm flex items-center gap-x-1">
               {time.format(meta.time, 'datetimeShort')}
               {!!meta.keywords?.length && <span> | </span>}
               {meta.keywords?.map((k, _i) => (
                 <span key={k}>{` #${k}`}</span>
               ))}
+              {showShareIcon && (
+                <div
+                  onClick={handleShare}
+                  className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                >
+                  <Share2 className="w-3 h-3" />
+                </div>
+              )}
             </figcaption>
             {children}
             <div className="flex items-center gap-3 mt-12">

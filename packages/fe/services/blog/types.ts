@@ -5,6 +5,12 @@ import {
   CommentsDto,
   CommentsResponseDto,
 } from '@server/modules/blog/dto/comment.dto'
+import {
+  GetContentDto,
+  GetContentResponseDto,
+  PostContentDto,
+  PostContentResponseDto,
+} from '@server/modules/blog/dto/content.dto'
 import { DeleteCommentDto } from '@server/modules/blog/dto/deleteComment.dto'
 import { MetaDto, MetaResponseDto } from '@server/modules/blog/dto/meta.dto'
 import { ViewDto } from '@server/modules/blog/dto/view.dto'
@@ -25,5 +31,16 @@ export type BlogAPIS = {
     typeof DeleteCommentDto,
     undefined,
     typeof DeleteCommentDto
+  >
+  PutBlogMeta: API<typeof MetaResponseDto, undefined, typeof MetaResponseDto>
+  GetBlogContent: API<
+    typeof GetContentDto,
+    undefined,
+    typeof GetContentResponseDto
+  >
+  PostBlogContent: API<
+    typeof PostContentDto,
+    undefined,
+    typeof PostContentResponseDto
   >
 }

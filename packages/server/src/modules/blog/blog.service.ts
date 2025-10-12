@@ -13,8 +13,9 @@ import {
   BlogsResponseDto,
 } from './dto/blog.dto'
 import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
+import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
-import { MetaDto, MetaResponseDto } from './dto/meta.dto'
+import { MetaDto, MetaResponseDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
@@ -85,8 +86,9 @@ export class BlogService {
       isLiked,
       time: blog.time,
       coverImg: blog.coverImg,
-      keywords: blog.keywords,
+      keywords: blog.keywords ?? [],
       authRequired: blog.authRequired,
+      shortCode: blog.shortCode,
     }
   }
 
@@ -278,6 +280,60 @@ export class BlogService {
     return {
       commentId,
       blogId,
+    }
+  }
+
+  async updateMeta(metaDto: UpdateMetaDto) {
+    const { blogId } = metaDto
+
+    const blog = await this.blogModel.findOne({ blogId })
+
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+
+    Object.keys(metaDto).forEach((key) => {
+      if (!metaDto[key]) {
+        return
+      }
+      blog[key] = metaDto[key]
+    })
+
+    await blog.save()
+    return blog
+  }
+
+  async getContent(contentDto: GetContentDto) {
+    const { blogId } = contentDto
+
+    const blog = await this.blogModel.findOne({ blogId })
+
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+
+    return {
+      blogId,
+      content: blog.content,
+    }
+  }
+
+  async postContent(contentDto: PostContentDto) {
+    const { blogId, content } = contentDto
+
+    const blog = await this.blogModel.findOne({ blogId })
+
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+
+    blog.content = content
+
+    await blog.save()
+
+    return {
+      blogId,
+      content,
     }
   }
 }

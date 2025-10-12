@@ -37,7 +37,7 @@ class Http {
         }
         return v.data as HttpResponse<K>
       })
-      .catch((err: AxiosError) => {
+      .catch((err: AxiosError<any>) => {
         /** Lost login session */
         if (err.response?.status === 401) {
           toast('unauthorized', {
@@ -49,6 +49,11 @@ class Http {
           return Promise.reject(err)
         }
         if (err.response?.status === 403) {
+          if (err.response?.data?.message) {
+            toast(err.response.data.message, {
+              type: 'error',
+            })
+          }
           return Promise.reject(err)
         }
         /** Rate limiting */

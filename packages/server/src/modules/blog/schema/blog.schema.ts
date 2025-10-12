@@ -33,8 +33,8 @@ export class Blog {
     content: string
   }[]
 
-  @Prop({ required: true })
-  keywords: string[]
+  @Prop({ required: false })
+  keywords?: string[]
 
   @Prop({ required: false })
   coverImg?: string
@@ -44,6 +44,12 @@ export class Blog {
 
   @Prop()
   authRequired?: boolean
+
+  @Prop({ required: false })
+  shortCode?: string
+
+  @Prop({ required: false })
+  content?: string
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)
