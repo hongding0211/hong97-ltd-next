@@ -11,5 +11,7 @@
     "confirmTitle": "确定删除这条评论吗？"
   },
   "oops": "Oops!",
-  "blogNotFound": "博客不存在"
+  "blogNotFound": "博客不存在",
+  "search": "按标题或标签搜索",
+  "newBlog": "新博客"
 }

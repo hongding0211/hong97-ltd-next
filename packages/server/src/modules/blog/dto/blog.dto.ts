@@ -28,6 +28,10 @@ export class BlogResponseDto {
   authRequired?: boolean
 }
 
-export class BlogsDto extends PaginationQueryDto {}
+export class BlogsDto extends PaginationQueryDto {
+  @IsString()
+  @IsOptional()
+  search?: string
+}
 
 export class BlogsResponseDto extends PaginationResponseDto<BlogResponseDto> {}

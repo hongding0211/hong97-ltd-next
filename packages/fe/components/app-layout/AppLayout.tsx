@@ -237,7 +237,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
         </animated.div>
       )}
 
-      <div className="app-layout-content flex flex-col justify-between">
+      <div className="app-layout-content flex flex-col justify-between min-h-screen">
         <div className="p-5">
           {!props?.authRequired && props.children}
           {props?.authRequired &&
