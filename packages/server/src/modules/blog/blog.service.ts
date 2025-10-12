@@ -231,10 +231,22 @@ export class BlogService {
   }
 
   async list(blogsDto: BlogsDto): Promise<BlogsResponseDto> {
-    const { page = 1, pageSize = 10 } = blogsDto
+    const { page = 1, pageSize = 10, search } = blogsDto
+
+    // Build search query
+    const query = search
+      ? {
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { keywords: { $in: [new RegExp(search, 'i')] } },
+          ],
+        }
+      : {}
+
+    const total = await this.blogModel.countDocuments(query)
 
     const blogs = await this.blogModel
-      .find()
+      .find(query)
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .sort({ time: -1 })
@@ -248,7 +260,7 @@ export class BlogService {
         time: e.time,
         authRequired: e.authRequired,
       })),
-      total: blogs.length,
+      total,
       page,
       pageSize,
     }

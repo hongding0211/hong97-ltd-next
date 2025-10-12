@@ -11,5 +11,7 @@
     "confirmTitle": "Confirm delete this comment?"
   },
   "oops": "Oops!",
-  "blogNotFound": "Blog not found"
+  "blogNotFound": "Blog not found",
+  "search": "Search by Title or Tags",
+  "newBlog": "New Blog"
 }
