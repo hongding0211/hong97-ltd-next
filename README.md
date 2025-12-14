@@ -1,6 +1,8 @@
-# Hong97 Ltd Next
+# hong97-ltd-next
 
 A modern full-stack web application featuring a personal portfolio with blog functionality, built using Next.js and NestJS in a monorepo architecture.
+
+[https://hong97.ltd](https://hong97.ltd)
 
 ## Overview
 
@@ -98,6 +100,3 @@ OSS_ACCESS_KEY_ID=your-access-key
 OSS_ACCESS_KEY_SECRET=your-access-secret
 OSS_BUCKET=your-bucket-name
 ```
-## License
-
-Private project - All rights reserved

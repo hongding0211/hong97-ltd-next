@@ -162,6 +162,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
         </div>
       </nav>
       {showMenu && (
+        // @ts-ignore
         <animated.div
           style={{ ...menuContainerStyle }}
           className="fixed bottom-0 left-0 right-0 top-[64px] z-10 bg-white sm:hidden dark:bg-black"
@@ -169,6 +170,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
           <div className="mx-5 grid grid-cols-1 dark:divide-neutral-300">
             {menuConfig.map((m) => (
               <div key={m.key}>
+                {/* @ts-ignore */}
                 <animated.span style={{ ...menuItemStyle }}>
                   <Link
                     href={m.path}
@@ -188,6 +190,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                     )}
                   </Link>
                 </animated.span>
+                {/* @ts-ignore */}
                 <animated.div style={{ ...lineStyle }}>
                   <Divider />
                 </animated.div>
@@ -203,11 +206,13 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 >
                   {t('login')}
                 </Link>
+                {/* @ts-ignore */}
                 <animated.div style={{ ...lineStyle }}>
                   <Divider />
                 </animated.div>
               </>
             )}
+            {/* @ts-ignore */}
             <animated.div
               style={{ ...menuItemStyle }}
               className={`flex w-full items-center pt-5 ${
