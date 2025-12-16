@@ -82,7 +82,6 @@ export default CyberNeighbor
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'cn' } = context
-  http.setLocale(locale)
 
   const linksRes = await http.get('GetUcpConfigAll', {
     id: LINKS_UCP_ID,

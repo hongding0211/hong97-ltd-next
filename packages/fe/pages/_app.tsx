@@ -6,10 +6,10 @@ import { useTheme } from 'next-themes'
 import NProgress from 'nprogress'
 import { Toaster } from 'sonner'
 import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
-import { http } from '../services/http'
 import '../styles/code.css'
 import '../styles/globals.css'
 import '../styles/nprogress.css'
+import { initializeGlobalServices } from '../utils/global-services'
 import { registerToast } from '../utils/toast'
 
 function Child(props: AppProps) {
@@ -32,7 +32,8 @@ function App(props: AppProps) {
 
   const { t, i18n } = useTranslation('toast')
 
-  http.setLocale(i18n.language)
+  // Initialize all global services with current locale
+  initializeGlobalServices(i18n.language)
 
   /** Configure NProgress */
   useEffect(() => {

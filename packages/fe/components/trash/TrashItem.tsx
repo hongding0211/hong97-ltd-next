@@ -79,7 +79,7 @@ export function TrashItem({
   onCommentUpdate,
   isAdmin = false,
 }: TrashItemProps) {
-  const { t, i18n } = useTranslation('trash')
+  const { t } = useTranslation('trash')
   const { t: tCommon } = useTranslation('common')
   const { isLogin } = useLogin()
   const imagePreview = useImagePreview()
@@ -89,11 +89,6 @@ export function TrashItem({
   const [comments, setComments] = useState(item.comments)
   const [showCommentForm, setShowCommentForm] = useState(false)
   const loading = useRef(false)
-
-  // 设置时间工具的语言
-  useEffect(() => {
-    time.setLocale(i18n.language)
-  }, [i18n.language])
 
   // 当 item 的状态更新时，同步本地状态
   useEffect(() => {

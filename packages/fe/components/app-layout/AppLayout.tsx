@@ -11,6 +11,7 @@ import { useAppStore } from '@stores/general'
 import { truncate } from '@utils/truncate'
 import cx from 'classnames'
 import { UserRound } from 'lucide-react'
+import { i18n } from 'next-i18next'
 import { menuConfig } from '../../config'
 import Avatar from '../common/Avatar'
 import Divider from '../common/Divider'
@@ -26,6 +27,7 @@ interface IAppLayout {
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
+  console.log('!!👉 AppLayout.tsx: 30', i18n)
 
   const { user } = useAppStore((state) => ({
     user: state.user,
@@ -145,7 +147,9 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                 size="sm"
                 className="ml-[-25px] mr-[-10px] text-neutral-600 dark:text-neutral-400"
                 onClick={() => {
-                  window.location.href = `/sso/login?redirect=${encodeURIComponent(
+                  window.location.href = `/${
+                    i18n.language ?? 'en'
+                  }/sso/login?redirect=${encodeURIComponent(
                     window.location.href,
                   )}`
                 }}

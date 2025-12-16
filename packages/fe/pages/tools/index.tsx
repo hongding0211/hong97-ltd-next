@@ -1,5 +1,4 @@
 import AppLayout from '@components/app-layout/AppLayout'
-import { http } from '@services/http'
 import { ChevronRight } from 'lucide-react'
 import { GetStaticPropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -89,7 +88,6 @@ export default Tools
 
 export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
-  http.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),

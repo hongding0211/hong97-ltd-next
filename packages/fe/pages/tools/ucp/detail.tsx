@@ -264,7 +264,6 @@ export default UCPDetail
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'cn', query } = context
   const { id } = query
-  http.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),

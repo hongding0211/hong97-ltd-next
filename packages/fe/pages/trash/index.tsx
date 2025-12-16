@@ -74,11 +74,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
   )
   const [page, setPage] = useState(1)
 
-  // 设置时间工具的语言
-  useEffect(() => {
-    time.setLocale(i18n.language)
-  }, [i18n.language])
-
   // 客户端水合：当用户登录后，重新获取包含正确 isLiked 状态的数据
   useEffect(() => {
     if (isLogin) {
@@ -308,10 +303,6 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async ({
   locale,
 }) => {
   try {
-    // 设置 HTTP 客户端的语言
-    http.setLocale(locale || 'cn')
-    time.setLocale(locale || 'cn')
-
     // 获取第一页数据
     const response = await http.get('GetTrashList', {
       page: 1,

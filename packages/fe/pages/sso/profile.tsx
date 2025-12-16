@@ -617,9 +617,6 @@ export default Profile
 export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
 
-  http.setLocale(locale)
-  time.setLocale(locale)
-
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'profile', 'toast'])),

@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card'
 import { ACCESS_TOKEN_KEY } from '@constants'
 import { Label } from '@radix-ui/react-label'
-import { http } from '@services/http'
 import { useLoginStore } from '@stores/sso'
 import { uploadFile2Oss } from '@utils/oss'
 import {
@@ -492,7 +491,6 @@ export default Login
 
 export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
-  http.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'login', 'toast'])),

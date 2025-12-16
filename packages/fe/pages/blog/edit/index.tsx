@@ -1,5 +1,4 @@
 import AppLayout from '@components/app-layout/AppLayout'
-import { time } from '@utils/time'
 import { GetServerSidePropsContext } from 'next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
@@ -13,8 +12,6 @@ export default function Page() {
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale } = context
-
-  time.setLocale(locale)
 
   return {
     props: {

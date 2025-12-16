@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button'
 import AppLayout from '@components/app-layout/AppLayout'
 import { useLogin } from '@hooks/useLogin'
-import { http } from '@services/http'
 import { formatFileSize } from '@utils/file'
 import { uploadFile2Oss } from '@utils/oss'
 import { executePromisesWithLimit } from '@utils/promise'
@@ -245,7 +244,6 @@ export default OSS
 
 export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
-  http.setLocale(locale)
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),

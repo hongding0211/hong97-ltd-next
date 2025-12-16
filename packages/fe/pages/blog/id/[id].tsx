@@ -4,7 +4,6 @@ import { BlogContainer } from '@components/blog/BlogContainer'
 import { ImagesV2 } from '@components/common/images-v2'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
-import { time } from '@utils/time'
 import { Meh } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -65,8 +64,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   if (!query?.id) {
     return fallRes
   }
-
-  time.setLocale(locale)
 
   const [meta, content] = await Promise.all([
     http.get('GetBlogMeta', {

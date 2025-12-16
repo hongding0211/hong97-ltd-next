@@ -18,9 +18,7 @@ type BlogProps = {
 }
 
 export default function Blog(props: BlogProps) {
-  const { blogs: initialBlogs, locale } = props
-
-  time.setLocale(locale)
+  const { blogs: initialBlogs } = props
 
   const { t } = useTranslation('common')
   const { t: tBlog } = useTranslation('blog')

@@ -22,7 +22,7 @@ interface IBlogContainer {
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, meta, locale } = props
+  const { children, meta } = props
 
   const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
@@ -31,8 +31,6 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const [comments, setComments] = useState<CommentsResponseDto['comments']>([])
 
   const [shortCode, setShortCode] = useState(meta.shortCode)
-
-  time.setLocale(locale)
 
   const { isAdmin } = useIsAdmin()
 
