@@ -86,7 +86,7 @@ function Tools() {
 
 export default Tools
 
-export async function getStaticProps(context: GetStaticPropsContext) {
+export async function getServerSideProps(context: GetStaticPropsContext) {
   const { locale = 'cn' } = context
   return {
     props: {

@@ -614,7 +614,7 @@ export const Profile: React.FC = () => {
 
 export default Profile
 
-export async function getStaticProps(context: GetStaticPropsContext) {
+export async function getServerSideProps(context: GetStaticPropsContext) {
   const { locale = 'en' } = context
 
   return {
