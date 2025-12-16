@@ -4,7 +4,7 @@ import { useIsAdmin } from '@hooks/useIsAdmin'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import { debounce } from 'lodash'
-import { Pencil, Search } from 'lucide-react'
+import { Loader2, Pencil, Search } from 'lucide-react'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useEffect, useRef, useState } from 'react'
@@ -29,7 +29,7 @@ export default function Blog(props: BlogProps) {
 
   const [blogs, setBlogs] = useState<IBlogConfig[]>(initialBlogs)
   const [searchTerm, setSearchTerm] = useState('')
-  const [, setIsSearching] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
 
   const debouncedSearch = useRef(
     debounce(async (search: string) => {
@@ -105,7 +105,11 @@ export default function Blog(props: BlogProps) {
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              {isSearching ? (
+                <Loader2 className="absolute left-3 top-3  w-4 h-4 text-gray-400 animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              )}
             </div>
             {isAdmin && (
               <div
@@ -118,7 +122,9 @@ export default function Blog(props: BlogProps) {
             )}
           </div>
           <div className="px-2 mt-7 sm:mt-10 flex flex-col">
-            {blogs.length === 0 && <figure>{t('noBlog')}</figure>}
+            {!isSearching && blogs.length === 0 && (
+              <figure>{t('noBlog')}</figure>
+            )}
             {blogs.map((blog, idx) => (
               <div key={blog.key} className="flex flex-col">
                 <a
