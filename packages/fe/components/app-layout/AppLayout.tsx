@@ -28,9 +28,15 @@ interface IAppLayout {
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
 
-  const { user } = useAppStore((state) => ({
+  const generalContext = useContext(GeneralContext)
+  const { router, user: prefetchedUser } = generalContext
+
+  const { user: clientUser } = useAppStore((state) => ({
     user: state.user,
   }))
+
+  // Prioritize Context user over zustand user
+  const user = prefetchedUser ?? clientUser
 
   const { fallbackComponent, isLogin } = useLogin()
 
@@ -40,9 +46,6 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   const [lineStyle, lineApi] = useSpring(() => {})
   const [menuItemStyle, menuItemApi] = useSpring(() => {})
   const { t } = useTranslation('common')
-
-  const generalContext = useContext(GeneralContext)
-  const { router } = generalContext
 
   const currentPath = router?.pathname || ''
 

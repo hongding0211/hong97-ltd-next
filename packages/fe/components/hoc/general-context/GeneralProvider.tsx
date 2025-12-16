@@ -1,3 +1,4 @@
+import { UserResponseDto } from '@server/modules/user/dto/user.response.dto'
 import { useAppStore } from '@stores/general'
 import { ThemeProvider } from 'next-themes'
 import { NextRouter } from 'next/router'
@@ -7,10 +8,11 @@ import { GeneralContext } from './GeneralContext'
 interface IGeneralProviderProps {
   children: React.ReactNode
   router: NextRouter
+  user?: UserResponseDto | null
 }
 
 export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
-  const { children, router } = props
+  const { children, router, user } = props
 
   const { init, cleanUp } = useAppStore((state) => ({
     init: state.init,
@@ -20,14 +22,15 @@ export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
   const value = useMemo(
     () => ({
       router,
+      user,
     }),
-    [router],
+    [router, user],
   )
 
   useEffect(() => {
-    init()
+    init(user)
     return cleanUp
-  }, [init, cleanUp])
+  }, [init, cleanUp, user])
 
   return (
     <GeneralContext.Provider value={value}>

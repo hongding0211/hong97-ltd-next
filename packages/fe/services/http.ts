@@ -15,6 +15,7 @@ class Http {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: BASE_URL,
+      withCredentials: true,
     })
   }
 
