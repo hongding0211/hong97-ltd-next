@@ -123,7 +123,7 @@ export default function Blog(props: BlogProps) {
           </div>
           <div className="px-2 mt-7 sm:mt-10 flex flex-col">
             {!isSearching && blogs.length === 0 && (
-              <figure>{t('noBlog')}</figure>
+              <span className="opacity-60">{t('noBlog')}</span>
             )}
             {blogs.map((blog, idx) => (
               <div key={blog.key} className="flex flex-col">
