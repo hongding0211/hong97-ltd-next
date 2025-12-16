@@ -58,6 +58,9 @@ export default function Blog(props: BlogProps) {
 
   // 当搜索词改变时触发搜索
   useEffect(() => {
+    if (!searchTerm) {
+      return
+    }
     debouncedSearch(searchTerm)
   }, [searchTerm, debouncedSearch])
 
