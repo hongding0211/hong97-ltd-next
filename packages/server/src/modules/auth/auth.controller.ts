@@ -6,7 +6,9 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common'
+import type { Response } from 'express'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
@@ -26,8 +28,11 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto)
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.login(loginDto, res)
   }
 
   @Get('info')
@@ -38,8 +43,11 @@ export class AuthController {
 
   @Get('refreshToken')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@UserId() userId: string) {
-    return this.authService.refreshToken(userId)
+  async refreshToken(
+    @UserId() userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.refreshToken(userId, res)
   }
 
   @Patch('profile')
@@ -70,5 +78,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async isAdmin(@UserId() userId: string) {
     return this.authService.isAdmin(userId)
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('token')
+    return {}
   }
 }

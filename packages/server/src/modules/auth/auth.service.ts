@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcrypt'
+import type { Response } from 'express'
 import { Model } from 'mongoose'
 import { GeneralException } from 'src/exceptions/general-exceptions'
 import { ServiceResponse } from 'src/interceptors/response/types'
+import { parseJwtExpiresInToMs } from 'src/utils/time-parser'
 import { v4 as uuidv4 } from 'uuid'
 import { User, UserDocument } from '../user/schema/user.schema'
 import { UserService } from '../user/user.service'
@@ -108,16 +110,16 @@ export class AuthService {
     throw new GeneralException('auth.oauthRegistrationNotImplemented')
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, res?: Response) {
     const { type, credentials } = loginDto
 
     switch (type) {
       case 'local':
-        return this.loginWithLocal(credentials as LocalLoginDto)
+        return this.loginWithLocal(credentials as LocalLoginDto, res)
       case 'phone':
-        return this.loginWithPhone(credentials as PhoneLoginDto)
+        return this.loginWithPhone(credentials as PhoneLoginDto, res)
       case 'github':
-        return this.loginWithOAuth(credentials as OAuthLoginDto)
+        return this.loginWithOAuth(credentials as OAuthLoginDto, res)
       default:
         throw new GeneralException('auth.invalidLoginType')
     }
@@ -136,7 +138,20 @@ export class AuthService {
     return accessToken
   }
 
-  private async loginWithLocal(credentials: LocalLoginDto) {
+  private setAuthCookie(res: Response, token: string): void {
+    const expiresIn =
+      this.configService.get<string>('auth.jwt.expiresIn') || '1d'
+    const maxAge = parseJwtExpiresInToMs(expiresIn)
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: maxAge,
+    })
+  }
+
+  private async loginWithLocal(credentials: LocalLoginDto, res?: Response) {
     const { email, phoneNumber, password } = credentials
 
     if (!email && !phoneNumber) {
@@ -167,17 +182,23 @@ export class AuthService {
     user.lastLoginAt = new Date()
     await user.save()
 
+    const token = await this.generateTokens(user)
+
+    if (res) {
+      this.setAuthCookie(res, token)
+    }
+
     return {
-      token: await this.generateTokens(user),
+      token,
       user: this.userService.mapUserToResponse(user),
     }
   }
 
-  private async loginWithPhone(_: PhoneLoginDto) {
+  private async loginWithPhone(_: PhoneLoginDto, _res?: Response) {
     throw new GeneralException('auth.phoneLoginNotImplemented')
   }
 
-  private async loginWithOAuth(_: OAuthLoginDto) {
+  private async loginWithOAuth(_: OAuthLoginDto, _res?: Response) {
     throw new GeneralException('auth.oauthLoginNotImplemented')
   }
 
@@ -189,13 +210,20 @@ export class AuthService {
     return this.userService.mapUserToResponse(user)
   }
 
-  async refreshToken(userId: string): Promise<RefreshTokenDto> {
+  async refreshToken(userId: string, res?: Response): Promise<RefreshTokenDto> {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
       throw new UnauthorizedException('User not found')
     }
+
+    const token = await this.generateTokens(user)
+
+    if (res) {
+      this.setAuthCookie(res, token)
+    }
+
     return {
-      token: await this.generateTokens(user),
+      token,
     }
   }
 

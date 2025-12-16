@@ -11,7 +11,6 @@ import { AppService } from './app.service'
 import config from './config'
 import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
-import { AuthInterceptor } from './interceptors/auth'
 import { StructuredResponseInterceptor } from './interceptors/response/structured-response'
 import { AuthModule } from './modules/auth/auth.module'
 import { BlogModule } from './modules/blog/blog.module'
@@ -89,10 +88,6 @@ import { UserModule } from './modules/user/user.module'
     {
       provide: APP_INTERCEPTOR,
       useClass: StructuredResponseInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AuthInterceptor,
     },
   ],
 })

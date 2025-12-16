@@ -8,6 +8,7 @@ export default registerAs('auth', () => ({
   ignore: [
     '/auth/login',
     '/auth/register',
+    '/auth/logout',
     '/oss/requestUpload',
     '/trash/detail/*',
     '/shortlink/redirect/*',

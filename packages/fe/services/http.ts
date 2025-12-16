@@ -1,33 +1,26 @@
-import { ACCESS_TOKEN_KEY } from '@constants'
 import axios, { AxiosError, AxiosInstance } from 'axios'
 import { i18n } from 'next-i18next'
-import { runOnClient } from '../utils/run-on-client'
 import { toast } from '../utils/toast'
 import { APIs, HttpResponse } from './types'
 import { BASE_URL, PATHS } from './urls'
 
 export interface HttpOptions {
   locale?: string
+  ignoreUnauthorized?: boolean
 }
 
 class Http {
   private axiosInstance: AxiosInstance
 
   constructor() {
-    let accessToken = ''
-    runOnClient(() => {
-      accessToken = localStorage.getItem(ACCESS_TOKEN_KEY) ?? ''
-    })
     this.axiosInstance = axios.create({
       baseURL: BASE_URL,
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
     })
   }
 
   private handler<K extends keyof APIs>(
     p: Promise<any>,
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
     return p
       .then((v) => {
@@ -43,12 +36,11 @@ class Http {
       .catch((err: AxiosError<any>) => {
         /** Lost login session */
         if (err.response?.status === 401) {
-          toast('unauthorized', {
-            type: 'error',
-          })
-          runOnClient(() => {
-            localStorage.removeItem(ACCESS_TOKEN_KEY)
-          })
+          if (!opts?.ignoreUnauthorized) {
+            toast('unauthorized', {
+              type: 'error',
+            })
+          }
           return Promise.reject(err)
         }
         if (err.response?.status === 403) {
@@ -108,6 +100,7 @@ class Http {
         params,
         headers: this.getCustomHeaders(opts),
       }),
+      opts,
     )
   }
 
@@ -122,6 +115,7 @@ class Http {
       this.axiosInstance.post(url, body, {
         headers: this.getCustomHeaders(opts),
       }),
+      opts,
     )
   }
 
@@ -136,6 +130,7 @@ class Http {
       this.axiosInstance.put(url, body, {
         headers: this.getCustomHeaders(opts),
       }),
+      opts,
     )
   }
 
@@ -150,6 +145,7 @@ class Http {
         params,
         headers: this.getCustomHeaders(opts),
       }),
+      opts,
     )
   }
 
@@ -164,6 +160,7 @@ class Http {
       this.axiosInstance.patch(url, body, {
         headers: this.getCustomHeaders(opts),
       }),
+      opts,
     )
   }
 }

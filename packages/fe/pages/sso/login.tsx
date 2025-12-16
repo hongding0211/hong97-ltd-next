@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { ACCESS_TOKEN_KEY } from '@constants'
 import { Label } from '@radix-ui/react-label'
 import { useLoginStore } from '@stores/sso'
 import { uploadFile2Oss } from '@utils/oss'
@@ -384,10 +383,6 @@ function Login() {
     showPassword,
     Uploader,
   ])
-
-  useEffect(() => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
-  }, [])
 
   useEffect(() => {
     setFirstRender(false)

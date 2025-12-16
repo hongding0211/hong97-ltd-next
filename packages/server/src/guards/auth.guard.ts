@@ -29,7 +29,7 @@ export class AuthGuard implements CanActivate {
       this.configService.get<string[]>('auth.softIgnore') ?? []
     const isSoftIgnore = this.matchPathWithGlob(path, softIgnorePaths)
 
-    const token = this.extractTokenFromHeader(request)
+    const token = this.extractToken(request)
 
     if (!token && !isSoftIgnore) {
       throw new UnauthorizedException('No token provided')
@@ -50,7 +50,13 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private extractTokenFromHeader(request: any): string | undefined {
+  private extractToken(request: any): string | undefined {
+    // 优先从 cookie 读取
+    if (request.cookies?.token) {
+      return request.cookies.token
+    }
+
+    // 回退到 Authorization header
     const [type, token] = request.headers.authorization?.split(' ') ?? []
     return type === 'Bearer' ? token : undefined
   }

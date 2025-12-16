@@ -1,5 +1,4 @@
 'use client'
-import { ACCESS_TOKEN_KEY } from '@constants'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
 import { create } from 'zustand'
@@ -105,7 +104,6 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
             },
           })
           if (loginRes.isSuccess) {
-            localStorage.setItem(ACCESS_TOKEN_KEY, loginRes.data.token)
             const { redirect } = get()
             if (redirect) {
               /** If a redirect url is provided, redirect to it */
