@@ -89,7 +89,7 @@ export async function getServerSideProps(context) {
   const { locale, query } = context
   const meta = await http.get('GetBlogMeta', {
     blogId: query?.key
-  })
+  }, { locale })
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog'])),

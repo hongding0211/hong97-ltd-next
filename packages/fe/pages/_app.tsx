@@ -9,7 +9,6 @@ import { GeneralProvider } from '../components/hoc/general-context/GeneralProvid
 import '../styles/code.css'
 import '../styles/globals.css'
 import '../styles/nprogress.css'
-import { initializeGlobalServices } from '../utils/global-services'
 import { registerToast } from '../utils/toast'
 
 function Child(props: AppProps) {
@@ -30,10 +29,7 @@ function Child(props: AppProps) {
 function App(props: AppProps) {
   const { router } = props
 
-  const { t, i18n } = useTranslation('toast')
-
-  // Initialize all global services with current locale
-  initializeGlobalServices(i18n.language)
+  const { t } = useTranslation('toast')
 
   /** Configure NProgress */
   useEffect(() => {

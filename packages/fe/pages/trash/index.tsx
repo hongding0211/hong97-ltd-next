@@ -304,10 +304,14 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async ({
 }) => {
   try {
     // 获取第一页数据
-    const response = await http.get('GetTrashList', {
-      page: 1,
-      pageSize: 10,
-    })
+    const response = await http.get(
+      'GetTrashList',
+      {
+        page: 1,
+        pageSize: 10,
+      },
+      { locale },
+    )
 
     const initialData: PaginationResponseDto<TrashResponseDto> =
       response.isSuccess

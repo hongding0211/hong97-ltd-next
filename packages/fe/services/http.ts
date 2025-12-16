@@ -1,20 +1,23 @@
 import { ACCESS_TOKEN_KEY } from '@constants'
 import axios, { AxiosError, AxiosInstance } from 'axios'
+import { i18n } from 'next-i18next'
 import { runOnClient } from '../utils/run-on-client'
 import { toast } from '../utils/toast'
 import { APIs, HttpResponse } from './types'
 import { BASE_URL, PATHS } from './urls'
 
+export interface HttpOptions {
+  locale?: string
+}
+
 class Http {
   private axiosInstance: AxiosInstance
-  private locale: string
 
   constructor() {
     let accessToken = ''
     runOnClient(() => {
       accessToken = localStorage.getItem(ACCESS_TOKEN_KEY) ?? ''
     })
-    this.locale = 'cn'
     this.axiosInstance = axios.create({
       baseURL: BASE_URL,
       headers: {
@@ -71,9 +74,9 @@ class Http {
       })
   }
 
-  private getCustomHeaders() {
+  private getCustomHeaders(opts?: HttpOptions) {
     return {
-      'X-Locale': this.locale,
+      'X-Locale': opts?.locale || i18n.language || 'en',
     }
   }
 
@@ -94,19 +97,16 @@ class Http {
     return url
   }
 
-  setLocale(locale?: string) {
-    this.locale = locale ?? 'cn'
-  }
-
   get<K extends keyof APIs>(
     name: K,
     params?: APIs[K]['request']['params'],
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.get(url, {
         params,
-        headers: this.getCustomHeaders(),
+        headers: this.getCustomHeaders(opts),
       }),
     )
   }
@@ -114,11 +114,13 @@ class Http {
   post<K extends keyof APIs>(
     name: K,
     body?: APIs[K]['request']['body'],
+    params?: APIs[K]['request']['params'],
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
-    const url = this.buildUrl(name)
+    const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.post(url, body, {
-        headers: this.getCustomHeaders(),
+        headers: this.getCustomHeaders(opts),
       }),
     )
   }
@@ -127,11 +129,12 @@ class Http {
     name: K,
     body?: APIs[K]['request']['body'],
     params?: APIs[K]['request']['params'],
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.put(url, body, {
-        headers: this.getCustomHeaders(),
+        headers: this.getCustomHeaders(opts),
       }),
     )
   }
@@ -139,12 +142,13 @@ class Http {
   delete<K extends keyof APIs>(
     name: K,
     params?: APIs[K]['request']['params'],
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.delete(url, {
         params,
-        headers: this.getCustomHeaders(),
+        headers: this.getCustomHeaders(opts),
       }),
     )
   }
@@ -152,11 +156,13 @@ class Http {
   patch<K extends keyof APIs>(
     name: K,
     body?: APIs[K]['request']['body'],
+    params?: APIs[K]['request']['params'],
+    opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
-    const url = this.buildUrl(name)
+    const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.patch(url, body, {
-        headers: this.getCustomHeaders(),
+        headers: this.getCustomHeaders(opts),
       }),
     )
   }

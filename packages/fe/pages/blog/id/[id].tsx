@@ -66,12 +66,20 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   }
 
   const [meta, content] = await Promise.all([
-    http.get('GetBlogMeta', {
-      blogId: query?.id as string,
-    }),
-    http.get('GetBlogContent', {
-      blogId: query?.id as string,
-    }),
+    http.get(
+      'GetBlogMeta',
+      {
+        blogId: query?.id as string,
+      },
+      { locale },
+    ),
+    http.get(
+      'GetBlogContent',
+      {
+        blogId: query?.id as string,
+      },
+      { locale },
+    ),
   ])
 
   if (

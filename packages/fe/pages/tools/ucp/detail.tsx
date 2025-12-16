@@ -262,7 +262,7 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
 export default UCPDetail
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const { locale = 'cn', query } = context
+  const { locale = 'en', query } = context
   const { id } = query
   return {
     props: {

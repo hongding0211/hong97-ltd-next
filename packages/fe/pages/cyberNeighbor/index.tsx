@@ -83,9 +83,13 @@ export default CyberNeighbor
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'cn' } = context
 
-  const linksRes = await http.get('GetUcpConfigAll', {
-    id: LINKS_UCP_ID,
-  })
+  const linksRes = await http.get(
+    'GetUcpConfigAll',
+    {
+      id: LINKS_UCP_ID,
+    },
+    { locale },
+  )
   const links = linksRes?.data?.map((e) => e.raw) ?? []
 
   return {

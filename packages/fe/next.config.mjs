@@ -4,7 +4,7 @@ import rehypeStarryNight from 'rehype-starry-night'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   i18n: {
-    defaultLocale: 'cn',
+    defaultLocale: 'en',
     locales: ['cn', 'en'],
     reloadOnPrerender: true,
   },

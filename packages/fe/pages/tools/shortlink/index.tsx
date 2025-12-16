@@ -711,7 +711,7 @@ function ShortLink({ locale }: { locale: string }) {
 export default ShortLink
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const { locale = 'cn' } = context
+  const { locale = 'en' } = context
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),

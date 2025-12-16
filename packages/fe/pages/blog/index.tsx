@@ -161,10 +161,16 @@ export default function Blog(props: BlogProps) {
 
 export async function getServerSideProps({ locale }: any) {
   const blogs = (
-    await http.get('GetBlogList', {
-      page: 1,
-      pageSize: 1000,
-    })
+    await http.get(
+      'GetBlogList',
+      {
+        page: 1,
+        pageSize: 1000,
+      },
+      {
+        locale,
+      },
+    )
   ).data.data
   // TODO - HongD 05/27 01:26 加一个错误处理页面
   return {

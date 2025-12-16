@@ -490,7 +490,7 @@ function Login() {
 export default Login
 
 export async function getStaticProps(context: GetStaticPropsContext) {
-  const { locale = 'cn' } = context
+  const { locale = 'en' } = context
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'login', 'toast'])),

@@ -615,7 +615,7 @@ export const Profile: React.FC = () => {
 export default Profile
 
 export async function getStaticProps(context: GetStaticPropsContext) {
-  const { locale = 'cn' } = context
+  const { locale = 'en' } = context
 
   return {
     props: {
