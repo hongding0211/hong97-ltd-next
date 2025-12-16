@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     tags:
-      - '@fe*'
+      - '*'
 
 jobs:
   deploy-fe:
@@ -42,21 +42,4 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: |
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" 
-            nvm -v
-            nvm use 20
-            node -v
-            cd ${{ secrets.PATH }}
-            ${{ secrets.CLASH }}
-            export https_proxy='127.0.0.1:7890'
-            git pull
-            echo "Building and deploying frontend..."
-            pnpm i
-            pnpm build:fe
-            docker stop ${{ secrets.DOCKER_IMG_FE }}
-            docker start ${{ secrets.DOCKER_IMG_FE }}
-            docker exec -itd ${{ secrets.DOCKER_IMG_FE }} /bin/sh -c "cd /app && pnpm start:fe"
-            kill $(cat pid.txt) || true
-            rm pid.txt
+            sh /root/srv/deploy hong97-ltd.sh
