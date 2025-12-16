@@ -1,6 +1,6 @@
 {
   "name": "hong97-ltd-next",
-  "version": "0.0.1",
+  "version": "0.1.13",
   "private": true,
   "scripts": {
     "dev:fe": "pnpm --filter hong97-ltd-next-fe dev",
@@ -13,10 +13,7 @@
     "prepare": "husky install",
     "lint": "biome lint .",
     "check": "biome check --apply .",
-    "bump:fe": "pnpm --filter hong97-ltd-next-fe bump",
-    "bump:server": "pnpm --filter hong97-ltd-next-server bump",
-    "new:blog": "node scripts/new-blog.js",
-    "login": "node scripts/login.js"
+    "bump": "bump -c -t --tag"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
