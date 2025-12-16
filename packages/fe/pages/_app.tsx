@@ -3,11 +3,13 @@ import type { AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
 import { useTheme } from 'next-themes'
+import NProgress from 'nprogress'
 import { Toaster } from 'sonner'
 import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
 import { http } from '../services/http'
 import '../styles/code.css'
 import '../styles/globals.css'
+import '../styles/nprogress.css'
 import { registerToast } from '../utils/toast'
 
 function Child(props: AppProps) {
@@ -31,6 +33,27 @@ function App(props: AppProps) {
   const { t, i18n } = useTranslation('toast')
 
   http.setLocale(i18n.language)
+
+  /** Configure NProgress */
+  useEffect(() => {
+    NProgress.configure({ showSpinner: false })
+  }, [])
+
+  /** Router events for loading bar */
+  useEffect(() => {
+    const handleStart = () => NProgress.start()
+    const handleComplete = () => NProgress.done()
+
+    router.events.on('routeChangeStart', handleStart)
+    router.events.on('routeChangeComplete', handleComplete)
+    router.events.on('routeChangeError', handleComplete)
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart)
+      router.events.off('routeChangeComplete', handleComplete)
+      router.events.off('routeChangeError', handleComplete)
+    }
+  }, [router])
 
   /** A toast event listener */
   useEffect(() => {
