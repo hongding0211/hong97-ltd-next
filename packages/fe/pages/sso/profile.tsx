@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { http } from '@services/http'
 import { useAppStore } from '@stores/general'
 import { uploadFile2Oss } from '@utils/oss'
@@ -106,7 +107,9 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const uid = useId()
 
-  const { user, isLoading, refresh, logout } = useAppStore((state) => ({
+  const { user } = useGeneralContext()
+
+  const { isLoading, refresh, logout } = useAppStore((state) => ({
     user: state.user,
     isLoading: state.isLoading,
     refresh: state.refresh,

@@ -7,7 +7,6 @@ import React, { useContext, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@hooks/useLogin'
-import { useAppStore } from '@stores/general'
 import { truncate } from '@utils/truncate'
 import cx from 'classnames'
 import { UserRound } from 'lucide-react'
@@ -29,14 +28,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
 
   const generalContext = useContext(GeneralContext)
-  const { router, user: prefetchedUser } = generalContext
-
-  const { user: clientUser } = useAppStore((state) => ({
-    user: state.user,
-  }))
-
-  // Prioritize Context user over zustand user
-  const user = prefetchedUser ?? clientUser
+  const { router, user } = generalContext
 
   const { fallbackComponent, isLogin } = useLogin()
 

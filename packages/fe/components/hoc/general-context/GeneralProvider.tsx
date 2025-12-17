@@ -8,13 +8,14 @@ import { GeneralContext } from './GeneralContext'
 interface IGeneralProviderProps {
   children: React.ReactNode
   router: NextRouter
-  user?: UserResponseDto | null
+  prefetchedUser?: UserResponseDto | null
 }
 
 export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
-  const { children, router, user } = props
+  const { children, router, prefetchedUser } = props
 
-  const { init, cleanUp } = useAppStore((state) => ({
+  const { user, init, cleanUp } = useAppStore((state) => ({
+    user: state.user,
     init: state.init,
     cleanUp: state.cleanUp,
   }))
@@ -22,9 +23,9 @@ export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
   const value = useMemo(
     () => ({
       router,
-      user,
+      user: prefetchedUser ?? user,
     }),
-    [router, user],
+    [router, user, prefetchedUser],
   )
 
   useEffect(() => {

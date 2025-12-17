@@ -72,7 +72,7 @@ function App(props: CustomAppProps) {
   }, [t])
 
   return (
-    <GeneralProvider router={router} user={user}>
+    <GeneralProvider router={router} prefetchedUser={user}>
       <Child {...props} />
     </GeneralProvider>
   )
