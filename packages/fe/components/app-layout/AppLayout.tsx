@@ -251,31 +251,25 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
 
         <footer
           className={cx(
-            'text-xs flex justify-center mb-6 font-light text-neutral-600 dark:text-neutral-400 ',
-            {
-              '!mb-4': props?.simplifiedFooter,
-              'opacity-[80%]': props?.simplifiedFooter,
-            },
+            'text-xs px-5 sm:px-8 mb-4 font-light text-neutral-500 dark:text-neutral-500 ',
           )}
         >
-          <p
-            className={cx(
-              'rounded-full py-2 px-4 flex w-max items-center gap-1 justify-center',
-              {
-                'bg-neutral-100 dark:bg-neutral-900': !props?.simplifiedFooter,
-              },
-            )}
-          >
-            <span>Copyright © {new Date().getFullYear()} hong97.ltd. </span>
-            <a
-              href="https://beian.miit.gov.cn/#/Integrated/index"
-              target="_blank"
-              rel="noreferrer"
-              className="cursor-pointer hover:underline hidden sm:block"
-            >
-              沪 ICP 备 2022003448 号
-            </a>
-          </p>
+          <div className="h-[0.5px] my-2.5 sm:my-3 bg-neutral-200 dark:bg-neutral-800 dark:opacity-80" />
+          <div className="flex flex-col gap-y-0.5">
+            <p className={cx('flex w-max items-center gap-1 justify-center')}>
+              <span>Copyright © {new Date().getFullYear()} hong97.ltd. </span>
+              {locale === 'cn' && (
+                <a
+                  href="https://beian.miit.gov.cn/#/Integrated/index"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="cursor-pointer hover:underline hidden sm:block"
+                >
+                  沪 ICP 备 2022003448 号
+                </a>
+              )}
+            </p>
+          </div>
         </footer>
       </div>
     </div>

@@ -1,5 +1,3 @@
-import { SquareArrowOutUpRight } from 'lucide-react'
-
 export type IMenuItem = {
   key: string
   path: string
@@ -34,12 +32,12 @@ export const menuConfig: IMenuItem[] = [
     key: 'cyberNeighbor',
     path: '/cyberNeighbor',
   },
-  {
-    key: 'doc',
-    path: 'https://docs.hong97.ltd',
-    externalLink: true,
-    icon: SquareArrowOutUpRight,
-  },
+  // {
+  //   key: 'doc',
+  //   path: 'https://docs.hong97.ltd',
+  //   externalLink: true,
+  //   icon: SquareArrowOutUpRight,
+  // },
 ]
 
 export const footerConfig: IFooterItem[] = [
