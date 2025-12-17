@@ -3,8 +3,9 @@ import { Input } from '@/components/ui/input'
 import { useIsAdmin } from '@hooks/useIsAdmin'
 import { http } from '@services/http'
 import { time } from '@utils/time'
+import cx from 'classnames'
 import { debounce } from 'lodash'
-import { Loader2, Pencil, Search } from 'lucide-react'
+import { Pencil, Search } from 'lucide-react'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useEffect, useRef, useState } from 'react'
@@ -28,6 +29,8 @@ export default function Blog(props: BlogProps) {
   const [blogs, setBlogs] = useState<IBlogConfig[]>(initialBlogs)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+
+  const hasSearchTyped = useRef(false)
 
   const debouncedSearch = useRef(
     debounce(async (search: string) => {
@@ -56,13 +59,14 @@ export default function Blog(props: BlogProps) {
 
   // 当搜索词改变时触发搜索
   useEffect(() => {
-    if (!searchTerm) {
+    if (!hasSearchTyped.current && !searchTerm) {
       return
     }
     debouncedSearch(searchTerm)
   }, [searchTerm, debouncedSearch])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    hasSearchTyped.current = true
     setSearchTerm(e.target.value)
   }
 
@@ -97,7 +101,7 @@ export default function Blog(props: BlogProps) {
         />
       </Head>
       <AppLayout>
-        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 sm:mx-auto sm:mb-12 mt-2 md:mt-6">
+        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 mx-[-0.5rem] mt-[-0.5rem] sm:mx-auto sm:mb-12 sm:mt-2">
           <div className="flex w-full mb-6 gap-x-2">
             <div className="flex-1 relative">
               <Input
@@ -106,11 +110,14 @@ export default function Blog(props: BlogProps) {
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
-              {isSearching ? (
-                <Loader2 className="absolute left-3 top-3  w-4 h-4 text-gray-400 animate-spin" />
-              ) : (
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              )}
+              <Search
+                className={cx(
+                  'absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400',
+                  {
+                    'animate-pulse': true,
+                  },
+                )}
+              />
             </div>
             {isAdmin && (
               <div
@@ -122,7 +129,7 @@ export default function Blog(props: BlogProps) {
               </div>
             )}
           </div>
-          <div className="px-2 mt-7 sm:mt-10 flex flex-col">
+          <div className="mx-2 mt-2 sm:mt-7 flex flex-col">
             {!isSearching && blogs.length === 0 && (
               <span className="opacity-60">{t('noBlog')}</span>
             )}
