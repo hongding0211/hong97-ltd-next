@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/dialog'
 import { DialogClose } from '@radix-ui/react-dialog'
 import { Ban, CheckCircle } from 'lucide-react'
+import { useTranslation } from 'next-i18next'
 import React, { useEffect, useRef, useState } from 'react'
 import Cropper from 'react-easy-crop'
-import { useTranslation } from 'react-i18next'
 import { getCroppedImg, readFile } from './utils'
 
 // const ORIENTATION_TO_ANGLE = {

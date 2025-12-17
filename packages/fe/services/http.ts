@@ -1,4 +1,6 @@
+import { isClient } from '@utils/run-on-server'
 import axios, { AxiosError, AxiosInstance } from 'axios'
+import { GetServerSidePropsContext } from 'next'
 import { i18n } from 'next-i18next'
 import { toast } from '../utils/toast'
 import { APIs, HttpResponse } from './types'
@@ -7,6 +9,7 @@ import { BASE_URL, PATHS } from './urls'
 export interface HttpOptions {
   locale?: string
   ignoreUnauthorized?: boolean
+  serverSideCtx?: GetServerSidePropsContext
 }
 
 class Http {
@@ -69,7 +72,9 @@ class Http {
 
   private getCustomHeaders(opts?: HttpOptions) {
     return {
-      'X-Locale': opts?.locale || i18n.language || 'en',
+      ...(isClient ? {} : opts?.serverSideCtx?.req?.headers ?? {}),
+      'X-Locale':
+        opts?.locale || opts?.serverSideCtx?.locale || i18n.language || 'en',
     }
   }
 

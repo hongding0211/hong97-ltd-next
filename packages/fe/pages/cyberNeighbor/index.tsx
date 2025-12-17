@@ -63,7 +63,7 @@ const CyberNeighbor: React.FC<{
         />
       </Head>
       <AppLayout>
-        <div className="max-w-[500px] mx-auto mt-6 md:mt-12 flex-col">
+        <div className="max-w-[500px] mx-auto sm:mt-6 flex-col">
           {links.map((item, index) => (
             <React.Fragment key={item.link}>
               <Item link={item} />

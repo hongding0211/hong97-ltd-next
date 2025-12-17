@@ -3,6 +3,7 @@ import { appWithTranslation, useTranslation } from 'next-i18next'
 import type { AppContext, AppProps } from 'next/app'
 import React, { useEffect } from 'react'
 
+import { http } from '@services/http'
 import { useTheme } from 'next-themes'
 import NProgress from 'nprogress'
 import { Toaster } from 'sonner'
@@ -79,38 +80,17 @@ function App(props: CustomAppProps) {
 
 App.getInitialProps = async (appContext: AppContext) => {
   const { ctx } = appContext
-  let user: UserResponseDto | null = null
 
-  // Fetch user info on server side
-  if (ctx.req) {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-      const cookie = ctx.req.headers.cookie || ''
-      const locale = ctx.locale || 'en'
+  try {
+    const userData = await http.get('GetInfo', undefined, {
+      // @ts-ignore
+      serverSideCtx: ctx,
+    })
 
-      if (!cookie) {
-        return { user: null }
-      }
-
-      const response = await fetch(`${baseUrl}/auth/info`, {
-        headers: {
-          cookie,
-          'X-Locale': locale,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.isSuccess) {
-          user = data.data
-        }
-      }
-    } catch {
-      // noop - user remains null
-    }
+    return { user: userData?.data || null }
+  } catch {
+    return { user: null }
   }
-
-  return { user }
 }
 
 const AppWithTranslation: React.ComponentType<AppProps> =

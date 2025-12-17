@@ -8,8 +8,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { CreateTrashForm } from '../../components/trash/CreateTrashForm'
 import { TrashItem } from '../../components/trash/TrashItem'
-import { useIsAdmin } from '../../hooks/useIsAdmin'
-import { useLogin } from '../../hooks/useLogin'
 import { http } from '../../services/http'
 import {
   PaginationResponseDto,
@@ -20,6 +18,7 @@ import { toast } from '../../utils/toast'
 
 interface TrashPageProps {
   initialData: PaginationResponseDto<TrashResponseDto>
+  isAdmin?: boolean
 }
 
 interface GroupedTrashItems {
@@ -62,10 +61,8 @@ function getDateGroup(
   }
 }
 
-export default function TrashPage({ initialData }: TrashPageProps) {
+export default function TrashPage({ initialData, isAdmin }: TrashPageProps) {
   const { t, i18n } = useTranslation('trash')
-  const { isAdmin, adminLoading } = useIsAdmin()
-  const { isLogin } = useLogin()
 
   const [items, setItems] = useState<TrashResponseDto[]>(initialData.data)
   const [loading, setLoading] = useState(false)
@@ -73,28 +70,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
     initialData.total > initialData.data.length,
   )
   const [page, setPage] = useState(1)
-
-  // 客户端水合：当用户登录后，重新获取包含正确 isLiked 状态的数据
-  useEffect(() => {
-    if (isLogin) {
-      const hydrateItems = async () => {
-        try {
-          const response = await http.get('GetTrashList', {
-            page: 1,
-            pageSize: items.length || 10,
-          })
-
-          if (response.isSuccess) {
-            setItems(response.data.data)
-          }
-        } catch (error) {
-          console.warn('Failed to hydrate items:', error)
-        }
-      }
-
-      hydrateItems()
-    }
-  }, [isLogin])
 
   // 按日期分组推文
   const groupedItems = useMemo(() => {
@@ -238,11 +213,9 @@ export default function TrashPage({ initialData }: TrashPageProps) {
         />
       </Head>
       <AppLayout>
-        <div className="container mx-auto pb-12 max-w-2xl p-0">
+        <div className="container mx-auto mt-[-0.5rem] sm:mt-4 pb-12 max-w-2xl p-0">
           <div className="flex items-center justify-end mb-4">
-            {isAdmin && !adminLoading && (
-              <CreateTrashForm onSuccess={handleCreateSuccess} />
-            )}
+            {isAdmin && <CreateTrashForm onSuccess={handleCreateSuccess} />}
           </div>
 
           {items.length === 0 ? (
@@ -279,7 +252,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
                         onDelete={handleDelete}
                         onLikeUpdate={handleLikeUpdate}
                         onCommentUpdate={handleCommentUpdate}
-                        isAdmin={isAdmin && !adminLoading}
+                        isAdmin={isAdmin}
                       />
                     ))}
                   </div>
@@ -299,19 +272,23 @@ export default function TrashPage({ initialData }: TrashPageProps) {
   )
 }
 
-export const getServerSideProps: GetServerSideProps<TrashPageProps> = async ({
-  locale,
-}) => {
+export const getServerSideProps: GetServerSideProps<TrashPageProps> = async (
+  ctx,
+) => {
+  const { locale } = ctx
   try {
     // 获取第一页数据
-    const response = await http.get(
-      'GetTrashList',
-      {
-        page: 1,
-        pageSize: 10,
-      },
-      { locale },
-    )
+    const [response, isAdminData] = await Promise.all([
+      http.get(
+        'GetTrashList',
+        {
+          page: 1,
+          pageSize: 10,
+        },
+        { serverSideCtx: ctx },
+      ),
+      http.get('GetIsAdmin', undefined, { serverSideCtx: ctx }),
+    ])
 
     const initialData: PaginationResponseDto<TrashResponseDto> =
       response.isSuccess
@@ -321,6 +298,7 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async ({
     return {
       props: {
         initialData,
+        isAdmin: isAdminData?.data?.isAdmin || false,
         ...(await serverSideTranslations(locale!, ['common', 'trash'])),
       },
     }

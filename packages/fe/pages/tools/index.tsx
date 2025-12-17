@@ -69,7 +69,7 @@ function Tools() {
         />
       </Head>
       <AppLayout>
-        <div className="max-w-[500px] mx-auto mt-6 md:mt-12 flex-col">
+        <div className="max-w-[500px] mx-auto sm:mt-6 flex-col">
           {ITEMS.map((item, index) => (
             <React.Fragment key={item.key}>
               <Item itemKey={item.key} />

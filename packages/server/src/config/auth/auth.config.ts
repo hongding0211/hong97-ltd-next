@@ -20,6 +20,7 @@ export default registerAs('auth', () => ({
     '/trash/like',
     '/trash/list',
     '/trash/comment/*',
+    '/auth/isAdmin',
   ],
   rootUsers: process.env.ROOT_USERS ? process.env.ROOT_USERS.split(',') : [],
 }))

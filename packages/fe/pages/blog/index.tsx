@@ -1,30 +1,29 @@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useIsAdmin } from '@hooks/useIsAdmin'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import cx from 'classnames'
 import { debounce } from 'lodash'
 import { Pencil, Search } from 'lucide-react'
+import { GetServerSidePropsContext } from 'next'
+import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { IBlogConfig } from '../../types/blog'
 
 type BlogProps = {
   blogs: IBlogConfig[]
   locale: string
+  isAdmin?: boolean
 }
 
 export default function Blog(props: BlogProps) {
-  const { blogs: initialBlogs } = props
+  const { blogs: initialBlogs, isAdmin } = props
 
   const { t } = useTranslation('common')
   const { t: tBlog } = useTranslation('blog')
-
-  const { isAdmin } = useIsAdmin()
 
   const [blogs, setBlogs] = useState<IBlogConfig[]>(initialBlogs)
   const [searchTerm, setSearchTerm] = useState('')
@@ -166,25 +165,34 @@ export default function Blog(props: BlogProps) {
   )
 }
 
-export async function getServerSideProps({ locale }: any) {
-  const blogs = (
-    await http.get(
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const { locale } = ctx
+
+  const [blogData, isAminData] = await Promise.all([
+    http.get(
       'GetBlogList',
       {
         page: 1,
         pageSize: 1000,
       },
       {
-        locale,
+        serverSideCtx: ctx,
       },
-    )
-  ).data.data
+    ),
+    http.get('GetIsAdmin', undefined, {
+      serverSideCtx: ctx,
+    }),
+  ])
+  const blogs = blogData?.data?.data || []
+  const isAdmin = isAminData?.data?.isAdmin || false
+
   // TODO - HongD 05/27 01:26 加一个错误处理页面
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'toast', 'blog'])),
       blogs,
       locale,
+      isAdmin,
     },
   }
 }
