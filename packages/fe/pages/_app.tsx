@@ -85,6 +85,7 @@ App.getInitialProps = async (appContext: AppContext) => {
     const userData = await http.get('GetInfo', undefined, {
       // @ts-ignore
       serverSideCtx: ctx,
+      enableOnlyWithAuthInServerSide: true,
     })
 
     return { user: userData?.data || null }

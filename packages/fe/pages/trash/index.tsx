@@ -287,7 +287,10 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async (
         },
         { serverSideCtx: ctx },
       ),
-      http.get('GetIsAdmin', undefined, { serverSideCtx: ctx }),
+      http.get('GetIsAdmin', undefined, {
+        serverSideCtx: ctx,
+        enableOnlyWithAuthInServerSide: true,
+      }),
     ])
 
     const initialData: PaginationResponseDto<TrashResponseDto> =

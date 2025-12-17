@@ -10,6 +10,7 @@ export interface HttpOptions {
   locale?: string
   ignoreUnauthorized?: boolean
   serverSideCtx?: GetServerSidePropsContext
+  enableOnlyWithAuthInServerSide?: boolean
 }
 
 class Http {
@@ -78,6 +79,18 @@ class Http {
     }
   }
 
+  private skipHandler(opts?: HttpOptions): boolean {
+    if (
+      !isClient &&
+      opts?.enableOnlyWithAuthInServerSide &&
+      !opts?.serverSideCtx?.req?.cookies?.token
+    ) {
+      return true
+    }
+
+    return false
+  }
+
   private buildUrl<K extends keyof APIs>(
     name: K,
     params?: APIs[K]['request']['params'],
@@ -100,6 +113,9 @@ class Http {
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
+    if (this.skipHandler(opts)) {
+      return
+    }
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.get(url, {
@@ -116,6 +132,9 @@ class Http {
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
+    if (this.skipHandler(opts)) {
+      return
+    }
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.post(url, body, {
@@ -131,6 +150,9 @@ class Http {
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
+    if (this.skipHandler(opts)) {
+      return
+    }
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.put(url, body, {
@@ -145,6 +167,9 @@ class Http {
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
+    if (this.skipHandler(opts)) {
+      return
+    }
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.delete(url, {
@@ -161,6 +186,9 @@ class Http {
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
+    if (this.skipHandler(opts)) {
+      return
+    }
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.patch(url, body, {

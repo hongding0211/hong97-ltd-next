@@ -33,7 +33,7 @@ import {
   Pencil,
   UserRound,
 } from 'lucide-react'
-import { GetStaticPropsContext } from 'next'
+import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
@@ -75,13 +75,17 @@ const ProfileEditItem: React.FC<{
   )
 }
 
-export const Profile: React.FC = () => {
+interface IProfileProps {
+  canModifyPassword: boolean
+}
+
+export const Profile: React.FC<IProfileProps> = (props) => {
+  const { canModifyPassword } = props
+
   const [uploadLoading, setUploadLoading] = useState(false)
   const [profileApplying, setProfileApplying] = useState(false)
 
   const [profileEditing, setProfileEditing] = useState(false)
-
-  const [canModifyPassword, setCanModifyPassword] = useState(false)
 
   const [showModifyPassword, setShowModifyPassword] = useState(false)
   const [showImageCrop, setShowImageCrop] = useState(false)
@@ -303,14 +307,6 @@ export const Profile: React.FC = () => {
       )
     }
   }, [isLoading, router, user])
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      http.get('GetHasLocalAuth').then((v) => {
-        setCanModifyPassword(v?.data?.hasLocalAuth || false)
-      })
-    }
-  }, [isLoading, user])
 
   useEffect(() => {
     syncProfileEditingFields()
@@ -614,12 +610,24 @@ export const Profile: React.FC = () => {
 
 export default Profile
 
-export async function getServerSideProps(context: GetStaticPropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'en' } = context
 
+  let canModifyPassword = false
+
+  try {
+    const hasLocalAuthData = await http.get('GetHasLocalAuth', undefined, {
+      enableOnlyWithAuthInServerSide: true,
+      serverSideCtx: context,
+    })
+    canModifyPassword = hasLocalAuthData?.data?.hasLocalAuth || false
+  } catch {
+    // noop
+  }
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'profile', 'toast'])),
+      canModifyPassword,
     },
   }
 }

@@ -181,6 +181,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     ),
     http.get('GetIsAdmin', undefined, {
       serverSideCtx: ctx,
+      enableOnlyWithAuthInServerSide: true,
     }),
   ])
   const blogs = blogData?.data?.data || []
