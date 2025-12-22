@@ -44,6 +44,18 @@ export class MetaResponseDto {
   @IsString()
   @IsOptional()
   shortCode?: string
+
+  @IsBoolean()
+  @IsOptional()
+  hasPublished?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  hidden2Public?: boolean
+
+  @IsNumber()
+  @IsOptional()
+  lastUpdateAt?: number
 }
 
 export class UpdateMetaDto {
@@ -69,4 +81,16 @@ export class UpdateMetaDto {
   @IsString()
   @IsOptional()
   shortCode?: string
+
+  @IsBoolean()
+  @IsOptional()
+  hasPublished?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  hidden2Public?: boolean
+
+  @IsNumber()
+  @IsOptional()
+  time?: number
 }

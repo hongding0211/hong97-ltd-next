@@ -30,6 +30,10 @@
   },
   "blog": {
     "shortLinkCopySuccess": "Short link copied to clipboard",
-    "shortLinkCopyFailed": "Copy failed"
+    "shortLinkCopyFailed": "Copy failed",
+    "failToCreateBlogDue2EmptyTitle": "Cannot create blog with empty title",
+    "failToCreateBlog": "Failed to create blog",
+    "saveSuccess": "Save successfully",
+    "failToUpdateCover": "Failed to update cover"
   }
 }

@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import dayjs from 'dayjs'
 import { Model } from 'mongoose'
 import pinyin from 'pinyin'
 import { MockNames } from 'src/common/assets/mock-names'
 import { GeneralException } from 'src/exceptions/general-exceptions'
 import { v4 as uuidv4 } from 'uuid'
+import { AuthService } from '../auth/auth.service'
 import { UserService } from '../user/user.service'
 import {
   BlogDto,
+  BlogNew2Dto,
   BlogResponseDto,
   BlogsDto,
   BlogsResponseDto,
@@ -24,6 +27,7 @@ export class BlogService {
   constructor(
     @InjectModel(Blog.name) private blogModel: Model<BlogDocument>,
     private userService: UserService,
+    private authService: AuthService,
   ) {}
 
   private async createBlog(meta: {
@@ -78,6 +82,8 @@ export class BlogService {
       ? blog.likeHistory.some((like) => like.userId === userId)
       : false
 
+    const isAdmin = await this.authService.isAdmin(userId || '-1')
+
     return {
       blogId,
       blogTitle: blog.title,
@@ -89,6 +95,9 @@ export class BlogService {
       keywords: blog.keywords ?? [],
       authRequired: blog.authRequired,
       shortCode: blog.shortCode,
+      hasPublished: isAdmin ? blog.hasPublished : undefined,
+      hidden2Public: isAdmin ? blog.hidden2Public : undefined,
+      lastUpdateAt: blog.lastUpdateTime,
     }
   }
 
@@ -230,11 +239,40 @@ export class BlogService {
     }
   }
 
-  async list(blogsDto: BlogsDto): Promise<BlogsResponseDto> {
+  async new2(body?: BlogNew2Dto): Promise<BlogResponseDto> {
+    const title = body?.title ?? dayjs().format('YYYY-MM-DD HH:mm:ss')
+    const coverImg = body?.coverImg
+    const keywords = body?.keywords ?? []
+    const blog = new this.blogModel({
+      blogId: uuidv4(),
+      title,
+      viewHistory: [],
+      likeHistory: [],
+      comments: [],
+      keywords,
+      coverImg,
+      time: Date.now(),
+      hasPublished: false,
+      hidden2Public: false,
+      lastUpdateTime: Date.now(),
+    })
+    await blog.save()
+    return {
+      key: blog.blogId,
+      title,
+      time: blog.time,
+      keywords,
+      coverImg,
+    }
+  }
+
+  async list(blogsDto: BlogsDto, userId?: string): Promise<BlogsResponseDto> {
     const { page = 1, pageSize = 10, search } = blogsDto
 
+    const isAdmin = await this.authService.isAdmin(userId || '-1')
+
     // Build search query
-    const query = search
+    const searchQuery = search
       ? {
           $or: [
             { title: { $regex: search, $options: 'i' } },
@@ -242,6 +280,22 @@ export class BlogService {
           ],
         }
       : {}
+
+    const visibilityQuery = isAdmin
+      ? {} // Admin can see all blogs
+      : {
+          hasPublished: true,
+          $or: [
+            { hidden2Public: { $exists: false } },
+            { hidden2Public: false },
+          ],
+        }
+
+    const query = {
+      $and: [searchQuery, visibilityQuery].filter(
+        (q) => Object.keys(q).length > 0,
+      ),
+    }
 
     const total = await this.blogModel.countDocuments(query)
 
@@ -259,6 +313,8 @@ export class BlogService {
         keywords: e.keywords,
         time: e.time,
         authRequired: e.authRequired,
+        hasPublished: isAdmin ? e.hasPublished : undefined,
+        hidden2Public: isAdmin ? e.hidden2Public : undefined,
       })),
       total,
       page,
@@ -296,22 +352,35 @@ export class BlogService {
   }
 
   async updateMeta(metaDto: UpdateMetaDto) {
-    const { blogId } = metaDto
+    const { blogId, ...updateFields } = metaDto
 
-    const blog = await this.blogModel.findOne({ blogId })
+    // 过滤掉 undefined 和 null 的字段
+    const cleanedFields = Object.entries(updateFields).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined && value !== null) {
+          acc[key] = value
+        }
+        return acc
+      },
+      {} as Record<string, any>,
+    )
+
+    const blog = await this.blogModel.findOneAndUpdate(
+      { blogId },
+      {
+        $set: {
+          ...cleanedFields,
+          lastUpdateTime: Date.now(),
+          title: cleanedFields.blogTitle,
+        },
+      },
+      { new: true }, // 返回更新后的文档
+    )
 
     if (!blog) {
       throw new GeneralException('blog.blogNotFound')
     }
 
-    Object.keys(metaDto).forEach((key) => {
-      if (!metaDto[key]) {
-        return
-      }
-      blog[key] = metaDto[key]
-    })
-
-    await blog.save()
     return blog
   }
 
@@ -346,6 +415,16 @@ export class BlogService {
     return {
       blogId,
       content,
+    }
+  }
+
+  async deleteBlog(blogId: string) {
+    const blog = await this.blogModel.findOneAndDelete({ blogId })
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+    return {
+      blogId,
     }
   }
 }

@@ -1,4 +1,9 @@
-import { BlogsDto, BlogsResponseDto } from '@server/modules/blog/dto/blog.dto'
+import {
+  BlogNew2Dto,
+  BlogResponseDto,
+  BlogsDto,
+  BlogsResponseDto,
+} from '@server/modules/blog/dto/blog.dto'
 import {
   CommentDto,
   CommentResponseDto,
@@ -32,7 +37,7 @@ export type BlogAPIS = {
     undefined,
     typeof DeleteCommentDto
   >
-  PutBlogMeta: API<typeof MetaResponseDto, undefined, typeof MetaResponseDto>
+  PutBlogMeta: API<undefined, typeof MetaResponseDto, typeof MetaResponseDto>
   GetBlogContent: API<
     typeof GetContentDto,
     undefined,
@@ -43,4 +48,6 @@ export type BlogAPIS = {
     undefined,
     typeof PostContentResponseDto
   >
+  PostBlogNew: API<undefined, typeof BlogNew2Dto, typeof BlogResponseDto>
+  DeleteBlog: API<typeof MetaDto, undefined, typeof MetaDto>
 }

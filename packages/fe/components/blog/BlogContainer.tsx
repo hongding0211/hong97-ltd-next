@@ -6,8 +6,9 @@ import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
-import { Eye, Heart, Share2 } from 'lucide-react'
+import { Eye, Heart, Pencil, Share2 } from 'lucide-react'
 import Head from 'next/head'
+import Link from 'next/link'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import AppLayout from '../app-layout/AppLayout'
 import { CommentAction, Comments } from './common/comment/comments'
@@ -18,10 +19,11 @@ interface IBlogContainer {
   children: React.ReactNode
   meta: BlogAPIS['GetBlogMeta']['responseData']
   locale: string
+  isAdmin?: boolean
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, meta } = props
+  const { children, meta, isAdmin: initIsAdmin } = props
 
   const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
@@ -31,9 +33,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
 
   const [shortCode, setShortCode] = useState(meta.shortCode)
 
-  const { isAdmin } = useIsAdmin()
+  const { isAdmin: clientIsAdmin } = useIsAdmin()
+
+  const isAdmin = initIsAdmin ?? clientIsAdmin
 
   const showShareIcon = !!(isAdmin || shortCode)
+
+  const showEdit = isAdmin && meta?.hasPublished !== undefined
 
   useEffect(() => {
     http
@@ -118,7 +124,12 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     if (!_shortCode) {
       try {
         // create a short link
-        const originalUrl = `${window.location.origin}/blog/markdowns/${meta.blogId}?key=${meta.blogId}`
+        const originalUrl = (() => {
+          if (meta.hasPublished !== undefined) {
+            return `${window.location.origin}/blog/id/${meta.blogId}`
+          }
+          return `${window.location.origin}/blog/markdowns/${meta.blogId}?key=${meta.blogId}`
+        })()
         const createRes = await http.post('PostShortLinkCreate', {
           originalUrl,
           title: meta.blogTitle,
@@ -202,6 +213,16 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
                 >
                   <Share2 className="w-3 h-3" />
+                </div>
+              )}
+              {showEdit && (
+                <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
+                  <Link
+                    href={`/blog/edit?id=${meta.blogId}`}
+                    className="w-full h-full absolute top-0 left-0"
+                    target="_blank"
+                  />
+                  <Pencil className="w-3 h-3" />
                 </div>
               )}
             </figcaption>

@@ -13,5 +13,28 @@
   "oops": "Oops!",
   "blogNotFound": "博客不存在",
   "search": "按标题或标签搜索",
-  "newBlog": "新增"
+  "newBlog": "新增",
+  "edit": {
+    "notAuthorized": {
+      "title": "无权限编辑",
+      "description": "你无法创建 / 编辑博客"
+    },
+    "newTitle": "新建博客",
+    "editTitle": "编辑博客",
+    "addCover": "设置封面",
+    "changeCover": "更改封面",
+    "removeCover": "移除封面",
+    "titlePlaceholder": "Blog 标题",
+    "lastUpdate": "最近同步: ",
+    "save": "保存",
+    "publish": "发布",
+    "delete": "删除",
+    "hidden": "未公开",
+    "unHidden": "公开",
+    "confirmDel": "确认删除",
+    "confirmDelDesc": "删除后不可恢复，请谨慎操作。",
+    "deleteOk": "删除成功",
+    "confirm": "确认",
+    "cancel": "取消"
+  }
 }

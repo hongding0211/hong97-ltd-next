@@ -5,4 +5,6 @@ export interface IBlogConfig {
   keywords?: string[]
   authRequired?: boolean
   coverImg?: string
+  hasPublished?: boolean
+  hidden2Public?: boolean
 }

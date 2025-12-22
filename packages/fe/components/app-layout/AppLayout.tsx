@@ -165,7 +165,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
         // @ts-ignore
         <animated.div
           style={{ ...menuContainerStyle }}
-          className="fixed bottom-0 left-0 right-0 top-[64px] z-10 bg-white sm:hidden dark:bg-black"
+          className="fixed bottom-0 left-0 right-0 top-[64px] z-[100] bg-white sm:hidden dark:bg-black"
         >
           <div className="mx-5 grid grid-cols-1 dark:divide-neutral-300">
             {menuConfig.map((m) => (

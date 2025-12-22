@@ -11,4 +11,6 @@ export const BLOG_PATHS: Record<keyof BlogAPIS, string> = {
   PutBlogMeta: 'blog/meta',
   GetBlogContent: 'blog/content',
   PostBlogContent: 'blog/content',
+  PostBlogNew: 'blog/new2',
+  DeleteBlog: 'blog',
 }

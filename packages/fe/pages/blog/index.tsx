@@ -70,10 +70,17 @@ export default function Blog(props: BlogProps) {
   }
 
   const handleClickLink = (blog: IBlogConfig) => {
-    window.open(
-      `${window.location.href}/markdowns/${blog.key}?key=${blog.key}`,
-      '_blank',
-    )
+    if (blog.hasPublished === false) {
+      // new version, using dynamic render
+      window.open(`${window.location.href}/edit?id=${blog.key}`, '_blank')
+    } else if (blog.hasPublished === true) {
+      window.open(`${window.location.href}/id/${blog.key}`, '_blank')
+    } else {
+      window.open(
+        `${window.location.href}/markdowns/${blog.key}?key=${blog.key}`,
+        '_blank',
+      )
+    }
   }
 
   const handleAdd = () => {
@@ -141,7 +148,12 @@ export default function Blog(props: BlogProps) {
                   <span className="!m-0 text-base sm:text-lg">
                     {blog.title}
                   </span>
-                  {blog.authRequired && (
+                  {blog.hasPublished === false && (
+                    <Badge className="!bg-neutral-200 !text-neutral-600 dark:!bg-neutral-700 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                      Draft
+                    </Badge>
+                  )}
+                  {blog.hidden2Public && (
                     <Badge className="!bg-neutral-200 !text-neutral-600 dark:!bg-neutral-700 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
                       Non-Public
                     </Badge>
@@ -173,7 +185,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       'GetBlogList',
       {
         page: 1,
-        pageSize: 1000,
+        pageSize: 200,
       },
       {
         serverSideCtx: ctx,

@@ -23,8 +23,9 @@ export default function Page(props: {
   locale: string
   source: any
   fail?: boolean
+  isAdmin: boolean
 }) {
-  const { meta, locale, source, fail } = props
+  const { meta, locale, source, fail, isAdmin } = props
 
   const { t } = useTranslation('blog')
 
@@ -45,7 +46,7 @@ export default function Page(props: {
   }
 
   return (
-    <BlogContainer meta={meta} locale={locale}>
+    <BlogContainer meta={meta} locale={locale} isAdmin={isAdmin}>
       <MDXRemote {...source} components={components} />
     </BlogContainer>
   )
@@ -65,21 +66,25 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return fallRes
   }
 
-  const [meta, content] = await Promise.all([
+  const [meta, content, isAdmin] = await Promise.all([
     http.get(
       'GetBlogMeta',
       {
         blogId: query?.id as string,
       },
-      { locale },
+      { locale, serverSideCtx: context },
     ),
     http.get(
       'GetBlogContent',
       {
         blogId: query?.id as string,
       },
-      { locale },
+      { locale, serverSideCtx: context },
     ),
+    http.get('GetIsAdmin', undefined, {
+      serverSideCtx: context,
+      enableOnlyWithAuthInServerSide: true,
+    }),
   ])
 
   if (
@@ -103,6 +108,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       meta: meta?.data,
       locale,
       source,
+      isAdmin: isAdmin?.data?.isAdmin || false,
     },
   }
 }
