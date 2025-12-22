@@ -5,6 +5,56 @@ import { toast } from './toast'
 
 const axiosInstance = axios.create()
 
+export async function convertImageToWebP(
+  file: File,
+  quality = 0.9,
+  maxWidth?: number,
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+
+    img.onload = () => {
+      const ratio = (() => {
+        const r = img.width / (img.height || 0)
+        return r ?? 1
+      })()
+      const newWidth = (() => {
+        if (!maxWidth) {
+          return img.width
+        }
+        return Math.min(maxWidth, img.width)
+      })()
+      const newHeight = newWidth / ratio
+
+      canvas.width = newWidth
+      canvas.height = newHeight
+      ctx?.drawImage(img, 0, 0, newWidth, newHeight)
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const webpFile = new File(
+              [blob],
+              file.name.replace(/\.(jpg|jpeg|png)$/i, '.webp'),
+              { type: 'image/webp' },
+            )
+            resolve(webpFile)
+          } else {
+            reject(new Error('Failed to convert image'))
+          }
+        },
+        'image/webp',
+        quality,
+      )
+    }
+
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export async function uploadFile2Oss(file: File, app?: string) {
   try {
     const preUpload = await http.post('PostRequestUpload', {

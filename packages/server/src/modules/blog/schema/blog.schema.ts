@@ -50,6 +50,15 @@ export class Blog {
 
   @Prop({ required: false })
   content?: string
+
+  @Prop()
+  hasPublished?: boolean
+
+  @Prop()
+  hidden2Public?: boolean
+
+  @Prop()
+  lastUpdateTime?: number
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)

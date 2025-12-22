@@ -13,5 +13,28 @@
   "oops": "Oops!",
   "blogNotFound": "Blog not found",
   "search": "Search by title or tags",
-  "newBlog": "New blog"
+  "newBlog": "New blog",
+  "edit": {
+    "notAuthorized": {
+      "title": "Not authorized to edit",
+      "description": "You are not allowed to create / edit blogs"
+    },
+    "newTitle": "New blog",
+    "editTitle": "Edit blog",
+    "addCover": "Add cover",
+    "changeCover": "Change",
+    "removeCover": "Remove",
+    "titlePlaceholder": "Blog title",
+    "lastUpdate": "Last sync: ",
+    "save": "Save",
+    "publish": "Publish",
+    "delete": "Delete",
+    "hidden": "Hidden",
+    "unHidden": "Public",
+    "confirmDel": "Confirm delete",
+    "confirmDelDesc": "This action cannot be undone, please proceed with caution.",
+    "deleteOk": "Delete successfully",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  }
 }

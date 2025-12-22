@@ -19,6 +19,20 @@ export class BlogDto {
   authRequired?: boolean
 }
 
+export class BlogNew2Dto {
+  @IsString()
+  @IsOptional()
+  title?: string
+
+  @IsArray()
+  @IsOptional()
+  keywords?: string[]
+
+  @IsString()
+  @IsOptional()
+  coverImg?: string
+}
+
 export class BlogResponseDto {
   key: string
   title: string

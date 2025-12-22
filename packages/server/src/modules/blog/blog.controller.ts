@@ -12,7 +12,7 @@ import {
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
 import { BlogService } from './blog.service'
-import { BlogDto, BlogsDto } from './dto/blog.dto'
+import { BlogDto, BlogNew2Dto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
 import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
@@ -30,10 +30,17 @@ export class BlogController {
     return this.blogService.new(blogDto)
   }
 
+  @Post('new2')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async new2(@Body() blogNew2NewDto?: BlogNew2Dto) {
+    return this.blogService.new2(blogNew2NewDto)
+  }
+
   @Get('list')
   @HttpCode(HttpStatus.OK)
-  async blogs(@Query() blogsDto: BlogsDto) {
-    return this.blogService.list(blogsDto)
+  async blogs(@Query() blogsDto: BlogsDto, @UserId() userId?: string) {
+    return this.blogService.list(blogsDto, userId)
   }
 
   @Post('view')
@@ -93,5 +100,13 @@ export class BlogController {
     @UserId() userId?: string,
   ) {
     return this.blogService.deleteComment(deleteCommentDto, userId)
+  }
+
+  @Delete()
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async deleteBlog(@Query() query: MetaDto) {
+    const { blogId } = query
+    return this.blogService.deleteBlog(blogId)
   }
 }

@@ -146,7 +146,7 @@ class Http {
 
   put<K extends keyof APIs>(
     name: K,
-    body?: APIs[K]['request']['body'],
+    body?: Partial<APIs[K]['request']['body']>,
     params?: APIs[K]['request']['params'],
     opts?: HttpOptions,
   ): Promise<HttpResponse<K>> {
