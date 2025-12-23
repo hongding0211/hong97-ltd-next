@@ -42,6 +42,7 @@
       "placeholder": "Enter keyword",
       "add": "Add",
       "cancel": "Cancel"
-    }
+    },
+    "startEdit": "Start editing your blog here..."
   }
 }

@@ -10,6 +10,7 @@ import { useRouter } from 'next/router'
 import React, { useCallback, useEffect, useId, useState } from 'react'
 import MdxLayout from '../mdx-layout'
 import Actions from './actions'
+import Content from './content'
 import Cover from './cover'
 import Keywords from './keywords'
 
@@ -26,6 +27,8 @@ export type BlogMeta = BlogAPIS['GetBlogMeta']['responseData']
 
 interface IBlogCommon {
   meta?: BlogMeta
+  content?: string
+  onContentChange?: (c: string) => void
   onRefreshMeta?: () => Promise<void>
   onCreateNew?: (meta: {
     title?: string
@@ -35,7 +38,7 @@ interface IBlogCommon {
 }
 
 const BlogCommon: React.FC<IBlogCommon> = (props) => {
-  const { meta, onRefreshMeta, onCreateNew } = props
+  const { meta, content, onContentChange, onRefreshMeta, onCreateNew } = props
 
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null)
 
@@ -235,6 +238,9 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             </span>
           </figcaption>
           <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
+          <div className="mt-4 w-full">
+            <Content value={content} onValueChange={onContentChange} />
+          </div>
         </MdxLayout>
       </div>
     </>

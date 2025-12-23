@@ -14,12 +14,15 @@ interface EditPageProps {
   isAdmin: boolean
   id?: string
   meta: BlogMeta | null
+  content: string
 }
 
 export default function Page(props: EditPageProps) {
-  const { isAdmin, id, meta: initialMeta } = props
+  const { isAdmin, id, meta: initialMeta, content: initialContent } = props
 
   const [meta, setMeta] = useState<BlogMeta | null>(initialMeta)
+  const [content, setContent] = useState(initialContent || '')
+  console.log('!!👉 index.tsx: 25', content)
 
   const { t } = useTranslation('blog')
 
@@ -66,6 +69,8 @@ export default function Page(props: EditPageProps) {
     return (
       <BlogCommon
         meta={meta}
+        content={content}
+        onContentChange={setContent}
         onRefreshMeta={handleRefreshMeta}
         onCreateNew={handleCreateNew}
       />
