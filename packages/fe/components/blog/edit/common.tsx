@@ -98,6 +98,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const handlePublish = useCallback(async () => {
     setActionLoading('publish')
     try {
+      await handleSave(true)
       await http.put('PutBlogMeta', {
         blogId: meta?.blogId,
         hasPublished: true,
@@ -107,7 +108,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     } finally {
       setActionLoading(null)
     }
-  }, [onRefreshMeta, meta])
+  }, [onRefreshMeta, meta, handleSave])
 
   const handleHiddenChange = useCallback(async () => {
     setActionLoading('hidden')
