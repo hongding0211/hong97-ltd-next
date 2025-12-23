@@ -104,9 +104,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     if (!id) {
       return null
     }
-    const res = await http.get('GetBlogMeta', {
-      blogId: id as string,
-    })
+    const res = await http.get(
+      'GetBlogMeta',
+      {
+        blogId: id as string,
+      },
+      {
+        serverSideCtx: context,
+      },
+    )
     return res?.data || null
   })()
 

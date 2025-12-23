@@ -95,8 +95,8 @@ export class BlogService {
       keywords: blog.keywords ?? [],
       authRequired: blog.authRequired,
       shortCode: blog.shortCode,
-      hasPublished: isAdmin ? blog.hasPublished : undefined,
-      hidden2Public: isAdmin ? blog.hidden2Public : undefined,
+      hasPublished: isAdmin?.isAdmin ? blog.hasPublished : undefined,
+      hidden2Public: isAdmin?.isAdmin ? blog.hidden2Public : undefined,
       lastUpdateAt: blog.lastUpdateTime,
     }
   }
@@ -281,7 +281,7 @@ export class BlogService {
         }
       : {}
 
-    const visibilityQuery = isAdmin
+    const visibilityQuery = isAdmin?.isAdmin
       ? {} // Admin can see all blogs
       : {
           hasPublished: true,
@@ -381,7 +381,7 @@ export class BlogService {
       throw new GeneralException('blog.blogNotFound')
     }
 
-    return blog
+    return metaDto
   }
 
   async getContent(contentDto: GetContentDto) {

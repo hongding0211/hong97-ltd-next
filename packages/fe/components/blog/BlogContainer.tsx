@@ -6,7 +6,7 @@ import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
-import { Eye, Heart, Pencil, Share2 } from 'lucide-react'
+import { Eye, EyeClosed, Heart, Pencil, Share2 } from 'lucide-react'
 import Head from 'next/head'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -23,7 +23,9 @@ interface IBlogContainer {
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, meta, isAdmin: initIsAdmin } = props
+  const { children, meta: initMeta, isAdmin: initIsAdmin } = props
+
+  const [meta, setMeta] = useState(initMeta)
 
   const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
@@ -154,6 +156,36 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     toast('blog.shortLinkCopySuccess', { type: 'success' })
   }
 
+  const refetchMeta = async () => {
+    try {
+      const res = await http.get('GetBlogMeta', {
+        blogId: meta.blogId,
+      })
+      if (res.isSuccess && res.data) {
+        setMeta(res.data)
+      }
+    } catch {
+      // noop
+    }
+  }
+
+  const handleToggleHidden = async () => {
+    if (!isAdmin) {
+      return
+    }
+    try {
+      await http.put('PutBlogMeta', {
+        blogId: meta.blogId,
+        hidden2Public: !meta?.hidden2Public,
+      })
+      toast('blog.saveSuccess', { type: 'success' })
+    } catch {
+      // noop
+    } finally {
+      await refetchMeta()
+    }
+  }
+
   useEffect(() => {
     http
       .post('PostBlogView', {
@@ -216,14 +248,26 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                 </div>
               )}
               {showEdit && (
-                <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
-                  <Link
-                    href={`/blog/edit?id=${meta.blogId}`}
-                    className="w-full h-full absolute top-0 left-0"
-                    target="_blank"
-                  />
-                  <Pencil className="w-3 h-3" />
-                </div>
+                <>
+                  <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
+                    <Link
+                      href={`/blog/edit?id=${meta.blogId}`}
+                      className="w-full h-full absolute top-0 left-0"
+                      target="_blank"
+                    />
+                    <Pencil className="w-3 h-3" />
+                  </div>
+                  <div
+                    onClick={handleToggleHidden}
+                    className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                  >
+                    {meta?.hidden2Public ? (
+                      <EyeClosed className="w-3 h-3" />
+                    ) : (
+                      <Eye className="w-3 h-3" />
+                    )}
+                  </div>
+                </>
               )}
             </figcaption>
             {children}
