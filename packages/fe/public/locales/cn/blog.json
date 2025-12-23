@@ -35,6 +35,13 @@
     "confirmDelDesc": "删除后不可恢复，请谨慎操作。",
     "deleteOk": "删除成功",
     "confirm": "确认",
-    "cancel": "取消"
+    "cancel": "取消",
+    "addKeyword": "添加 Tags",
+    "addKeywordDialog": {
+      "title": "添加关键词",
+      "placeholder": "输入关键词",
+      "add": "添加",
+      "cancel": "取消"
+    }
   }
 }

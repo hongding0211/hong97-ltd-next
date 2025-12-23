@@ -2,13 +2,16 @@ import { Input } from '@/components/ui/input'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
+import { time } from '@utils/time'
 import { toast } from '@utils/toast'
+import cx from 'classnames'
 import { useTranslation } from 'next-i18next'
 import { useRouter } from 'next/router'
 import React, { useCallback, useEffect, useId, useState } from 'react'
 import MdxLayout from '../mdx-layout'
 import Actions from './actions'
 import Cover from './cover'
+import Keywords from './keywords'
 
 export type ActionLoading =
   | 'save'
@@ -223,8 +226,14 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('edit.titlePlaceholder')}
             spellCheck="false"
-            className="mb-4 text-[2rem] font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="mb-0 text-[2rem] font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
           />
+          <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
+            <span className="whitespace-nowrap">
+              {time.format(meta.time, 'datetimeShort')}
+            </span>
+          </figcaption>
+          <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
         </MdxLayout>
       </div>
     </>

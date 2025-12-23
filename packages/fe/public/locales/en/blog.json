@@ -35,6 +35,13 @@
     "confirmDelDesc": "This action cannot be undone, please proceed with caution.",
     "deleteOk": "Delete successfully",
     "confirm": "Confirm",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "addKeyword": "Add keyword",
+    "addKeywordDialog": {
+      "title": "Add keyword",
+      "placeholder": "Enter keyword",
+      "add": "Add",
+      "cancel": "Cancel"
+    }
   }
 }

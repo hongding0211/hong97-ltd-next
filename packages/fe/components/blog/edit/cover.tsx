@@ -66,7 +66,7 @@ const Cover: React.FC<ICover> = (props) => {
         className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
       />
 
-      <div className="flex items-center gap-x-2 absolute left-3 bottom-3 sm:left-6 sm:bottom-4">
+      <div className="flex items-center gap-x-1 sm:gap-x-2 absolute left-3 bottom-3 sm:left-6 sm:bottom-4">
         <div
           onClick={onAddCover}
           className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur backdrop-saturate-150 px-2 py-1.5 rounded-full flex items-center gap-x-1"
