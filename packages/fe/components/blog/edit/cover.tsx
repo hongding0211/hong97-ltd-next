@@ -22,26 +22,30 @@ const Cover: React.FC<ICover> = (props) => {
   if (!meta?.coverImg && !coverImg) {
     return (
       <div className="bg-background relative flex flex-col items-center justify-center overflow-hidden rounded-lg w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
-        <GridPattern
-          squares={[
-            [4, 4],
-            [5, 1],
-            [8, 2],
-            [5, 3],
-            [5, 5],
-            [10, 10],
-            [12, 15],
-            [15, 10],
-            [10, 15],
-            [15, 10],
-            [10, 15],
-            [15, 10],
-          ]}
+        <div
           className={cn(
             '[mask-image:linear-gradient(to_bottom,white_0%,white_80%,transparent_100%)]',
-            'inset-x-0 inset-y-0 h-full',
+            'w-full h-full',
           )}
-        />
+        >
+          <GridPattern
+            squares={[
+              [4, 4],
+              [5, 1],
+              [8, 2],
+              [5, 3],
+              [5, 5],
+              [10, 10],
+              [12, 15],
+              [15, 10],
+              [10, 15],
+              [15, 10],
+              [10, 15],
+              [15, 10],
+            ]}
+            className={cn('inset-x-0 inset-y-[-50%] h-[300%] skew-y-12')}
+          />
+        </div>
         <div
           onClick={onAddCover}
           className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur-xl px-2 py-1.5 rounded-full flex items-center gap-x-1 absolute left-3 bottom-3 sm:left-6 sm:bottom-4"

@@ -11,6 +11,7 @@ import {
   Eye,
   EyeClosed,
   Loader2,
+  Plus,
   RefreshCcw,
   Trash,
 } from 'lucide-react'
@@ -146,8 +147,10 @@ const Actions: React.FC<IActions> = (props) => {
           <Button disabled={loading === 'save'} size="xs" onClick={onSave}>
             {loading === 'save' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
+            ) : meta ? (
               <RefreshCcw className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4" />
             )}
             {t('edit.save')}
           </Button>

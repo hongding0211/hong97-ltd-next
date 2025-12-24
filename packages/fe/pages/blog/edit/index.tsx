@@ -22,7 +22,6 @@ export default function Page(props: EditPageProps) {
 
   const [meta, setMeta] = useState<BlogMeta | null>(initialMeta)
   const [content, setContent] = useState(initialContent || '')
-  console.log('!!👉 index.tsx: 25', content)
 
   const { t } = useTranslation('blog')
 
@@ -77,10 +76,17 @@ export default function Page(props: EditPageProps) {
     )
   })()
 
+  const pageTitle = (() => {
+    if (!meta) {
+      return t(id ? 'edit.editTitle' : 'edit.newTitle')
+    }
+    return `Edit - ${meta.blogTitle}`
+  })()
+
   return (
     <>
       <Head>
-        <title>{t(id ? 'edit.editTitle' : 'edit.newTitle')}</title>
+        <title>{pageTitle}</title>
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"

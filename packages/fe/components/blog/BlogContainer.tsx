@@ -1,4 +1,6 @@
+import { GridPattern } from '@/components/ui/grid-pattern'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { useIsAdmin } from '@hooks/useIsAdmin'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
@@ -220,16 +222,43 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         />
       </Head>
       <AppLayout authRequired={meta.authRequired} simplifiedFooter>
-        {meta.coverImg && (
-          <div className="relative w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
-            <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
-            {/* biome-ignore lint/a11y/useAltText: <explanation> */}
-            <img
-              src={meta.coverImg}
-              className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
-            />
-          </div>
-        )}
+        <div className="relative w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
+          {meta?.coverImg ? (
+            <>
+              <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
+              {/* biome-ignore lint/a11y/useAltText: <explanation> */}
+              <img
+                src={meta.coverImg}
+                className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
+              />
+            </>
+          ) : (
+            <div
+              className={cn(
+                '[mask-image:linear-gradient(to_bottom,transparent,white_5%,white_80%,transparent_100%)]',
+                'w-full h-full',
+              )}
+            >
+              <GridPattern
+                squares={[
+                  [4, 4],
+                  [5, 1],
+                  [8, 2],
+                  [5, 3],
+                  [5, 5],
+                  [10, 10],
+                  [12, 15],
+                  [15, 10],
+                  [10, 15],
+                  [15, 10],
+                  [10, 15],
+                  [15, 10],
+                ]}
+                className={cn('inset-x-0 inset-y-[-50%] h-[300%] skew-y-12')}
+              />
+            </div>
+          )}
+        </div>
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
             <h2 className="mb-2">{meta.blogTitle}</h2>
