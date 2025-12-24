@@ -284,10 +284,19 @@ export class BlogService {
     const visibilityQuery = isAdmin?.isAdmin
       ? {} // Admin can see all blogs
       : {
-          hasPublished: true,
-          $or: [
-            { hidden2Public: { $exists: false } },
-            { hidden2Public: false },
+          $and: [
+            {
+              $or: [
+                { hidden2Public: { $exists: false } },
+                { hidden2Public: false },
+              ],
+            },
+            {
+              $or: [
+                { hidden2Public: { $exists: false } },
+                { hasPublished: true },
+              ],
+            },
           ],
         }
 
