@@ -13,8 +13,7 @@
     "prepare": "husky install",
     "lint": "biome lint .",
     "check": "biome check --apply .",
-    "bump": "bump -c -t --tag -p",
-    "deploy": "git push -u origin main && git push -u gitee main && pnpm bump"
+    "bump": "bump -c -t --tag -p"
   },
   "devDependencies": {
     "@biomejs/biome": "1.5.3",
