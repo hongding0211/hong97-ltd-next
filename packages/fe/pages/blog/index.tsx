@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { useUser } from '@hooks/useUser'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import cx from 'classnames'
@@ -16,11 +17,10 @@ import { IBlogConfig } from '../../types/blog'
 type BlogProps = {
   blogs: IBlogConfig[]
   locale: string
-  isAdmin?: boolean
 }
 
 export default function Blog(props: BlogProps) {
-  const { blogs: initialBlogs, isAdmin } = props
+  const { blogs: initialBlogs } = props
 
   const { t } = useTranslation('common')
   const { t: tBlog } = useTranslation('blog')
@@ -48,6 +48,8 @@ export default function Blog(props: BlogProps) {
       }
     }, 300),
   ).current
+
+  const user = useUser()
 
   // 清理 debounce 函数
   useEffect(() => {
@@ -125,7 +127,7 @@ export default function Blog(props: BlogProps) {
                 )}
               />
             </div>
-            {isAdmin && (
+            {user?.isAdmin && (
               <div
                 className="rounded-full flex items-center gap-x-1.5 bg-neutral-100 dark:bg-neutral-800 p-2 px-3 cursor-pointer"
                 onClick={handleAdd}
@@ -180,7 +182,7 @@ export default function Blog(props: BlogProps) {
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const { locale } = ctx
 
-  const [blogData, isAminData] = await Promise.all([
+  const [blogData] = await Promise.all([
     http.get(
       'GetBlogList',
       {
@@ -191,21 +193,14 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
         serverSideCtx: ctx,
       },
     ),
-    http.get('GetIsAdmin', undefined, {
-      serverSideCtx: ctx,
-      enableOnlyWithAuthInServerSide: true,
-    }),
   ])
   const blogs = blogData?.data?.data || []
-  const isAdmin = isAminData?.data?.isAdmin || false
 
-  // TODO - HongD 05/27 01:26 加一个错误处理页面
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'toast', 'blog'])),
       blogs,
       locale,
-      isAdmin,
     },
   }
 }

@@ -1,4 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useUser } from '@hooks/useUser'
 import { Loader2, Trash } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -18,7 +19,6 @@ import { toast } from '../../utils/toast'
 
 interface TrashPageProps {
   initialData: PaginationResponseDto<TrashResponseDto>
-  isAdmin?: boolean
 }
 
 interface GroupedTrashItems {
@@ -61,7 +61,7 @@ function getDateGroup(
   }
 }
 
-export default function TrashPage({ initialData, isAdmin }: TrashPageProps) {
+export default function TrashPage({ initialData }: TrashPageProps) {
   const { t, i18n } = useTranslation('trash')
 
   const [items, setItems] = useState<TrashResponseDto[]>(initialData.data)
@@ -70,6 +70,10 @@ export default function TrashPage({ initialData, isAdmin }: TrashPageProps) {
     initialData.total > initialData.data.length,
   )
   const [page, setPage] = useState(1)
+
+  const user = useUser()
+
+  const isAdmin = user?.isAdmin ?? false
 
   // 按日期分组推文
   const groupedItems = useMemo(() => {
@@ -278,7 +282,7 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async (
   const { locale } = ctx
   try {
     // 获取第一页数据
-    const [response, isAdminData] = await Promise.all([
+    const [response] = await Promise.all([
       http.get(
         'GetTrashList',
         {
@@ -287,10 +291,6 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async (
         },
         { serverSideCtx: ctx },
       ),
-      http.get('GetIsAdmin', undefined, {
-        serverSideCtx: ctx,
-        enableOnlyWithAuthInServerSide: true,
-      }),
     ])
 
     const initialData: PaginationResponseDto<TrashResponseDto> =
@@ -301,7 +301,6 @@ export const getServerSideProps: GetServerSideProps<TrashPageProps> = async (
     return {
       props: {
         initialData,
-        isAdmin: isAdminData?.data?.isAdmin || false,
         ...(await serverSideTranslations(locale!, ['common', 'trash'])),
       },
     }

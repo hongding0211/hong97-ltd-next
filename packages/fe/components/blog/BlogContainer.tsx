@@ -1,7 +1,7 @@
 import { GridPattern } from '@/components/ui/grid-pattern'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { useIsAdmin } from '@hooks/useIsAdmin'
+import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { BlogAPIS } from '@services/blog/types'
@@ -37,9 +37,9 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
 
   const [shortCode, setShortCode] = useState(meta.shortCode)
 
-  const { isAdmin: clientIsAdmin } = useIsAdmin()
+  const { user } = useGeneralContext()
 
-  const isAdmin = initIsAdmin ?? clientIsAdmin
+  const isAdmin = initIsAdmin ?? user?.isAdmin ?? false
 
   const showShareIcon = !!(isAdmin || shortCode)
 

@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import AppLayout from '@components/app-layout/AppLayout'
 import { BlogContainer } from '@components/blog/BlogContainer'
 import { ImagesV2 } from '@components/common/images-v2'
+import { useUser } from '@hooks/useUser'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { Meh } from 'lucide-react'
@@ -23,11 +24,14 @@ export default function Page(props: {
   locale: string
   source: any
   fail?: boolean
-  isAdmin: boolean
 }) {
-  const { meta, locale, source, fail, isAdmin } = props
+  const { meta, locale, source, fail } = props
 
   const { t } = useTranslation('blog')
+
+  const user = useUser()
+
+  const isAdmin = user?.isAdmin ?? false
 
   if (fail) {
     return (
@@ -66,7 +70,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return fallRes
   }
 
-  const [meta, content, isAdmin] = await Promise.all([
+  const [meta, content] = await Promise.all([
     http.get(
       'GetBlogMeta',
       {
@@ -81,10 +85,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       },
       { locale, serverSideCtx: context },
     ),
-    http.get('GetIsAdmin', undefined, {
-      serverSideCtx: context,
-      enableOnlyWithAuthInServerSide: true,
-    }),
   ])
 
   if (
@@ -108,7 +108,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       meta: meta?.data,
       locale,
       source,
-      isAdmin: isAdmin?.data?.isAdmin || false,
     },
   }
 }

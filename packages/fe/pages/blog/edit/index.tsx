@@ -1,6 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import AppLayout from '@components/app-layout/AppLayout'
 import BlogCommon, { BlogMeta } from '@components/blog/edit/common'
+import { useUser } from '@hooks/useUser'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
 import { CircleSlash } from 'lucide-react'
@@ -11,19 +12,22 @@ import Head from 'next/head'
 import { useState } from 'react'
 
 interface EditPageProps {
-  isAdmin: boolean
   id?: string
   meta: BlogMeta | null
   content: string
 }
 
 export default function Page(props: EditPageProps) {
-  const { isAdmin, id, meta: initialMeta, content: initialContent } = props
+  const { id, meta: initialMeta, content: initialContent } = props
 
   const [meta, setMeta] = useState<BlogMeta | null>(initialMeta)
   const [content, setContent] = useState(initialContent || '')
 
   const { t } = useTranslation('blog')
+
+  const user = useUser()
+
+  const isAdmin = user?.isAdmin ?? false
 
   const handleRefreshMeta = async () => {
     if (!id) {
@@ -100,15 +104,6 @@ export default function Page(props: EditPageProps) {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale, query } = context
 
-  const [isAdminData] = await Promise.all([
-    http.get('GetIsAdmin', undefined, {
-      serverSideCtx: context,
-      enableOnlyWithAuthInServerSide: true,
-    }),
-  ])
-
-  const isAdmin = isAdminData?.data?.isAdmin || false
-
   const { id } = query || {}
 
   const meta = await (async () => {
@@ -131,7 +126,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog', 'toast'])),
       locale,
-      isAdmin,
       id: id ?? null,
       meta,
     },
