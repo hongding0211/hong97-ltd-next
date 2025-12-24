@@ -232,11 +232,13 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             spellCheck="false"
             className="mb-0 text-[2rem] font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
-            <span className="whitespace-nowrap">
-              {time.format(meta.time, 'datetimeShort')}
-            </span>
-          </figcaption>
+          {meta && (
+            <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
+              <span className="whitespace-nowrap">
+                {time.format(meta.time, 'datetimeShort')}
+              </span>
+            </figcaption>
+          )}
           <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
           <div className="mt-4 w-full">
             <Content value={content} onValueChange={onContentChange} />
