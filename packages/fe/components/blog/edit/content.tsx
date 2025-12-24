@@ -1,28 +1,47 @@
 'use client'
-import { Editor, EditorContainer } from '@/components/ui/editor'
+import { Placeholder } from '@tiptap/extensions'
+import { Markdown } from '@tiptap/markdown'
+import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { debounce } from 'lodash'
 import { useTranslation } from 'next-i18next'
-import { Plate, usePlateEditor } from 'platejs/react'
-import React from 'react'
+import React, { useRef, useState } from 'react'
 
 interface IContent {
   value: string
   onValueChange: (v: string) => void
 }
 
-const Content: React.FC<IContent> = (_props) => {
-  // const { value, onValueChange } = props
+const Content: React.FC<IContent> = (props) => {
+  const { value, onValueChange } = props
+
+  const [initValue] = useState(value)
+
+  const handleUpdate = useRef(
+    debounce((e: EditorEvents['update']) => {
+      const md = e.editor.getMarkdown()
+      onValueChange(md)
+    }, 300),
+  )
 
   const { t } = useTranslation('blog')
 
-  const editor = usePlateEditor()
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Markdown,
+      Placeholder.configure({
+        placeholder: t('edit.startEdit'),
+      }),
+    ],
+    immediatelyRender: false,
+    content: initValue,
+    contentType: 'markdown',
+    // eslint-disable-next-line react-hooks/refs
+    onUpdate: handleUpdate.current,
+  })
 
-  return (
-    <Plate editor={editor}>
-      <EditorContainer>
-        <Editor className="w-full !p-0" placeholder={t('edit.startEdit')} />
-      </EditorContainer>
-    </Plate>
-  )
+  return <EditorContent editor={editor} />
 }
 
 export default Content

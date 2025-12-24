@@ -1,0 +1,12 @@
+.tiptap p.is-editor-empty:first-child::before {
+  @media (prefers-color-scheme: light) {
+    color: #272727;
+  }
+  @media (prefers-color-scheme: dark) {
+    color: #7b7b7b;
+  }
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

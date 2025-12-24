@@ -28,7 +28,6 @@ export type BlogMeta = BlogAPIS['GetBlogMeta']['responseData']
 interface IBlogCommon {
   meta?: BlogMeta
   content?: string
-  onContentChange?: (c: string) => void
   onRefreshMeta?: () => Promise<void>
   onCreateNew?: (meta: {
     title?: string
@@ -38,9 +37,11 @@ interface IBlogCommon {
 }
 
 const BlogCommon: React.FC<IBlogCommon> = (props) => {
-  const { meta, content, onContentChange, onRefreshMeta, onCreateNew } = props
+  const { meta, content: initialContent, onRefreshMeta, onCreateNew } = props
 
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null)
+
+  const [content, setContent] = useState(initialContent || '')
 
   const [title, setTitle] = useState(meta?.blogTitle || '')
   const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
@@ -72,12 +73,18 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             keywords,
           })
         } else {
-          const res = await http.put('PutBlogMeta', {
-            blogId: meta.blogId,
-            blogTitle: title,
-            keywords,
-          })
-          if (res?.isSuccess && !quiet) {
+          const [res0, res1] = await Promise.all([
+            http.put('PutBlogMeta', {
+              blogId: meta.blogId,
+              blogTitle: title,
+              keywords,
+            }),
+            http.post('PostBlogContent', {
+              blogId: meta.blogId,
+              content,
+            }),
+          ])
+          if (res0?.isSuccess && res1?.isSuccess && !quiet) {
             toast(t('blog.saveSuccess'), { type: 'success' })
           }
           await onRefreshMeta?.()
@@ -95,6 +102,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       coverImg,
       keywords,
       t,
+      content,
     ],
   )
 
@@ -240,9 +248,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             </figcaption>
           )}
           <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
-          <div className="mt-4 w-full">
-            <Content value={content} onValueChange={onContentChange} />
-          </div>
+          <Content value={content} onValueChange={setContent} />
         </MdxLayout>
       </div>
     </>

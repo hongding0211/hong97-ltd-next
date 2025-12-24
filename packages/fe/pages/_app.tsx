@@ -11,6 +11,7 @@ import { GeneralProvider } from '../components/hoc/general-context/GeneralProvid
 import '../styles/code.css'
 import '../styles/globals.css'
 import '../styles/nprogress.css'
+import '../styles/tiptap.css'
 import { registerToast } from '../utils/toast'
 
 interface CustomAppProps extends AppProps {

@@ -16,7 +16,6 @@
     "utils": "@/lib/utils"
   },
   "registries": {
-    "@magicui": "https://magicui.design/r/{name}.json",
-    "@plate": "https://platejs.org/r/{name}.json"
+    "@magicui": "https://magicui.design/r/{name}.json"
   }
 }

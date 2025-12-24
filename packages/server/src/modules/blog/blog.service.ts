@@ -423,7 +423,6 @@ export class BlogService {
 
     return {
       blogId,
-      content,
     }
   }
 

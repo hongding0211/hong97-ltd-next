@@ -14,14 +14,13 @@ import { useState } from 'react'
 interface EditPageProps {
   id?: string
   meta: BlogMeta | null
-  content: string
+  content: string | null
 }
 
 export default function Page(props: EditPageProps) {
-  const { id, meta: initialMeta, content: initialContent } = props
+  const { id, meta: initialMeta, content } = props
 
   const [meta, setMeta] = useState<BlogMeta | null>(initialMeta)
-  const [content, setContent] = useState(initialContent || '')
 
   const { t } = useTranslation('blog')
 
@@ -73,7 +72,6 @@ export default function Page(props: EditPageProps) {
       <BlogCommon
         meta={meta}
         content={content}
-        onContentChange={setContent}
         onRefreshMeta={handleRefreshMeta}
         onCreateNew={handleCreateNew}
       />
@@ -106,21 +104,33 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   const { id } = query || {}
 
-  const meta = await (async () => {
-    if (!id) {
-      return null
-    }
-    const res = await http.get(
-      'GetBlogMeta',
-      {
-        blogId: id as string,
-      },
-      {
-        serverSideCtx: context,
-      },
-    )
-    return res?.data || null
-  })()
+  let meta: any = null
+  let content: any = null
+
+  if (id) {
+    const [metaData, contentData] = await Promise.all([
+      http.get(
+        'GetBlogMeta',
+        {
+          blogId: id as string,
+        },
+        {
+          serverSideCtx: context,
+        },
+      ),
+      http.get(
+        'GetBlogContent',
+        {
+          blogId: id as string,
+        },
+        {
+          serverSideCtx: context,
+        },
+      ),
+    ])
+    meta = metaData?.data || null
+    content = contentData?.data?.content || ''
+  }
 
   return {
     props: {
@@ -128,6 +138,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       locale,
       id: id ?? null,
       meta,
+      content,
     },
   }
 }

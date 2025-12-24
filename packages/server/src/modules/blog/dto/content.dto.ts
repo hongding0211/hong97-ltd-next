@@ -24,7 +24,4 @@ export class PostContentDto {
 export class PostContentResponseDto {
   @IsString()
   blogId: string
-
-  @IsString()
-  content: string
 }

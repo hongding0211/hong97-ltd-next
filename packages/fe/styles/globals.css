@@ -47,14 +47,3 @@ select:focus-visible {
 .dark,html {
   background-color: black;
 }
-
-
-
-@layer base {
-  :root {
-    --brand: oklch(0.623 0.214 259.815);
-  }
-  .dark {
-    --brand: oklch(0.707 0.165 254.624);
-  }
-}
