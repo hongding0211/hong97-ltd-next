@@ -10,4 +10,5 @@ export class UserProfileResponseDto {
 export class UserResponseDto {
   userId: string
   profile: UserProfileResponseDto
+  isAdmin?: boolean
 }
