@@ -207,7 +207,10 @@ export class AuthService {
     if (!user) {
       throw new GeneralException('auth.userNotFound')
     }
-    return this.userService.mapUserToResponse(user)
+    return {
+      ...this.userService.mapUserToResponse(user),
+      isAdmin: (await this.isAdmin(userId)).isAdmin || false,
+    }
   }
 
   async refreshToken(userId: string, res?: Response): Promise<RefreshTokenDto> {
