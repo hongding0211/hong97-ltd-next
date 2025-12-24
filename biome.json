@@ -38,7 +38,8 @@
       "test/**",
       "**/*.spec.ts",
       "**/*.e2e-spec.ts",
-      "packages/server/src/i18n/types.d.ts"
+      "packages/server/src/i18n/types.d.ts",
+      "packages/fe/src/components/ui/**"
     ]
   },
   "formatter": {
