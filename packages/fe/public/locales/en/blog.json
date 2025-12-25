@@ -44,5 +44,6 @@
       "cancel": "Cancel"
     },
     "startEdit": "Start editing your blog here..."
-  }
+  },
+  "lastUpdate": "Update at"
 }

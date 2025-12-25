@@ -32,6 +32,7 @@ const Content: React.FC<IContent> = (props) => {
       Markdown,
       Placeholder.configure({
         placeholder: t('edit.startEdit'),
+        showOnlyWhenEditable: false,
       }),
     ],
     immediatelyRender: false,
@@ -39,6 +40,7 @@ const Content: React.FC<IContent> = (props) => {
     contentType: 'markdown',
     // eslint-disable-next-line react-hooks/refs
     onUpdate: handleUpdate.current,
+    autofocus: 'all',
   })
 
   return <EditorContent editor={editor} />

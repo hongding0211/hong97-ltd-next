@@ -9,6 +9,7 @@ import { http } from '@services/http'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { Eye, EyeClosed, Heart, Pencil, Share2 } from 'lucide-react'
+import { useTranslation } from 'next-i18next'
 import Head from 'next/head'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -61,8 +62,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
 
   const { isLogin } = useLogin()
 
-  // const { t, i18n } = useTranslation('common')
-  // const currentLang = i18n.language
+  const { t } = useTranslation('blog')
 
   const handleLike = () => {
     if (loading.current) {
@@ -300,7 +300,16 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               )}
             </figcaption>
             {children}
-            <div className="flex items-center gap-3 mt-12">
+            {meta.lastUpdateAt &&
+              meta.time &&
+              Math.abs(meta.lastUpdateAt - meta.time) > 15000 && (
+                <figcaption className="mt-8 text-neutral-400 dark:text-neutral-500 italic">
+                  {`${t('lastUpdate')} ${time.formatDynamic(
+                    meta?.lastUpdateAt,
+                  )}`}
+                </figcaption>
+              )}
+            <div className="flex items-center gap-3 mt-10">
               <div
                 className="cursor-pointer flex items-center gap-1 text-neutral-500 dark:text-neutral-300 rounded-lg py-1 px-2 w-min bg-neutral-100 dark:bg-neutral-800"
                 onClick={handleLike}
