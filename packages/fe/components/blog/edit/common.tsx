@@ -238,7 +238,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('edit.titlePlaceholder')}
             spellCheck="false"
-            className="mb-0 text-[2rem] font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="mb-2 text-4xl font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           {meta && (
             <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
@@ -248,7 +248,9 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             </figcaption>
           )}
           <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
-          <Content value={content} onValueChange={setContent} />
+          <div className="pt-2">
+            <Content value={content} onValueChange={setContent} />
+          </div>
         </MdxLayout>
       </div>
     </>

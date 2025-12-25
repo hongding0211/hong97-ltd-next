@@ -47,3 +47,36 @@ select:focus-visible {
 .dark,html {
   background-color: black;
 }
+
+@layer components {
+  .prose ul {
+    @apply pl-4;
+  }
+  .prose ol {
+    @apply pl-4;
+  }
+  .prose ul p {
+    @apply my-0;
+  } 
+  .prose ol p {
+    @apply my-0;
+  }
+  .prose li::marker {
+    @apply text-neutral-700 dark:text-neutral-300;
+  }
+  .prose blockquote p::before, .prose blockquote p::after {
+    content: none;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::before {
+    content: none;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::after {
+    content: none;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *)):not(pre code) {
+    @apply p-1 rounded font-medium bg-neutral-100 dark:bg-neutral-800 mx-1;
+  }
+}

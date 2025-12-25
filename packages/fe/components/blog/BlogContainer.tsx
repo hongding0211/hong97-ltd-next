@@ -261,7 +261,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         </div>
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
-            <h2 className="mb-2">{meta.blogTitle}</h2>
+            <h1 className="!mb-2 !text-4xl">{meta.blogTitle}</h1>
             <figcaption className="m-0 !mt-1 text-sm flex items-center gap-x-1">
               {time.format(meta.time, 'datetimeShort')}
               {!!meta.keywords?.length && <span> | </span>}
@@ -299,7 +299,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                 </>
               )}
             </figcaption>
-            {children}
+            <div className="pt-2">{children}</div>
             {meta.lastUpdateAt &&
               meta.time &&
               Math.abs(meta.lastUpdateAt - meta.time) > 15000 && (
