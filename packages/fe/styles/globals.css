@@ -62,11 +62,11 @@ html {
 
 @layer components {
   .prose ul {
-    @apply pl-4;
+    @apply pl-4 my-1;
   }
 
   .prose ol {
-    @apply pl-4;
+    @apply pl-4 my-1;
   }
 
   .prose ul p {
@@ -75,6 +75,10 @@ html {
 
   .prose ol p {
     @apply my-0;
+  }
+
+  .prose li {
+    @apply my-1;
   }
 
   .prose li::marker {

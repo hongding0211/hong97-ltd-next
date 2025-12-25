@@ -62,6 +62,22 @@ const Actions: React.FC<IActions> = (props) => {
     }
   }, [])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault()
+        if (!loading && onSave) {
+          onSave()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [loading, onSave])
+
   return (
     <>
       <div className="flex z-50 items-center justify-between sm:justify-end bg-white/[0.8] dark:bg-black/[0.8] backdrop-blur-xl backdrop-saturate-150 sticky top-[64px] mx-[-1.25rem] mt-[-1.25rem] py-2 px-3 sm:px-5 border-b-[1px] border-b-neutral-100 dark:border-b-neutral-800">

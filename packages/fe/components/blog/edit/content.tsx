@@ -10,6 +10,7 @@ import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
+import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
 
 const lowlight = createLowlight(all)
 
@@ -26,6 +27,8 @@ const Content: React.FC<IContent> = (props) => {
   const handleUpdate = useRef(
     debounce((e: EditorEvents['update']) => {
       const md = e.editor.getMarkdown()
+      // TODO - HongD 12/25 20:59
+      console.log('!!👉 content.tsx: 29', md)
       onValueChange(md)
     }, 300),
   )
@@ -38,8 +41,19 @@ const Content: React.FC<IContent> = (props) => {
         dropcursor: {
           class: 'tiptap-drop-cursor',
         },
+        paragraph: false, // we use custom EmptyLineParagraphExtension instead
+        hardBreak: false, // we use custom EmptyLineParagraphExtension instead
       }),
-      Markdown,
+      Markdown.configure({
+        indentation: {
+          style: 'space',
+          size: 2,
+        },
+        markedOptions: {
+          gfm: true,
+          breaks: true,
+        },
+      }),
       CodeBlockLowlight.configure({
         lowlight,
         enableTabIndentation: true,
@@ -49,6 +63,9 @@ const Content: React.FC<IContent> = (props) => {
       Placeholder.configure({
         placeholder: t('edit.startEdit'),
         showOnlyWhenEditable: false,
+      }),
+      EmptyLineParagraphExtension.configure({
+        HTMLAttributes: {},
       }),
     ],
     immediatelyRender: false,
