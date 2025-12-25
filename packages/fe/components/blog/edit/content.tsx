@@ -1,11 +1,15 @@
 'use client'
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { debounce } from 'lodash'
+import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
+
+const lowlight = createLowlight(all)
 
 interface IContent {
   value: string
@@ -30,6 +34,12 @@ const Content: React.FC<IContent> = (props) => {
     extensions: [
       StarterKit,
       Markdown,
+      CodeBlockLowlight.configure({
+        lowlight,
+        enableTabIndentation: true,
+        tabSize: 2,
+        defaultLanguage: 'plaintext',
+      }),
       Placeholder.configure({
         placeholder: t('edit.startEdit'),
         showOnlyWhenEditable: false,
@@ -40,7 +50,7 @@ const Content: React.FC<IContent> = (props) => {
     contentType: 'markdown',
     // eslint-disable-next-line react-hooks/refs
     onUpdate: handleUpdate.current,
-    autofocus: 'all',
+    autofocus: initValue ? undefined : 'all',
   })
 
   return <EditorContent editor={editor} />

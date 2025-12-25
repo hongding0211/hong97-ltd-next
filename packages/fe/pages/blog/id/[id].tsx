@@ -11,7 +11,7 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { MDXRemote } from 'next-mdx-remote'
 import { serialize } from 'next-mdx-remote/serialize'
-import rehypeStarryNight from 'rehype-starry-night'
+import rehypeHighlight from 'rehype-highlight'
 import { customComponents } from '../../../mdx-components'
 
 const components = {
@@ -98,7 +98,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   const source = await serialize(content?.data?.content, {
     mdxOptions: {
-      rehypePlugins: [rehypeStarryNight],
+      rehypePlugins: [rehypeHighlight],
     },
   })
 

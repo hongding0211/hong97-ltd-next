@@ -1,5 +1,5 @@
 import createMDX from '@next/mdx'
-import rehypeStarryNight from 'rehype-starry-night'
+import rehypeHighlight from 'rehype-highlight'
 import { devNextConfig } from './next.config.dev.mjs'
 
 /** @type {import('next').NextConfig} */
@@ -17,7 +17,7 @@ const nextConfig = {
 
 const withMDX = createMDX({
   options: {
-    rehypePlugins: [rehypeStarryNight],
+    rehypePlugins: [rehypeHighlight],
   },
 })
 
