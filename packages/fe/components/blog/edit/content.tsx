@@ -11,6 +11,7 @@ import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
+import { ImgNode } from './editor/img-node'
 
 const lowlight = createLowlight(all)
 
@@ -27,6 +28,8 @@ const Content: React.FC<IContent> = (props) => {
   const handleUpdate = useRef(
     debounce((e: EditorEvents['update']) => {
       const md = e.editor.getMarkdown()
+      console.log('!!👉 content.tsx: 31', e.editor.getJSON())
+      console.log('!!👉 content.tsx: 32', e.editor.getMarkdown())
       onValueChange(md)
     }, 300),
   )
@@ -40,7 +43,11 @@ const Content: React.FC<IContent> = (props) => {
           class: 'tiptap-drop-cursor',
         },
         paragraph: false, // we use custom EmptyLineParagraphExtension instead
-        hardBreak: false, // we use custom EmptyLineParagraphExtension instead
+        hardBreak: false, // we use custom EmptyLineParagraphExtension instead,
+        link: {
+          openOnClick: false,
+          enableClickSelection: true,
+        }
       }),
       Markdown.configure({
         indentation: {
@@ -65,6 +72,7 @@ const Content: React.FC<IContent> = (props) => {
       EmptyLineParagraphExtension.configure({
         HTMLAttributes: {},
       }),
+      ImgNode,
     ],
     immediatelyRender: false,
     content: initValue,

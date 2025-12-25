@@ -43,7 +43,8 @@
       "add": "添加",
       "cancel": "取消"
     },
-    "startEdit": "在这里开始创作你的博客..."
+    "startEdit": "在这里开始创作你的博客...",
+    "addImgCaption": "添加图片说明"
   },
   "lastUpdate": "编辑于"
 }

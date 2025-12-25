@@ -43,7 +43,8 @@
       "add": "Add",
       "cancel": "Cancel"
     },
-    "startEdit": "Start editing your blog here..."
+    "startEdit": "Start editing your blog here...",
+    "addImgCaption": "Add image caption"
   },
   "lastUpdate": "Update at"
 }

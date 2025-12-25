@@ -10,7 +10,7 @@ import { Circle } from 'lucide-react'
 import React, { useEffect, useId, useState } from 'react'
 import { LivePhoto } from '../live-photo'
 
-type Image = {
+export type Image = {
   img: string
   video?: string
   autoPlay?: boolean
@@ -43,7 +43,7 @@ const MonoImage: React.FC<{
   )
 }
 
-interface ImagesV2Props {
+export interface ImagesV2Props {
   images: Image[]
   caption?: string
   autoLoop?: boolean
@@ -109,10 +109,10 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
           plugins={
             autoLoop
               ? [
-                  Autoplay({
-                    delay: loopSpan,
-                  }),
-                ]
+                Autoplay({
+                  delay: loopSpan,
+                }),
+              ]
               : []
           }
           setApi={setApi}
