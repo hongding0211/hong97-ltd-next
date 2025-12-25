@@ -303,7 +303,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             {meta.lastUpdateAt &&
               meta.time &&
               Math.abs(meta.lastUpdateAt - meta.time) > 15000 && (
-                <figcaption className="mt-8 text-neutral-400 dark:text-neutral-500 italic">
+                <figcaption className="text-neutral-400 dark:text-neutral-500 text-xs">
                   {`${t('lastUpdate')} ${time.formatDynamic(
                     meta?.lastUpdateAt,
                   )}`}
