@@ -13,6 +13,11 @@
   pointer-events: none;
 }
 
+.ProseMirror {
+  padding: 2rem;
+  margin: -2rem;
+}
+
 .light .tiptap-drop-cursor {
   color: #c9c9c9;
 }

@@ -27,8 +27,6 @@ const Content: React.FC<IContent> = (props) => {
   const handleUpdate = useRef(
     debounce((e: EditorEvents['update']) => {
       const md = e.editor.getMarkdown()
-      // TODO - HongD 12/25 20:59
-      console.log('!!👉 content.tsx: 29', md)
       onValueChange(md)
     }, 300),
   )
