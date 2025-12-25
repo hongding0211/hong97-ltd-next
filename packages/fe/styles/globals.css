@@ -40,47 +40,124 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-.light, html {
+.light,
+html {
   background-color: white;
 }
 
-.dark,html {
+.dark,
+html {
   background-color: black;
+}
+
+@layer base {
+  @font-face {
+    font-family: 'Google Sans Code';
+    src: url('./GoogleSansCode-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
 }
 
 @layer components {
   .prose ul {
     @apply pl-4;
   }
+
   .prose ol {
     @apply pl-4;
   }
+
   .prose ul p {
     @apply my-0;
-  } 
+  }
+
   .prose ol p {
     @apply my-0;
   }
+
   .prose li::marker {
     @apply text-neutral-700 dark:text-neutral-300;
   }
-  .prose blockquote p::before, .prose blockquote p::after {
+
+  .prose blockquote p::before,
+  .prose blockquote p::after {
     content: none;
   }
 
-  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::before {
+  .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *))::before {
     content: none;
   }
 
-  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::after {
+  .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *))::after {
     content: none;
   }
 
-  .prose :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *)):not(pre code) {
+  .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *)):not(pre code) {
     @apply p-1 rounded font-medium bg-neutral-100 dark:bg-neutral-800 mx-1;
   }
 
   .prose pre {
     @apply bg-[#F0F1F5] dark:bg-[#1E1E2C]
+  }
+}
+
+@layer base {
+  .prose pre {
+    @apply bg-[#F0F1F5] dark:bg-[#1E1E2C] relative pt-8;
+    font-family: 'Google Sans Code', monospace;
+  }
+
+  .prose pre code[class*="language-"]::before {
+    content: attr(class);
+    content: var(--language-label, attr(class));
+    @apply absolute top-0 left-0 pl-4 pt-2 text-[0.65rem] font-medium;
+    @apply text-neutral-400 dark:text-neutral-500;
+    text-transform: uppercase;
+  }
+
+  .prose pre code.language-plaintext::before {
+    content: "Plain Text"
+  }
+
+  .prose pre code.language-typescript::before,
+  .prose pre code.language-ts::before {
+    content: "TypeScript";
+  }
+
+  .prose pre code.language-javascript::before,
+  .prose pre code.language-js::before {
+    content: "JavaScript";
+  }
+
+  .prose pre code.language-tsx::before {
+    content: "TSX";
+  }
+
+  .prose pre code.language-jsx::before {
+    content: "JSX";
+  }
+
+  .prose pre code.language-css::before {
+    content: "CSS";
+  }
+
+  .prose pre code.language-html::before {
+    content: "HTML";
+  }
+
+  .prose pre code.language-json::before {
+    content: "JSON";
+  }
+
+  .prose pre code.language-bash::before,
+  .prose pre code.language-sh::before {
+    content: "Shell";
+  }
+
+  .prose pre code.language-python::before,
+  .prose pre code.language-py::before {
+    content: "Python";
   }
 }
