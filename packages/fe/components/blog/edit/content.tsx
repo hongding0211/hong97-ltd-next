@@ -1,5 +1,6 @@
 'use client'
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
+import DragHandle from '@tiptap/extension-drag-handle-react'
 import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
@@ -8,6 +9,7 @@ import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
+import { DndHandler } from './editor/dnd'
 
 const lowlight = createLowlight(all)
 
@@ -32,7 +34,11 @@ const Content: React.FC<IContent> = (props) => {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        dropcursor: {
+          class: 'tiptap-drop-cursor',
+        },
+      }),
       Markdown,
       CodeBlockLowlight.configure({
         lowlight,
@@ -53,7 +59,14 @@ const Content: React.FC<IContent> = (props) => {
     autofocus: initValue ? undefined : 'all',
   })
 
-  return <EditorContent editor={editor} />
+  return (
+    <>
+      <DragHandle editor={editor}>
+        <DndHandler />
+      </DragHandle>
+      <EditorContent editor={editor} />
+    </>
+  )
 }
 
 export default Content
