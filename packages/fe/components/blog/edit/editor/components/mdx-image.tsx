@@ -112,7 +112,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
           <div
             className={cx(
               'w-full flex justify-center',
-              url.length ? 'mt-[-1.5rem]' : 'mt-0.5',
+              url.length ? 'mt-[-1rem]' : 'mt-0.5',
             )}
           >
             <div
