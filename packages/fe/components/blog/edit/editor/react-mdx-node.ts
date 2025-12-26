@@ -4,7 +4,6 @@ import {
   ReactNodeViewRenderer,
   mergeAttributes,
 } from '@tiptap/react'
-import { DemoComponent } from './components/demo-component'
 import MdxImage from './components/mdx-image'
 import { ReactMdxNodeView } from './react-mdx-node-view'
 import type { ComponentMapEntry, ReactMdxNodeAttrs } from './react-mdx-types'
@@ -13,15 +12,6 @@ import type { ComponentMapEntry, ReactMdxNodeAttrs } from './react-mdx-types'
  * Register all custom MDX components here
  */
 export const ComponentMap: Record<string, ComponentMapEntry> = {
-  'x.demo': {
-    component: DemoComponent,
-    displayName: 'Demo Component',
-    defaultProps: {
-      title: 'Demo Title',
-      description: 'Demo Description',
-      color: '#3b82f6',
-    },
-  },
   img: {
     component: MdxImage,
     displayName: 'MDX Image',
@@ -30,6 +20,18 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
       caption: '',
       loop: false,
     },
+  },
+  /**
+   * Following components are examples of lazy-loaded components
+   */
+  'lazy.foo': {
+    lazy: true,
+    displayName: 'Lazy Foo',
+    defaultProps: {
+      message: 'Hello from Foo!',
+      color: '#10b981',
+    },
+    lazyLoader: () => import('../../lazy/foo'),
   },
 }
 

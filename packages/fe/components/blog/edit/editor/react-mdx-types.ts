@@ -11,12 +11,20 @@ export type ReactMdxComponent<T = Record<string, any>> = React.FC<
 >
 
 export interface ComponentMapEntry {
-  component: ReactMdxComponent<any>
+  component?: ReactMdxComponent<any>
   displayName: string
   defaultProps?: Record<string, any>
+  lazy?: boolean
+  lazyLoader?: () => Promise<{ default: ReactMdxComponent<any> }>
 }
 
 export interface ReactMdxNodeAttrs {
   name: string
   props: string
+}
+
+export interface LazyComponentState {
+  loading: boolean
+  error: Error | null
+  Component: ReactMdxComponent<any> | null
 }

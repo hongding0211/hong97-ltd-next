@@ -93,7 +93,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
       <div
         className={cn(
           'flex flex-col items-center gap-2',
-          markdown && 'w-full sm:w-[75%] mx-auto my-8',
+          markdown && 'w-full sm:w-[75%] mx-auto my-5',
         )}
       >
         <MonoImage img={images[0]} />
@@ -110,7 +110,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
     <div
       className={cn(
         'flex flex-col items-center gap-y-2',
-        markdown && 'w-full sm:w-[75%] mx-auto my-8',
+        markdown && 'w-full sm:w-[75%] mx-auto my-5',
       )}
     >
       <div className="relative">

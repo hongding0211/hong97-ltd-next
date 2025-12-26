@@ -1,9 +1,10 @@
 'use client'
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper } from '@tiptap/react'
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { LazyEditor } from './components/lazy-editor'
 import { ComponentMap } from './react-mdx-node'
-import type { ReactMdxNodeAttrs } from './react-mdx-types'
+import type { LazyComponentState, ReactMdxNodeAttrs } from './react-mdx-types'
 
 export const ReactMdxNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes, selected } = props
@@ -25,6 +26,47 @@ export const ReactMdxNodeView: React.FC<NodeViewProps> = (props) => {
   }, [propsJson])
 
   const componentEntry = ComponentMap[name]
+
+  const [lazyState, setLazyState] = useState<LazyComponentState>({
+    loading: false,
+    error: null,
+    Component: null,
+  })
+
+  useEffect(() => {
+    if (!componentEntry?.lazy || !componentEntry.lazyLoader) {
+      return
+    }
+
+    let mounted = true
+    // eslint-disable-next-line
+    setLazyState({ loading: true, error: null, Component: null })
+
+    componentEntry
+      .lazyLoader()
+      .then((module) => {
+        if (mounted) {
+          setLazyState({
+            loading: false,
+            error: null,
+            Component: module.default,
+          })
+        }
+      })
+      .catch((error) => {
+        if (mounted) {
+          setLazyState({
+            loading: false,
+            error: error as Error,
+            Component: null,
+          })
+        }
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [componentEntry, name])
 
   const handlePropsUpdate = useCallback(
     (newProps: Record<string, any>) => {
@@ -53,7 +95,41 @@ export const ReactMdxNodeView: React.FC<NodeViewProps> = (props) => {
     )
   }
 
+  if (componentEntry.lazy) {
+    return (
+      <NodeViewWrapper className="react-mdx-node-wrapper">
+        <div
+          className={`relative my-4 ${
+            selected ? 'ring-2 ring-blue-500 ring-offset-2 rounded' : ''
+          }`}
+          contentEditable={false}
+        >
+          <LazyEditor
+            componentName={name}
+            propsJson={propsJson}
+            onPropsUpdate={handlePropsUpdate}
+            LazyComponent={lazyState.Component}
+            loading={lazyState.loading}
+            error={lazyState.error}
+          />
+        </div>
+      </NodeViewWrapper>
+    )
+  }
+
   const Component = componentEntry.component
+
+  if (!Component) {
+    return (
+      <NodeViewWrapper className="react-mdx-node-wrapper">
+        <div className="border-2 border-dashed border-red-300 dark:border-red-800 rounded p-4 my-2">
+          <div className="text-red-600 dark:text-red-400 font-mono text-sm">
+            Component definition missing for: <strong>{name}</strong>
+          </div>
+        </div>
+      </NodeViewWrapper>
+    )
+  }
 
   return (
     <NodeViewWrapper className="react-mdx-node-wrapper">
