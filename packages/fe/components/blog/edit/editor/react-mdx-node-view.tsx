@@ -11,9 +11,15 @@ export const ReactMdxNodeView: React.FC<NodeViewProps> = (props) => {
 
   const parsedProps = useMemo(() => {
     try {
-      return JSON.parse(propsJson || '{}')
+      const parsed = JSON.parse(propsJson || '{}')
+      return parsed
     } catch (error) {
-      console.error('Failed to parse component props:', error)
+      console.error(
+        'Failed to parse component props:',
+        error,
+        'propsJson:',
+        propsJson,
+      )
       return {}
     }
   }, [propsJson])

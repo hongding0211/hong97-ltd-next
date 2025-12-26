@@ -34,6 +34,8 @@
     "failToCreateBlogDue2EmptyTitle": "标题为空，无法创建博客",
     "failToCreateBlog": "创建博客失败",
     "saveSuccess": "保存成功",
-    "failToUpdateCover": "更新封面失败"
+    "failToUpdateCover": "更新封面失败",
+    "uploadSuccess": "上传成功",
+    "uploadFailed": "上传失败"
   }
 }

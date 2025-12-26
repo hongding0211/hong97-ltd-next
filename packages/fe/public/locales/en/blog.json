@@ -43,7 +43,9 @@
       "add": "Add",
       "cancel": "Cancel"
     },
-    "startEdit": "Start editing your blog here..."
+    "startEdit": "Start editing your blog here...",
+    "uploadImg": "Upload image",
+    "imgCaptionPlaceholder": "Type image caption here"
   },
   "lastUpdate": "Update at"
 }
