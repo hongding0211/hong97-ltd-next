@@ -11,6 +11,7 @@ import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
+import { ReactMdxNode } from './editor/react-mdx-node'
 
 const lowlight = createLowlight(all)
 
@@ -65,6 +66,7 @@ const Content: React.FC<IContent> = (props) => {
       EmptyLineParagraphExtension.configure({
         HTMLAttributes: {},
       }),
+      ReactMdxNode,
     ],
     immediatelyRender: false,
     content: initValue,
