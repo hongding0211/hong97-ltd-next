@@ -20,7 +20,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   onPropsUpdate,
   mode,
 }) => {
-  const { urls = '', caption = '', loop = false } = props
+  const { urls = '', caption = '' } = props
 
   const url = (() => {
     if (!urls.trim().length) {
@@ -174,7 +174,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         img: u,
       }))}
       caption={caption}
-      autoLoop={loop}
+      autoLoop
       markdown
     />
   )
