@@ -12,10 +12,11 @@ interface ICover {
   loading: ActionLoading
   onAddCover?: () => void
   onRemoveCover?: () => void
+  mode: 'edit' | 'preview'
 }
 
 const Cover: React.FC<ICover> = (props) => {
-  const { meta, coverImg, onAddCover, onRemoveCover, loading } = props
+  const { meta, coverImg, onAddCover, onRemoveCover, loading, mode } = props
 
   const { t } = useTranslation('blog')
 
@@ -46,17 +47,19 @@ const Cover: React.FC<ICover> = (props) => {
             className={cn('inset-x-0 inset-y-[-50%] h-[300%] skew-y-12')}
           />
         </div>
-        <div
-          onClick={onAddCover}
-          className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur-xl px-2 py-1.5 rounded-full flex items-center gap-x-1 absolute left-3 bottom-3 sm:left-6 sm:bottom-4"
-        >
-          {loading === 'coverChange' ? (
-            <Loader2 className="h-2.5 w-2.5 animate-spin" />
-          ) : (
-            <Pencil className="w-2.5 h-2.5" />
-          )}
-          <span className="text-xs">{t('edit.addCover')}</span>
-        </div>
+        {mode === 'edit' && (
+          <div
+            onClick={onAddCover}
+            className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur-xl px-2 py-1.5 rounded-full flex items-center gap-x-1 absolute left-3 bottom-3 sm:left-6 sm:bottom-4"
+          >
+            {loading === 'coverChange' ? (
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+            ) : (
+              <Pencil className="w-2.5 h-2.5" />
+            )}
+            <span className="text-xs">{t('edit.addCover')}</span>
+          </div>
+        )}
       </div>
     )
   }
@@ -70,31 +73,33 @@ const Cover: React.FC<ICover> = (props) => {
         className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
       />
 
-      <div className="flex items-center gap-x-1 sm:gap-x-2 absolute left-3 bottom-3 sm:left-6 sm:bottom-4">
-        <div
-          onClick={onAddCover}
-          className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur backdrop-saturate-150 px-2 py-1.5 rounded-full flex items-center gap-x-1"
-        >
-          {loading === 'coverChange' ? (
-            <Loader2 className="h-2.5 w-2.5 animate-spin" />
-          ) : (
-            <Pencil className="w-2.5 h-2.5" />
-          )}
-          <span className="text-xs">{t('edit.changeCover')}</span>
-        </div>
+      {mode === 'edit' && (
+        <div className="flex items-center gap-x-1 sm:gap-x-2 absolute left-3 bottom-3 sm:left-6 sm:bottom-4">
+          <div
+            onClick={onAddCover}
+            className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur backdrop-saturate-150 px-2 py-1.5 rounded-full flex items-center gap-x-1"
+          >
+            {loading === 'coverChange' ? (
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+            ) : (
+              <Pencil className="w-2.5 h-2.5" />
+            )}
+            <span className="text-xs">{t('edit.changeCover')}</span>
+          </div>
 
-        <div
-          onClick={onRemoveCover}
-          className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur backdrop-saturate-150 px-2 py-1.5 rounded-full flex items-center gap-x-1"
-        >
-          {loading === 'coverRemove' ? (
-            <Loader2 className="h-2.5 w-2.5 animate-spin" />
-          ) : (
-            <Trash className="w-2.5 h-2.5" />
-          )}
-          <span className="text-xs">{t('edit.removeCover')}</span>
+          <div
+            onClick={onRemoveCover}
+            className="bg-neutral-200/70 cursor-pointer dark:bg-neutral-800/70 backdrop-blur backdrop-saturate-150 px-2 py-1.5 rounded-full flex items-center gap-x-1"
+          >
+            {loading === 'coverRemove' ? (
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+            ) : (
+              <Trash className="w-2.5 h-2.5" />
+            )}
+            <span className="text-xs">{t('edit.removeCover')}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -6,13 +6,16 @@ import {
 } from '@/components/ui/popover'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { time } from '@utils/time'
+import cx from 'classnames'
 import {
   CloudUpload,
   Eye,
   EyeClosed,
+  ListPlus,
   Loader2,
-  Plus,
-  RefreshCcw,
+  Pencil,
+  Save,
+  SearchCheck,
   Trash,
 } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
@@ -21,15 +24,26 @@ import { ActionLoading, BlogMeta } from './common'
 
 interface IActions {
   meta?: BlogMeta
+  mode: 'edit' | 'preview'
   onSave?: () => void
   onPublish?: () => void
   onHiddenChange?: () => void
   onDelete?: () => void
+  onTogglePreview?: () => void
   loading?: ActionLoading
 }
 
 const Actions: React.FC<IActions> = (props) => {
-  const { meta, onSave, onPublish, onHiddenChange, onDelete, loading } = props
+  const {
+    meta,
+    mode,
+    onSave,
+    onPublish,
+    onHiddenChange,
+    onDelete,
+    onTogglePreview,
+    loading,
+  } = props
 
   const timeRef = useRef<any>(null)
 
@@ -98,7 +112,7 @@ const Actions: React.FC<IActions> = (props) => {
                   ) : (
                     <Trash className="w-4 h-4" />
                   )}
-                  {t('edit.delete')}
+                  <span className="hidden sm:inline">{t('edit.delete')}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent>
@@ -128,6 +142,23 @@ const Actions: React.FC<IActions> = (props) => {
               </PopoverContent>
             </Popover>
           )}
+          {meta && (
+            <Button
+              disabled={loading === 'publish'}
+              size="xs"
+              variant="outline"
+              onClick={onTogglePreview}
+            >
+              {mode === 'preview' ? (
+                <Pencil className="w-4 h-4" />
+              ) : (
+                <SearchCheck className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {t(mode === 'preview' ? 'edit.edit' : 'edit.preview')}
+              </span>
+            </Button>
+          )}
           {meta?.hasPublished === false && (
             <Button
               disabled={loading === 'publish'}
@@ -140,7 +171,7 @@ const Actions: React.FC<IActions> = (props) => {
               ) : (
                 <CloudUpload className="w-4 h-4" />
               )}
-              {t('edit.publish')}
+              <span className="hidden sm:inline">{t('edit.publish')}</span>
             </Button>
           )}
           {meta?.hasPublished === true && (
@@ -157,18 +188,26 @@ const Actions: React.FC<IActions> = (props) => {
               ) : (
                 <Eye className="w-4 h-4" />
               )}
-              {t(meta.hidden2Public ? 'edit.hidden' : 'edit.unHidden')}
+              <span className="hidden sm:inline">
+                {t(meta.hidden2Public ? 'edit.hidden' : 'edit.unHidden')}
+              </span>
             </Button>
           )}
           <Button disabled={loading === 'save'} size="xs" onClick={onSave}>
             {loading === 'save' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : meta ? (
-              <RefreshCcw className="w-4 h-4" />
+              <Save className="w-4 h-4" />
             ) : (
-              <Plus className="w-4 h-4" />
+              <ListPlus className="w-4 h-4" />
             )}
-            {t('edit.save')}
+            <span
+              className={cx('sm:inline', {
+                hidden: meta,
+              })}
+            >
+              {t(meta ? 'edit.save' : 'edit.create')}
+            </span>
           </Button>
         </div>
       </div>

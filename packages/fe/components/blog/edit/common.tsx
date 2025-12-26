@@ -1,4 +1,6 @@
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ImagesV2 } from '@components/common/images-v2'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
@@ -6,13 +8,22 @@ import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import cx from 'classnames'
 import { useTranslation } from 'next-i18next'
+import { MDXRemote } from 'next-mdx-remote'
+import { serialize } from 'next-mdx-remote/serialize'
 import { useRouter } from 'next/router'
 import React, { useCallback, useEffect, useId, useState } from 'react'
+import rehypeHighlight from 'rehype-highlight'
+import { customComponents } from '../../../mdx-components'
 import MdxLayout from '../mdx-layout'
 import Actions from './actions'
 import Content from './content'
 import Cover from './cover'
 import Keywords from './keywords'
+
+const components = {
+  ImagesV2,
+  ...customComponents,
+}
 
 export type ActionLoading =
   | 'save'
@@ -41,7 +52,11 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null)
 
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+
   const [content, setContent] = useState(initialContent || '')
+
+  const [previewContent, setPreviewContent] = useState<any>()
 
   const [title, setTitle] = useState(meta?.blogTitle || '')
   const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
@@ -214,46 +229,89 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     setKeywords(meta?.keywords || [])
   }, [meta])
 
+  useEffect(() => {
+    if (mode === 'preview') {
+      serialize(content, {
+        mdxOptions: {
+          development: process.env.NODE_ENV === 'development',
+          rehypePlugins: [rehypeHighlight],
+        },
+      }).then(setPreviewContent)
+    }
+    return () => {
+      setPreviewContent(undefined)
+    }
+  }, [mode, content])
+
   return (
     <>
       <Actions
         meta={meta}
+        mode={mode}
         onPublish={handlePublish}
         onSave={() => handleSave(false)}
         onHiddenChange={handleHiddenChange}
         onDelete={handleDelete}
         loading={actionLoading}
+        onTogglePreview={() => {
+          if (mode === 'edit') {
+            setMode('preview')
+          } else {
+            setMode('edit')
+          }
+        }}
       />
       <Cover
         meta={meta}
+        mode={mode}
         coverImg={coverImg}
         onAddCover={handleAddCover}
         onRemoveCover={handleRemoveCover}
         loading={actionLoading}
       />
       <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center overflow-x-hidden">
-        <MdxLayout>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t('edit.titlePlaceholder')}
-            spellCheck="false"
-            className="mb-2 text-black dark:text-white text-4xl font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-          {meta && (
-            <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
-              <span className="whitespace-nowrap">
-                {time.format(meta.time, 'datetimeShort')}
-              </span>
+        {mode === 'edit' ? (
+          <MdxLayout>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('edit.titlePlaceholder')}
+              spellCheck="false"
+              className="mb-2 text-black dark:text-white text-4xl font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            {meta && (
+              <figcaption className={cx('m-0 text-sm mb-2 sm:mb-3')}>
+                <span className="whitespace-nowrap">
+                  {time.format(meta.time, 'datetimeShort')}
+                </span>
+              </figcaption>
+            )}
+            <div className="relative z-50">
+              <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
+            </div>
+            <div className="pt-2">
+              <Content value={content} onValueChange={setContent} />
+            </div>
+          </MdxLayout>
+        ) : (
+          <MdxLayout>
+            <h1 className="!mt-0 !mb-2 !text-4xl">{meta.blogTitle}</h1>
+            <figcaption className="m-0 !mt-1 text-sm flex items-center gap-x-1">
+              {time.format(meta.time, 'datetimeShort')}
+              {!!meta.keywords?.length && <span> | </span>}
+              {meta.keywords?.map((k) => (
+                <span key={k}>{` #${k}`}</span>
+              ))}
             </figcaption>
-          )}
-          <div className="relative z-50">
-            <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
-          </div>
-          <div className="pt-2">
-            <Content value={content} onValueChange={setContent} />
-          </div>
-        </MdxLayout>
+            <div className="pt-2">
+              {previewContent ? (
+                <MDXRemote {...previewContent} components={components} />
+              ) : (
+                <Skeleton className="w-full h-12" />
+              )}
+            </div>
+          </MdxLayout>
+        )}
       </div>
     </>
   )

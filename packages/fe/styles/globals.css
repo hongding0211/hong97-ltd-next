@@ -101,15 +101,11 @@ html {
   .prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *)):not(pre code) {
     @apply p-1 rounded font-medium bg-neutral-100 dark:bg-neutral-800 mx-1;
   }
-
-  .prose pre {
-    @apply bg-[#F0F1F5] dark:bg-[#1E1E2C]
-  }
 }
 
 @layer base {
   .prose pre {
-    @apply bg-[#F0F1F5] dark:bg-[#1E1E2C] relative pt-8;
+    @apply bg-[#eff1f5] dark:bg-[#24273a] relative pt-8;
     font-family: 'Google Sans Code', monospace;
   }
 
