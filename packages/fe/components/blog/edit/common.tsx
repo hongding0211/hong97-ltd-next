@@ -231,7 +231,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
         onRemoveCover={handleRemoveCover}
         loading={actionLoading}
       />
-      <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
+      <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center overflow-x-hidden">
         <MdxLayout>
           <Input
             value={title}
@@ -247,7 +247,9 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
               </span>
             </figcaption>
           )}
-          <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
+          <div className="relative z-50">
+            <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
+          </div>
           <div className="pt-2">
             <Content value={content} onValueChange={setContent} />
           </div>
