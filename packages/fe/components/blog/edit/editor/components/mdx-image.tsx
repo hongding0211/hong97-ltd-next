@@ -94,17 +94,21 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
             onIndexChange={setIdx}
           />
         ) : (
-          <div
-            onClick={handleUpload}
-            className="cursor-pointer h-[100px] w-full rounded flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 text-neutral-500"
-          >
-            <div className="flex gap-x-1 items-center">
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CloudUpload className="w-4 h-4" />
-              )}
-              <span className="text-sm font-medium">{t('edit.uploadImg')}</span>
+          <div className="w-full flex justify-center">
+            <div
+              onClick={handleUpload}
+              className="cursor-pointer h-[100px] w-full sm:max-w-[75%] rounded flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 text-neutral-500"
+            >
+              <div className="flex gap-x-1 items-center">
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CloudUpload className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {t('edit.uploadImg')}
+                </span>
+              </div>
             </div>
           </div>
         )}

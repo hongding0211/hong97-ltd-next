@@ -5,6 +5,7 @@ import {
   mergeAttributes,
 } from '@tiptap/react'
 import MdxImage from './components/mdx-image'
+import { createImagePastePlugin } from './image-paste-plugin'
 import { ReactMdxNodeView } from './react-mdx-node-view'
 import type { ComponentMapEntry, ReactMdxNodeAttrs } from './react-mdx-types'
 
@@ -18,7 +19,6 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
     defaultProps: {
       urls: '',
       caption: '',
-      loop: false,
     },
   },
   /**
@@ -170,6 +170,10 @@ export const ReactMdxNode = Node.create({
         },
       }),
     ]
+  },
+
+  addProseMirrorPlugins() {
+    return [createImagePastePlugin(this.editor, this.type)]
   },
 
   addNodeView() {

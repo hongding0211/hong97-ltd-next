@@ -65,7 +65,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
   const [idx, setIdx] = useState(0)
   const [api, setApi] = useState<CarouselApi | null>(null)
 
-  const _caption = images[idx].caption ?? caption
+  const _caption = images?.[idx]?.caption ?? caption
 
   useEffect(() => {
     if (!api) {
