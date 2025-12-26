@@ -34,6 +34,8 @@
     "failToCreateBlogDue2EmptyTitle": "Cannot create blog with empty title",
     "failToCreateBlog": "Failed to create blog",
     "saveSuccess": "Save successfully",
-    "failToUpdateCover": "Failed to update cover"
+    "failToUpdateCover": "Failed to update cover",
+    "uploadSuccess": "Upload successfully",
+    "uploadFailed": "Upload failed"
   }
 }

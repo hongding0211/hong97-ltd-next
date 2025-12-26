@@ -49,10 +49,18 @@ interface ImagesV2Props {
   autoLoop?: boolean
   loopSpan?: number
   markdown?: boolean
+  onIndexChange?: (idx: number) => void
 }
 
 export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
-  const { images, caption, autoLoop, loopSpan = 3000, markdown } = props
+  const {
+    images,
+    caption,
+    autoLoop,
+    loopSpan = 3000,
+    markdown,
+    onIndexChange,
+  } = props
 
   const [idx, setIdx] = useState(0)
   const [api, setApi] = useState<CarouselApi | null>(null)
@@ -71,6 +79,10 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
       api.off('select', fn)
     }
   }, [api])
+
+  useEffect(() => {
+    onIndexChange?.(idx)
+  }, [idx, onIndexChange])
 
   if (!images.length) {
     return null

@@ -5,6 +5,7 @@ import {
   mergeAttributes,
 } from '@tiptap/react'
 import { DemoComponent } from './components/demo-component'
+import MdxImage from './components/mdx-image'
 import { ReactMdxNodeView } from './react-mdx-node-view'
 import type { ComponentMapEntry, ReactMdxNodeAttrs } from './react-mdx-types'
 
@@ -21,6 +22,15 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
       color: '#3b82f6',
     },
   },
+  img: {
+    component: MdxImage,
+    displayName: 'MDX Image',
+    defaultProps: {
+      urls: '',
+      caption: '',
+      loop: false,
+    },
+  },
 }
 
 export const ReactMdxNode = Node.create({
@@ -34,14 +44,24 @@ export const ReactMdxNode = Node.create({
     return {
       name: {
         default: '',
-        parseHTML: (element) => element.getAttribute('data-name'),
+        parseHTML: (element) => {
+          return (
+            element.getAttribute('data-name') || element.getAttribute('name')
+          )
+        },
         renderHTML: (attributes) => ({
           'data-name': attributes.name,
         }),
       },
       props: {
         default: '{}',
-        parseHTML: (element) => element.getAttribute('data-props') || '{}',
+        parseHTML: (element) => {
+          return (
+            element.getAttribute('data-props') ||
+            element.getAttribute('props') ||
+            '{}'
+          )
+        },
         renderHTML: (attributes) => ({
           'data-props': attributes.props,
         }),
@@ -60,14 +80,23 @@ export const ReactMdxNode = Node.create({
           if (typeof element === 'string') return false
 
           const name = element.getAttribute('name')
-          const props = element.getAttribute('props')
+          let props = element.getAttribute('props') || '{}'
 
           if (!name) return false
 
-          return {
-            name,
-            props: props || '{}',
+          try {
+            JSON.parse(props)
+          } catch {
+            console.error('Invalid props JSON in ReactMdxComponent:', props)
+            props = '{}'
           }
+
+          const result = {
+            name,
+            props,
+          }
+
+          return result
         },
       },
     ]
