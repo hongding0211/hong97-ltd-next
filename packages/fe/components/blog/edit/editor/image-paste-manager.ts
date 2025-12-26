@@ -30,8 +30,6 @@ export async function handleImagePaste(
           }),
         })
         .run()
-
-      toast('blog.uploadSuccess', { type: 'success' })
     }
   } catch {
     const node = editor.state.doc.nodeAt(initialPos)

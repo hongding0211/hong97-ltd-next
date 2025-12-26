@@ -63,7 +63,6 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
           ...props,
           urls: [...url, ...uploadedFiles].join(','),
         })
-        toast('blog.uploadSuccess', { type: 'success' })
       } catch {
         toast('blog.uploadFailed', { type: 'error' })
       } finally {
