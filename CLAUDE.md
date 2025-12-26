@@ -128,3 +128,6 @@ Backend uses Jest with the following test types:
 - TypeScript strict mode enabled
 - Pre-commit hooks via husky and lint-staged
 - Organized imports enforced
+- Do not add comments unless it's very necessary, also using English for comments.
+- Prefer early returns to reduce nesting.
+- Prefer iife for complex expressions.
