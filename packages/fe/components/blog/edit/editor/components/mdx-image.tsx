@@ -108,58 +108,60 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
             </div>
           </div>
         )}
-        <div
-          className={cx(
-            'w-full flex justify-center',
-            url.length ? 'mt-[-1.5rem]' : 'mt-0.5',
-          )}
-        >
+        {!!url.length && (
           <div
             className={cx(
-              'flex items-center justify-between w-full sm:max-w-[75%]',
-              'bg-neutral-50',
-              'p-1 px-2',
-              'rounded',
+              'w-full flex justify-center',
+              url.length ? 'mt-[-1.5rem]' : 'mt-0.5',
             )}
           >
-            <Input
-              value={caption}
-              onChange={(e) =>
-                onPropsUpdate({
-                  ...props,
-                  caption: e.target.value,
-                })
-              }
-              placeholder={t('edit.imgCaptionPlaceholder')}
-              spellCheck="false"
+            <div
               className={cx(
-                'opacity-70 text-black dark:text-white text-[0.8rem] border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0',
-                'mr-2',
+                'flex items-center justify-between w-full sm:max-w-[75%]',
+                'bg-neutral-50',
+                'p-1 px-2',
+                'rounded',
               )}
-            />
+            >
+              <Input
+                value={caption}
+                onChange={(e) =>
+                  onPropsUpdate({
+                    ...props,
+                    caption: e.target.value,
+                  })
+                }
+                placeholder={t('edit.imgCaptionPlaceholder')}
+                spellCheck="false"
+                className={cx(
+                  'opacity-70 text-black dark:text-white text-[0.8rem] border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0',
+                  'mr-2',
+                )}
+              />
 
-            <div className="flex items-center gap-x-0.5 opacity-90">
-              <Button
-                size="xxs"
-                className="!gap-x-0.5"
-                variant="ghost"
-                onClick={handleDel}
-              >
-                <Trash className="!w-[0.75rem]" />
-                Del
-              </Button>
-              <Button
-                size="xxs"
-                className="!gap-x-0.5"
-                variant="ghost"
-                onClick={handleUpload}
-              >
-                <Plus className="!w-[0.75rem]" />
-                Add
-              </Button>
+              <div className="flex items-center gap-x-0.5 opacity-90">
+                <Button
+                  size="xxs"
+                  className="!gap-x-0.5"
+                  variant="ghost"
+                  onClick={handleDel}
+                >
+                  <Trash className="!w-[0.75rem]" />
+                  Del
+                </Button>
+                <Button
+                  size="xxs"
+                  className="!gap-x-0.5"
+                  variant="ghost"
+                  onClick={handleUpload}
+                >
+                  <Plus className="!w-[0.75rem]" />
+                  Add
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </>
     )
   }
