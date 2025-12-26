@@ -118,7 +118,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
             <div
               className={cx(
                 'flex items-center justify-between w-full sm:max-w-[75%]',
-                'bg-neutral-50',
+                'bg-neutral-50 dark:bg-neutral-900',
                 'p-1 px-2',
                 'rounded',
               )}
