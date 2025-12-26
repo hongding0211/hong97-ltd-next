@@ -127,10 +127,13 @@ export const ReactMdxNode = Node.create({
           }
 
           const { tr } = state
-          const start = range.from
-          const end = range.to
+          const $from = state.doc.resolve(range.from)
+          const $to = state.doc.resolve(range.to)
 
-          tr.delete(start, end).insert(start, this.type.create(attrs))
+          const nodeStart = $from.before()
+          const nodeEnd = $to.after()
+
+          tr.replaceRangeWith(nodeStart, nodeEnd, this.type.create(attrs))
 
           return tr
         },
