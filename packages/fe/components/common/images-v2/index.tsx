@@ -127,7 +127,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
   }, [idx, onIndexChange])
 
   useEffect(() => {
-    if (!api) {
+    if (images?.length > 1 && !api) {
       return
     }
     let lightbox = new PhotoSwipeLightbox({
@@ -151,7 +151,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
       lightbox.destroy()
       lightbox = null
     }
-  }, [galleryId, api])
+  }, [galleryId, api, images])
 
   if (!images.length) {
     return null
