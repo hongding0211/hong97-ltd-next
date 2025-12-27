@@ -418,6 +418,7 @@ export class BlogService {
     }
 
     blog.content = content
+    blog.lastUpdateTime = Date.now()
 
     await blog.save()
 

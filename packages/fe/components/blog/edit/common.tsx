@@ -7,11 +7,12 @@ import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import cx from 'classnames'
+import { debounce } from 'lodash'
 import { useTranslation } from 'next-i18next'
 import { MDXRemote } from 'next-mdx-remote'
 import { serialize } from 'next-mdx-remote/serialize'
 import { useRouter } from 'next/router'
-import React, { useCallback, useEffect, useId, useState } from 'react'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import rehypeHighlight from 'rehype-highlight'
 import { customComponents } from '../../../mdx-components'
 import MdxLayout from '../mdx-layout'
@@ -61,6 +62,8 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const [title, setTitle] = useState(meta?.blogTitle || '')
   const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
   const [keywords, setKeywords] = useState<string[]>(meta?.keywords || [])
+
+  const blogIdRef = useRef('')
 
   const uid = useId()
 
@@ -223,6 +226,29 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     }
   }, [meta, onRefreshMeta])
 
+  const debouncedSaveContent = useRef(
+    debounce(async (val: string) => {
+      if (!blogIdRef.current) {
+        return
+      }
+      try {
+        setActionLoading('save')
+        await http.post('PostBlogContent', {
+          blogId: blogIdRef.current,
+          content: val,
+        })
+        await onRefreshMeta?.()
+      } finally {
+        setActionLoading(null)
+      }
+    }, 10000),
+  )
+
+  const handleValueChange = useCallback((val: string) => {
+    setContent(val)
+    debouncedSaveContent.current(val)
+  }, [])
+
   useEffect(() => {
     setTitle(meta?.blogTitle || '')
     setCoverImg(meta?.coverImg || '')
@@ -242,6 +268,10 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       setPreviewContent(undefined)
     }
   }, [mode, content])
+
+  useEffect(() => {
+    blogIdRef.current = meta.blogId
+  }, [meta.blogId])
 
   return (
     <>
@@ -290,7 +320,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
               <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
             </div>
             <div className="pt-2">
-              <Content value={content} onValueChange={setContent} />
+              <Content value={content} onValueChange={handleValueChange} />
             </div>
           </MdxLayout>
         ) : (
