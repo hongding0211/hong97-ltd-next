@@ -38,7 +38,7 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
 
           const attrs: ReactMdxNodeAttrs = {
             name: 'img',
-            props: JSON.stringify({ urls: '', caption: '' }),
+            props: JSON.stringify({ urls: '', caption: '', loading: true }),
           }
           const firstNode = nodeType.create(attrs)
           tr.replaceRangeWith(nodeStart, nodeEnd, firstNode)
@@ -54,7 +54,7 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
           for (let i = 1; i < imageFiles.length; i++) {
             const attrs: ReactMdxNodeAttrs = {
               name: 'img',
-              props: JSON.stringify({ urls: '', caption: '' }),
+              props: JSON.stringify({ urls: '', caption: '', loading: true }),
             }
             const node = nodeType.create(attrs)
             tr.insert(insertPos, node)
@@ -72,7 +72,7 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
           imageFiles.forEach((file) => {
             const attrs: ReactMdxNodeAttrs = {
               name: 'img',
-              props: JSON.stringify({ urls: '', caption: '' }),
+              props: JSON.stringify({ urls: '', caption: '', loading: true }),
             }
             const node = nodeType.create(attrs)
             tr.insert(insertPos, node)

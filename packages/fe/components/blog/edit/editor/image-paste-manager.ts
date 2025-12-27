@@ -27,6 +27,7 @@ export async function handleImagePaste(
           props: JSON.stringify({
             urls: filePath,
             caption: '',
+            loading: false,
           }),
         })
         .run()

@@ -13,6 +13,7 @@ interface IMdxImage {
   urls: string
   caption: string
   loop: boolean
+  loading?: boolean
 }
 
 const MdxImage: ReactMdxComponent<IMdxImage> = ({
@@ -20,7 +21,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   onPropsUpdate,
   mode,
 }) => {
-  const { urls = '', caption = '' } = props
+  const { urls = '', caption = '', loading: initLoading = false } = props
 
   const url = (() => {
     if (!urls.trim().length) {
@@ -29,7 +30,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
     return urls.split(',')
   })()
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(initLoading)
   const [idx, setIdx] = useState(0)
 
   const { t } = useTranslation('blog')
