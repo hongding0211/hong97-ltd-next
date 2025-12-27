@@ -61,8 +61,6 @@ export async function uploadFile2Oss(file: File, app?: string) {
       fileName: file.name,
       contentType: 'application/octet-stream',
       app: app ?? 'general',
-      compress: true,
-      quality: 90,
     })
 
     const { url, fileName, filePath } = preUpload.data
