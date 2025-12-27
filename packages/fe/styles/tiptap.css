@@ -14,8 +14,8 @@
 }
 
 .ProseMirror {
-  padding: 2rem;
-  margin: -2rem;
+  padding: 0 2rem;
+  margin: 0 -2rem;
 }
 
 .light .tiptap-drop-cursor {

@@ -316,9 +316,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
                 </span>
               </figcaption>
             )}
-            <div className="relative z-50">
-              <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
-            </div>
+            <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
             <div className="pt-2">
               <Content value={content} onValueChange={handleValueChange} />
             </div>
