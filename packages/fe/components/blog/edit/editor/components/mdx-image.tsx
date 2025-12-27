@@ -6,7 +6,7 @@ import { toast } from '@utils/toast'
 import cx from 'classnames'
 import { CloudUpload, Loader2, Plus, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
-import React, { useId, useState } from 'react'
+import React, { useEffect, useId, useState } from 'react'
 import { ReactMdxComponent } from '../react-mdx-types'
 
 interface IMdxImage {
@@ -21,7 +21,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   onPropsUpdate,
   mode,
 }) => {
-  const { urls = '', caption = '', loading: initLoading = false } = props
+  const { urls = '', caption = '', loading: loadingProps = false } = props
 
   const url = (() => {
     if (!urls.trim().length) {
@@ -30,14 +30,14 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
     return urls.split(',')
   })()
 
-  const [loading, setLoading] = useState(initLoading)
+  const [loading, setLoading] = useState(loadingProps)
   const [idx, setIdx] = useState(0)
 
   const { t } = useTranslation('blog')
 
   const uid = useId()
 
-  const handleUpload = async () => {
+  const handleUpload = async (toastOnSuccess?: boolean) => {
     if (loading) {
       return
     }
@@ -64,6 +64,9 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
           ...props,
           urls: [...url, ...uploadedFiles].join(','),
         })
+        if (toastOnSuccess) {
+          toast('blog.uploadSuccess', { type: 'success' })
+        }
       } catch {
         toast('blog.uploadFailed', { type: 'error' })
       } finally {
@@ -82,6 +85,10 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
     })
   }
 
+  useEffect(() => {
+    setLoading(loadingProps)
+  }, [loadingProps])
+
   if (mode === 'editor') {
     return (
       <>
@@ -96,7 +103,9 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         ) : (
           <div className="w-full flex justify-center">
             <div
-              onClick={handleUpload}
+              onClick={() => {
+                handleUpload(false)
+              }}
               className="cursor-pointer h-[100px] w-full sm:max-w-[75%] rounded flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 text-neutral-500"
             >
               <div className="flex gap-x-1 items-center">
@@ -157,7 +166,9 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
                   size="xxs"
                   className="!gap-x-0.5"
                   variant="ghost"
-                  onClick={handleUpload}
+                  onClick={() => {
+                    handleUpload(true)
+                  }}
                 >
                   <Plus className="!w-[0.75rem]" />
                   Add
