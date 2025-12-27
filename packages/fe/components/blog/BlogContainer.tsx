@@ -282,7 +282,6 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                     <Link
                       href={`/blog/edit?id=${meta.blogId}`}
                       className="w-full h-full absolute top-0 left-0"
-                      target="_blank"
                     />
                     <Pencil className="w-3 h-3" />
                   </div>
