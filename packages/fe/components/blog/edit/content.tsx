@@ -42,6 +42,12 @@ const Content: React.FC<IContent> = (props) => {
         },
         paragraph: false, // we use custom EmptyLineParagraphExtension instead
         hardBreak: false, // we use custom EmptyLineParagraphExtension instead
+        link: {
+          autolink: false,
+          shouldAutoLink: () => false,
+          protocols: ['https', 'http'],
+          linkOnPaste: false,
+        },
       }),
       Markdown.configure({
         indentation: {
