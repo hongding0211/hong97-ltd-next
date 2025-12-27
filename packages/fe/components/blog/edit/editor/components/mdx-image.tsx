@@ -55,7 +55,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
       try {
         setLoading(true)
         const compressedImg = await Promise.all(
-          _files.map((f) => convertImageToWebP(f, 0.75, 1920)),
+          _files.map((f) => convertImageToWebP(f, 0.85, 1920)),
         )
         const uploadedFiles = (
           await Promise.all(compressedImg.map((c) => uploadFile2Oss(c, 'blog')))

@@ -8,7 +8,7 @@ export async function handleImagePaste(
   initialPos: number,
 ) {
   try {
-    const webpFile = await convertImageToWebP(imageFile, 0.75, 1920)
+    const webpFile = await convertImageToWebP(imageFile, 0.85, 1920)
 
     const filePath = await uploadFile2Oss(webpFile, 'blog')
 

@@ -178,7 +178,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
         return
       }
       setActionLoading('coverChange')
-      const file = await convertImageToWebP(_file, 0.75, 2000)
+      const file = await convertImageToWebP(_file, 0.9, 2500)
       try {
         const p = await uploadFile2Oss(file, 'blog')
         if (!p) {
