@@ -19,6 +19,7 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
     defaultProps: {
       urls: '',
       caption: '',
+      loop: false,
     },
   },
   /**

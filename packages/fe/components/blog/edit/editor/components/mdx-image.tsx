@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Toggle } from '@/components/ui/toggle'
 import { ImagesV2 } from '@components/common/images-v2'
 import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
 import { toast } from '@utils/toast'
 import cx from 'classnames'
-import { CloudUpload, Loader2, Plus, Trash } from 'lucide-react'
+import { CloudUpload, Loader2, Plus, Repeat, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useEffect, useId, useState } from 'react'
 import { ReactMdxComponent } from '../react-mdx-types'
@@ -21,7 +22,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   onPropsUpdate,
   mode,
 }) => {
-  const { urls = '', caption = '', loading: loadingProps = false } = props
+  const { urls = '', caption = '', loop, loading: loadingProps = false } = props
 
   const url = (() => {
     if (!urls.trim().length) {
@@ -154,6 +155,24 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
               />
 
               <div className="flex items-center gap-x-0.5 opacity-90">
+                {url?.length > 1 && (
+                  <Toggle
+                    pressed={loop}
+                    onPressedChange={(e) =>
+                      onPropsUpdate({
+                        ...props,
+                        loop: e,
+                      })
+                    }
+                    aria-label="toggle auto loop"
+                    size="xxs"
+                    variant="default"
+                    className={cx('!gap-x-0.5')}
+                  >
+                    <Repeat className="!w-[0.75rem]" />
+                    {loop ? 'On' : 'Off'}
+                  </Toggle>
+                )}
                 <Button
                   size="xxs"
                   className="!gap-x-0.5"
@@ -192,7 +211,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         img: u,
       }))}
       caption={caption}
-      autoLoop={false}
+      autoLoop={loop}
       markdown
     />
   )
