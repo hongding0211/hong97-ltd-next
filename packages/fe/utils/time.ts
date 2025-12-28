@@ -6,11 +6,13 @@ const TIME_FORMAT_STR = {
     date: 'YYYY/M/D',
     datetime: 'YYYY-MM-DD HH:mm:ss',
     datetimeShort: 'YYYY/M/D HH:mm',
+    dateWithoutYear: 'MM/DD',
   },
   en: {
     date: 'MMM D, YYYY',
     datetime: 'MM/DD/YYYY HH:mm:ss',
     datetimeShort: 'MMM D, YYYY HH:mm',
+    dateWithoutYear: 'MMM DD',
   },
 }
 
@@ -31,7 +33,12 @@ const TIME_DYNAMIC_FORMAT_STR = {
   },
 }
 
-type FormatType = 'date' | 'datetime' | 'datetimeShort' | 'time'
+type FormatType =
+  | 'date'
+  | 'dateWithoutYear'
+  | 'datetime'
+  | 'datetimeShort'
+  | 'time'
 
 class Time {
   private getLocale() {

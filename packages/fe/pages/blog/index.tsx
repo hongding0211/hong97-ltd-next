@@ -51,6 +51,27 @@ export default function Blog(props: BlogProps) {
 
   const user = useUser()
 
+  const groupedBlogsByYear = blogs.reduce(
+    (acc, blog) => {
+      const year = new Date(blog.time).getFullYear()
+      if (!acc[year]) {
+        acc[year] = []
+      }
+      acc[year].push(blog)
+      return acc
+    },
+    {} as Record<number, IBlogConfig[]>,
+  )
+
+  const sortedYear = (() => {
+    if (!blogs?.length) {
+      return []
+    }
+    const arr = [...Object.keys(groupedBlogsByYear)].map(Number)
+    arr.sort((x, y) => y - x)
+    return arr
+  })()
+
   // 清理 debounce 函数
   useEffect(() => {
     return () => {
@@ -109,18 +130,18 @@ export default function Blog(props: BlogProps) {
         />
       </Head>
       <AppLayout>
-        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 mx-[-0.5rem] mt-[-0.5rem] sm:mx-auto sm:mb-12 sm:mt-2">
+        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 mx-[-0.5rem] mt-[-0.5rem] sm:mx-auto sm:mb-12 sm:mt-2 max-w-[600px]">
           <div className="flex w-full mb-6 gap-x-2">
             <div className="flex-1 relative">
               <Input
                 placeholder={tBlog('search')}
-                className="flex-1 rounded-full !pl-9"
+                className="flex-1 rounded-full !pl-8 h-9 text-[0.85rem]"
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
               <Search
                 className={cx(
-                  'absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400',
+                  'absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400',
                   {
                     'animate-pulse': isSearching,
                   },
@@ -137,39 +158,51 @@ export default function Blog(props: BlogProps) {
               </div>
             )}
           </div>
-          <div className="mx-2 mt-2 sm:mt-7 flex flex-col">
+          <div className="mx-2 mt-2 sm:mt-8">
             {!isSearching && blogs.length === 0 && (
-              <span className="opacity-60">{t('noBlog')}</span>
+              <span className="opacity-60 text-sm">{t('noBlog')}</span>
             )}
-            {blogs.map((blog, idx) => (
-              <div key={blog.key} className="flex flex-col">
-                <a
-                  className="flex items-center gap-x-1 cursor-pointer no-underline"
-                  onClick={() => handleClickLink(blog)}
+            {sortedYear.map((year) => (
+              <div key={year} className="flex mb-8 sm:mb-12">
+                <span
+                  className={cx(
+                    'mr-16 sm:mr-32 relative text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100',
+                    groupedBlogsByYear?.[year]?.length > 1 ? 'top-0' : 'top-1',
+                  )}
                 >
-                  <span className="!m-0 text-base sm:text-lg">
-                    {blog.title}
-                  </span>
-                  {blog.hasPublished === false && (
-                    <Badge className="!bg-neutral-200 !text-neutral-600 dark:!bg-neutral-700 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
-                      Draft
-                    </Badge>
-                  )}
-                  {blog.hidden2Public && (
-                    <Badge className="!bg-neutral-200 !text-neutral-600 dark:!bg-neutral-700 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
-                      Non-Public
-                    </Badge>
-                  )}
-                </a>
-                <span className="text-sm opacity-70">
-                  {time.format(blog.time, 'date')}
-                  {blog.keywords?.map((k, _i) => (
-                    <span key={k}>{` #${k}`}</span>
-                  ))}
+                  {year}
                 </span>
-                {idx !== blogs.length - 1 && (
-                  <div className="w-full h-[1px] bg-neutral-200 dark:bg-neutral-800 my-3" />
-                )}
+                <div className="flex flex-col gap-y-3 sm:gap-y-4">
+                  {groupedBlogsByYear?.[year].map?.((blog, _idx) => (
+                    <div key={blog.key} className="flex flex-col">
+                      <a
+                        className="flex items-center gap-x-1 cursor-pointer no-underline"
+                        onClick={() => handleClickLink(blog)}
+                      >
+                        <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
+                          {blog.title}
+                        </span>
+                        {blog.hasPublished === false && (
+                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                            Draft
+                          </Badge>
+                        )}
+                        {blog.hidden2Public && (
+                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                            Non-Public
+                          </Badge>
+                        )}
+                      </a>
+                      <span className="text-xs mt-[0.05rem] sm:mt-0 font-medium opacity-60">
+                        {time.format(blog.time, 'dateWithoutYear')}
+                        {blog.keywords?.length ? ', ' : ''}
+                        {blog.keywords?.map((k, _i) => (
+                          <span key={k}>{` #${k}`}</span>
+                        ))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
