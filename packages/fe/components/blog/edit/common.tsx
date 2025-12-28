@@ -270,8 +270,11 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   }, [mode, content])
 
   useEffect(() => {
+    if (!meta?.blogId) {
+      return
+    }
     blogIdRef.current = meta.blogId
-  }, [meta.blogId])
+  }, [meta?.blogId])
 
   return (
     <>

@@ -127,9 +127,6 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
   }, [idx, onIndexChange])
 
   useEffect(() => {
-    if (images?.length > 1 && !api) {
-      return
-    }
     let lightbox = new PhotoSwipeLightbox({
       gallery: '#' + galleryId,
       children: 'a',
@@ -141,14 +138,16 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
       bgOpacity: 0.95,
     })
     lightbox.init()
-    lightbox.on('contentActivate', (e) => {
+    const handlerFn = (e: any) => {
       if (typeof e?.content?.index === 'number') {
-        api.scrollTo(e.content.index, true)
+        api?.scrollTo?.(e.content.index, true)
       }
-    })
+    }
+    lightbox.on('contentActivate', handlerFn)
 
     return () => {
       lightbox.destroy()
+      lightbox.off('contentActivate', handlerFn)
       lightbox = null
     }
   }, [galleryId, api, images])

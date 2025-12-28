@@ -99,6 +99,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
             }))}
             markdown
             onIndexChange={setIdx}
+            autoLoop={false}
           />
         ) : (
           <div className="w-full flex justify-center">
@@ -191,7 +192,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         img: u,
       }))}
       caption={caption}
-      autoLoop
+      autoLoop={false}
       markdown
     />
   )
