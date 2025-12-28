@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useImagePreview } from '@hooks/useImagePreview'
 import { useLogin } from '@hooks/useLogin'
 import { http } from '@services/http'
 import { TrashResponseDto } from '@services/trash/types'
@@ -15,6 +14,8 @@ import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { Heart } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
+import photoswipe from 'photoswipe'
+import PhotoSwipeLightbox from 'photoswipe/lightbox'
 import { useEffect, useRef, useState } from 'react'
 import { CommentTrashForm } from './CommentTrashForm'
 import { TrashCommentAction, TrashComments } from './TrashComments'
@@ -35,12 +36,31 @@ const ImageSkeleton = () => (
 // 带骨架屏的图片组件
 const ImageWithSkeleton: React.FC<{
   src: string
+  originSrc: string
   alt: string
   className?: string
   onClick?: () => void
-}> = ({ src, alt, className, onClick }) => {
+  galleryId: string
+  idx: number
+}> = ({ src, originSrc, alt, className, onClick, galleryId, idx }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+
+  const [imgMeta, setImgMeta] = useState<{
+    width: number
+    height: number
+  } | null>(null)
+
+  useEffect(() => {
+    const i = new Image()
+    i.src = originSrc
+    i.onload = () => {
+      setImgMeta({
+        width: i.width,
+        height: i.height,
+      })
+    }
+  }, [originSrc])
 
   return (
     <div
@@ -50,19 +70,29 @@ const ImageWithSkeleton: React.FC<{
       onClick={onClick}
     >
       {loading && <ImageSkeleton />}
-      <img
-        src={src}
-        alt={alt}
-        className={`${className} ${
-          loading ? 'opacity-0' : 'opacity-100'
-        } transition-opacity duration-200`}
-        loading="lazy"
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setLoading(false)
-          setError(true)
-        }}
-      />
+      <a
+        data-pswp-src={originSrc}
+        data-pswp-width={imgMeta?.width}
+        data-pswp-height={imgMeta?.height}
+        key={galleryId + '-' + idx}
+        target="_blank"
+        rel="noreferrer"
+        className="cursor-pointer"
+      >
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} ${
+            loading ? 'opacity-0' : 'opacity-100'
+          } transition-opacity duration-200`}
+          loading="lazy"
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false)
+            setError(true)
+          }}
+        />
+      </a>
       {error && !loading && (
         <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-700 rounded-md flex items-center justify-center">
           <span className="text-neutral-500 text-xs">Failed to load</span>
@@ -82,7 +112,7 @@ export function TrashItem({
   const { t } = useTranslation('trash')
   const { t: tCommon } = useTranslation('common')
   const { isLogin } = useLogin()
-  const imagePreview = useImagePreview()
+  // const imagePreview = useImagePreview()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [likeCount, setLikeCount] = useState(item.likeCount)
   const [isLiked, setIsLiked] = useState(item.isLiked)
@@ -90,22 +120,24 @@ export function TrashItem({
   const [showCommentForm, setShowCommentForm] = useState(false)
   const loading = useRef(false)
 
+  const galleryId = useRef(
+    (() => {
+      const urls = item.media.map((m) => m.imageUrl).join('')
+      let hash = 0
+      for (let i = 0; i < urls.length; i++) {
+        hash = (hash << 5) - hash + urls.charCodeAt(i)
+        hash = hash & hash
+      }
+      return `gallery-${Math.abs(hash).toString(36).replace(/[0-9]/g, '')}`
+    })(),
+  ).current
+
   // 当 item 的状态更新时，同步本地状态
   useEffect(() => {
     setLikeCount(item.likeCount)
     setIsLiked(item.isLiked)
     setComments(item.comments)
   }, [item.likeCount, item.isLiked, item.comments])
-
-  const handleImageClick = (index: number) => {
-    if (!item.media || item.media.length === 0) return
-
-    const previewImages = item.media.map((media) => ({
-      img: media.imageUrl,
-    }))
-
-    imagePreview.show(previewImages, index)
-  }
 
   const handleLike = async () => {
     if (loading.current) return
@@ -196,6 +228,25 @@ export function TrashItem({
     }
   }
 
+  useEffect(() => {
+    let lightbox = new PhotoSwipeLightbox({
+      gallery: '#' + galleryId,
+      children: 'a',
+      pswpModule: photoswipe,
+      zoom: false,
+      close: false,
+      arrowPrev: false,
+      arrowNext: false,
+      bgOpacity: 0.95,
+    })
+    lightbox.init()
+
+    return () => {
+      lightbox.destroy()
+      lightbox = null
+    }
+  }, [galleryId])
+
   return (
     <div className="py-4 border-b border-neutral-100 dark:border-neutral-950 last:border-b-0">
       <div className="space-y-2">
@@ -208,16 +259,20 @@ export function TrashItem({
 
         {/* 图片 */}
         {item.media && item.media.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-2 gap-x-1.5 mr-12">
-            {item.media.map((media, index) => (
-              <ImageWithSkeleton
-                key={index}
-                src={getCompressImage(media.imageUrl, 180)}
-                alt={`Media ${index + 1}`}
-                className="w-full h-full object-cover rounded-md bg-neutral-100 dark:bg-neutral-800"
-                onClick={() => handleImageClick(index)}
-              />
-            ))}
+          <div className="pswp-gallery" id={galleryId}>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 gap-x-1.5 mr-12">
+              {item.media.map((media, index) => (
+                <ImageWithSkeleton
+                  idx={index}
+                  galleryId={galleryId}
+                  key={index}
+                  src={getCompressImage(media.imageUrl, 180)}
+                  originSrc={media.imageUrl}
+                  alt={`Media ${index + 1}`}
+                  className="w-full h-full object-cover rounded-md bg-neutral-100 dark:bg-neutral-800"
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -283,9 +338,6 @@ export function TrashItem({
         {/* 评论区域 */}
         <TrashComments comments={comments} onAction={handleCommentAction} />
       </div>
-
-      {/* 图片预览组件 */}
-      {imagePreview.component}
 
       {/* 删除确认对话框 */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
