@@ -24,7 +24,7 @@ const Wrapped25: ReactMdxComponent<IWrapped25> = (nodes) => {
             {' '}
             10,000+ km
           </Highlighter>{' '}
-          ，更换 Michelin Pilot Sport 4 19{`'`} 轮胎
+          ，更换 Michelin Pilot Sport 4 18{`'`} 轮胎
           <Highlighter action="underline" color="#0073FF">
             共 2 个
           </Highlighter>{' '}
