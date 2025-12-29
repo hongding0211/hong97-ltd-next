@@ -25,6 +25,14 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
   /**
    * Following components are examples of lazy-loaded components
    */
+  'lazy.wrapped25': {
+    lazy: true,
+    displayName: 'Wrapped25',
+    defaultProps: {
+      type: '0',
+    },
+    lazyLoader: () => import('../../lazy/wrapped25'),
+  },
   'lazy.foo': {
     lazy: true,
     displayName: 'Lazy Foo',
