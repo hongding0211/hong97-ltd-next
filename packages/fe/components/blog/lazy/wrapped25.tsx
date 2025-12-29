@@ -40,7 +40,7 @@ const Wrapped25: ReactMdxComponent<IWrapped25> = (nodes) => {
           <Highlighter action="underline" color="#0073FF">
             ¥2,000
           </Highlighter>{' '}
-          元人名币。
+          元人民币。
         </h5>
 
         <h5 className="!mb-6">
