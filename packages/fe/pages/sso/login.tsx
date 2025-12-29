@@ -65,7 +65,13 @@ const Uploader: React.FC = () => {
       return
     }
     setLoading(true)
-    uploadFile2Oss(croppedImgFile.current, 'sso')
+    uploadFile2Oss(croppedImgFile.current, 'sso', {
+      compress2Webp: true,
+      compress2WebpOpt: {
+        quality: 0.9,
+        maxWidth: 1024,
+      },
+    })
       .then((p) => {
         if (!p) {
           return

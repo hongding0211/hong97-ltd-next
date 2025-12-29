@@ -85,7 +85,13 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
 
             executePromisesWithLimit(
               imagesToUpload.map((imageItem) => ({
-                promise: uploadFile2Oss(imageItem.file!, 'trash'),
+                promise: uploadFile2Oss(imageItem.file!, 'trash', {
+                  compress2Webp: true,
+                  compress2WebpOpt: {
+                    quality: 0.9,
+                    maxWidth: 2500,
+                  },
+                }),
                 onFulfilled: (url: string) => {
                   uploadedUrls.push(url)
                   setImages((prev) =>

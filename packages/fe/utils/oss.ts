@@ -55,8 +55,26 @@ export async function convertImageToWebP(
   })
 }
 
-export async function uploadFile2Oss(file: File, app?: string) {
+export async function uploadFile2Oss(
+  _file: File,
+  app?: string,
+  opts?: {
+    compress2Webp?: boolean
+    compress2WebpOpt?: {
+      quality?: number
+      maxWidth?: number
+    }
+  },
+) {
   try {
+    let file = _file
+    if (opts?.compress2Webp) {
+      file = await convertImageToWebP(
+        _file,
+        opts?.compress2WebpOpt?.quality,
+        opts?.compress2WebpOpt?.maxWidth,
+      )
+    }
     const preUpload = await http.post('PostRequestUpload', {
       fileName: file.name,
       contentType: 'application/octet-stream',
