@@ -58,7 +58,7 @@ function About() {
               <Link
                 className="hover:opacity-70"
                 target="_blank"
-                href="https://www.xiaohongshu.com/user/profile/5b4cb655f7e8b918f05ca063"
+                href="https://github.com/hongding0211"
               >
                 {t('github')}
               </Link>
