@@ -1,14 +1,14 @@
 {
   "title": "About Me",
-  "p1": "Front-End developer @ ByteDance,",
-  "p2": "Enjoy design and coding.",
-  "p3": "Own two cats, a Model 3 without brakes.",
-  "p4": "React Native, React, Vue, Node.js, TypeScript",
+  "p1": "Web developer @ Bytedance with a passion for design and code. Own two cats, and a Model 3 without brakes.",
   "c1": "LinMeihua, a bitchy American Shorthair. LinMiaoka, a domestic short-haired cat.",
-  "email": "Email",
-  "wechat": "WeChat",
-  "h1": "About This Website",
-  "h2": "Tech Stack",
-  "design": "Design",
-  "banner": "Click to Check My 2024 Summary"
+  "xhs": "Xiaohongshu",
+  "github": "GitHub",
+  "career": "Career",
+  "present": "Present",
+  "douyin": "Douyin Live, Bytedance",
+  "xhsStore": "E-commerce, Xiaohongshu",
+  "profile": "Profile",
+  "mbti": "MBTI",
+  "contactMe": "Contact me"
 }

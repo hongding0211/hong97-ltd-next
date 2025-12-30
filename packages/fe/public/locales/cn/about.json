@@ -1,14 +1,14 @@
 {
   "title": "关于我",
-  "p1": "前端切图仔 @ 字节跳动，",
-  "p2": "喜欢 Coding，做好看的东西。",
-  "p3": "有两只猫，开着一辆没有刹车的 Model 3。",
-  "p4": "React Native, React, Vue, Node.js, TypeScript",
+  "p1": "前端切图仔 @ 字节跳动。喜欢做好看的东西 & 写点代码。有两只猫，和一辆没有刹车的 Model 3。",
   "c1": "林美花，一只很贱的美短；林妙卡，貌似是金渐 & 狸花的串？",
-  "email": "邮箱",
-  "wechat": "微信",
-  "h1": "关于本站",
-  "h2": "技术栈",
-  "design": "设计",
-  "banner": "点击查看我的 2024 年度报告"
+  "xhs": "小红书",
+  "github": "GitHub",
+  "career": "职业生涯",
+  "present": "现在",
+  "douyin": "抖音直播，字节跳动",
+  "xhsStore": "电商交易，小红书",
+  "profile": "个人信息",
+  "mbti": "MBTI",
+  "contactMe": "联系我"
 }

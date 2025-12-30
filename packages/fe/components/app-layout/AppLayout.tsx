@@ -22,6 +22,7 @@ interface IAppLayout {
   children?: React.ReactNode
   simplifiedFooter?: boolean
   authRequired?: boolean
+  className?: string
 }
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
@@ -243,7 +244,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
       )}
 
       <div className="app-layout-content flex flex-col justify-between min-h-screen">
-        <div className="p-5">
+        <div className={`p-5 ${props.className || ''}`}>
           {!props?.authRequired && props.children}
           {props?.authRequired &&
             (isLogin ? props.children : fallbackComponent)}
