@@ -115,7 +115,7 @@ function About() {
             </div>
           </div>
         </div>
-        <div className="sticky bottom-0 w-full h-[12svh] mx-[-3rem]">
+        <div className="sticky bottom-0 w-svw h-[12svh] mx-[-1.25rem]">
           <ProgressiveBlur height="100%" />
         </div>
       </AppLayout>
