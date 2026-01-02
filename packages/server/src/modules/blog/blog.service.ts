@@ -5,8 +5,10 @@ import { Model } from 'mongoose'
 import pinyin from 'pinyin'
 import { MockNames } from 'src/common/assets/mock-names'
 import { GeneralException } from 'src/exceptions/general-exceptions'
+import { truncate } from 'src/utils/truncate'
 import { v4 as uuidv4 } from 'uuid'
 import { AuthService } from '../auth/auth.service'
+import { BarkService } from '../bark/bark.service'
 import { UserService } from '../user/user.service'
 import {
   BlogDto,
@@ -28,6 +30,7 @@ export class BlogService {
     @InjectModel(Blog.name) private blogModel: Model<BlogDocument>,
     private userService: UserService,
     private authService: AuthService,
+    private barkService: BarkService,
   ) {}
 
   private async createBlog(meta: {
@@ -124,6 +127,11 @@ export class BlogService {
 
     await blog.save()
 
+    this.barkService.push(
+      'Blog Liked ❤️',
+      `"${blog.title}" has a new like! Total likes: ${blog.likeHistory.length}`,
+    )
+
     return this.meta(likeDto, userId)
   }
 
@@ -165,6 +173,11 @@ export class BlogService {
     })
 
     await blog.save()
+
+    this.barkService.push(
+      'New Comment 📝',
+      `"${blog.title}" has a new comment: ${truncate(content, 12)}`,
+    )
 
     return blog
   }
@@ -346,7 +359,9 @@ export class BlogService {
       throw new GeneralException('blog.commentNotFound')
     }
 
-    if (comment.userId !== userId) {
+    const isAdmin = this.authService.isAdmin(userId ?? '-1')
+
+    if (!isAdmin && comment.userId !== userId) {
       throw new GeneralException('blog.commentNotAuthor')
     }
 

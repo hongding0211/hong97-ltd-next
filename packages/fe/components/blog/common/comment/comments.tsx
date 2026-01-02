@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import Avatar from '@components/common/Avatar'
-import { useLogin } from '@hooks/useLogin'
+import { useUser } from '@hooks/useUser'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { time as timeUtil } from '@utils/time'
 import { useTranslation } from 'next-i18next'
@@ -29,12 +29,14 @@ const Comment: React.FC<
 
   const [showDialog, setShowDialog] = useState(false)
 
-  const { user: currentUser } = useLogin()
+  const currentUser = useUser()
 
   const { t } = useTranslation('blog')
   const { t: tCommon } = useTranslation('common')
 
-  const showDelete = user?.userId && currentUser?.userId === user.userId
+  const showDelete =
+    (user?.userId && currentUser?.userId === user.userId) ||
+    currentUser?.isAdmin
 
   return (
     <>

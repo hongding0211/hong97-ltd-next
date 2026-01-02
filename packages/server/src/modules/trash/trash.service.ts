@@ -3,8 +3,10 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { MockNames } from 'src/common/assets/mock-names'
 import { GeneralException } from 'src/exceptions/general-exceptions'
+import { truncate } from 'src/utils/truncate'
 import { v4 as uuidv4 } from 'uuid'
 import { PaginationResponseDto } from '../../dtos/pagination.dto'
+import { BarkService } from '../bark/bark.service'
 import { UserService } from '../user/user.service'
 import { CommentTrashDto } from './dto/comment-trash.dto'
 import { CreateTrashDto } from './dto/create-trash.dto'
@@ -19,6 +21,7 @@ export class TrashService {
   constructor(
     @InjectModel(Trash.name) private trashModel: Model<TrashDocument>,
     private userService: UserService,
+    private barkService: BarkService,
   ) {}
 
   async create(createTrashDto: CreateTrashDto): Promise<TrashResponseDto> {
@@ -110,6 +113,12 @@ export class TrashService {
     }
 
     await trash.save()
+    this.barkService.push(
+      'Trash Liked ❤️',
+      `"${
+        truncate(trash?.content ?? '', 12) || 'Trash'
+      }" has a new like! Total likes: ${trash.likeHistory.length}`,
+    )
     return this.toResponseDto(trash, userId)
   }
 
@@ -155,6 +164,13 @@ export class TrashService {
 
     trash.comments.push(comment)
     await trash.save()
+
+    this.barkService.push(
+      'New Trash Comment 📝',
+      `"${
+        truncate(trash?.content ?? '', 12) || 'Trash'
+      }" has a new comment: ${truncate(content, 12)}`,
+    )
 
     return this.toResponseDto(trash, userId)
   }

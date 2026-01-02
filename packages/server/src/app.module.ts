@@ -13,6 +13,7 @@ import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
 import { StructuredResponseInterceptor } from './interceptors/response/structured-response'
 import { AuthModule } from './modules/auth/auth.module'
+import { BarkModule } from './modules/bark/bark.module'
 import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
 import { ShortLinkModule } from './modules/shortlink/shortlink.module'
@@ -66,6 +67,7 @@ import { UserModule } from './modules/user/user.module'
     }),
     /** Global Modules */
     UserModule,
+    BarkModule,
     /** General Modules */
     AuthModule,
     OssModule,
