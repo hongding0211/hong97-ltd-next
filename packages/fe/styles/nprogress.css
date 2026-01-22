@@ -6,7 +6,6 @@
 }
 
 #nprogress .bar {
-  background: #181818; /* Dark gray for light mode */
   position: fixed;
   z-index: 9999;
   top: 0;
@@ -15,10 +14,16 @@
   height: 2px;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
+.light {
   #nprogress .bar {
-    background: #d4d4d4; /* Light gray for dark mode */
+    background: #181818;
+  }
+}
+
+/* Dark mode support */
+.dark {
+  #nprogress .bar {
+    background: #d4d4d4;
   }
 }
 
@@ -29,12 +34,17 @@
   right: 0px;
   width: 100px;
   height: 100%;
-  box-shadow: 0 0 10px rgba(64, 64, 64, 0.5), 0 0 5px rgba(64, 64, 64, 0.5);
   opacity: 1;
   transform: rotate(3deg) translate(0px, -4px);
 }
 
-@media (prefers-color-scheme: dark) {
+.light {
+  #nprogress .peg {
+    box-shadow: 0 0 10px rgba(64, 64, 64, 0.5), 0 0 5px rgba(64, 64, 64, 0.5);
+  }
+}
+
+.dark {
   #nprogress .peg {
     box-shadow: 0 0 10px rgba(212, 212, 212, 0.5), 0 0 5px rgba(212, 212, 212, 0.5);
   }

@@ -55,12 +55,8 @@ function About() {
                 'underline',
               )}
             >
-              <Link
-                className="hover:opacity-70"
-                target="_blank"
-                href="https://github.com/hongding0211"
-              >
-                {t('github')}
+              <Link className="hover:opacity-70" href="/blog">
+                {t('blog')}
               </Link>
               <Link
                 className="hover:opacity-70"
@@ -68,6 +64,13 @@ function About() {
                 href="https://www.xiaohongshu.com/user/profile/5b4cb655f7e8b918f05ca063"
               >
                 {t('xhs')}
+              </Link>
+              <Link
+                className="hover:opacity-70"
+                target="_blank"
+                href="https://github.com/hongding0211"
+              >
+                {t('github')}
               </Link>
             </div>
           </div>
