@@ -6,11 +6,16 @@ import React from 'react'
 
 import { ProgressiveBlur } from '@/components/ui/progressive-blur'
 import { TypingAnimation } from '@/components/ui/typing-animation'
+import { useUser } from '@hooks/useUser'
 import Link from 'next/link'
 import AppLayout from '../../components/app-layout/AppLayout'
 
 function About() {
   const { t } = useTranslation('about')
+
+  const user = useUser()
+
+  const userName = user?.profile?.name
 
   return (
     <>
@@ -27,21 +32,31 @@ function About() {
           )}
         >
           <div className={cx('mt-[28svh] sm:mt-[35svh]')}>
-            <span className="text-[2.5rem] ml-[-0.4rem]">👋 </span>
+            <span
+              className={cx(
+                'ml-[-0.4rem]',
+                userName ? 'text-[2rem]' : 'text-[2.5rem]',
+              )}
+            >
+              👋{' '}
+            </span>
             <TypingAnimation
-              className="text-[2.5rem] font-bold"
+              className={cx(
+                'font-bold',
+                userName ? 'text-[2rem]' : 'text-[2.5rem]',
+              )}
               cursorStyle="underscore"
               startOnView={false}
               blinkCursor
               loop
               words={[
-                'Hey there!',
-                '你好!',
-                'Hola!',
-                'こんにちは!',
-                'Bonjour!',
-                '안녕하세요!',
-              ]}
+                'Hey there',
+                '你好',
+                'Hola',
+                'こんにちは',
+                'Bonjour',
+                '안녕하세요',
+              ].map((e) => e + (userName ? `, ${userName}!` : '!'))}
             />
 
             <p className="mt-[2rem]">{t('p1')}</p>
