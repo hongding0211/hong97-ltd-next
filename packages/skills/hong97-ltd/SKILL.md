@@ -9,8 +9,8 @@ Use this skill for API work in `hong97-ltd-next`.
 
 ## Context
 
-- Backend default port: `3001`
-- Frontend default port: `3000`
+- Site URL: `https://hong97.ltd`
+- API base URL: `https://hong97.ltd/api`
 - Most server responses are wrapped as `{ "isSuccess": true, "data": ... }` or `{ "isSuccess": false, "msg": "...", "errCode": ..., "data": null }`.
 
 Auth accepts either:
@@ -51,7 +51,7 @@ Local email login:
 curl -i -c /tmp/hong97-cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"type":"local","credentials":{"email":"user@example.com","password":"password123"}}' \
-  http://localhost:3001/auth/login
+  https://hong97.ltd/api/auth/login
 ```
 
 Phone login:
@@ -69,7 +69,7 @@ Phone login:
 Session check:
 
 ```bash
-curl -b /tmp/hong97-cookies.txt http://localhost:3001/auth/info
+curl -b /tmp/hong97-cookies.txt https://hong97.ltd/api/auth/info
 ```
 
 Do not print real passwords, tokens, or cookies in final answers.
@@ -101,13 +101,13 @@ List query:
 Fetch list:
 
 ```bash
-curl 'http://localhost:3001/trash/list?page=1&pageSize=10'
+curl 'https://hong97.ltd/api/trash/list?page=1&pageSize=10'
 ```
 
 Fetch detail:
 
 ```bash
-curl 'http://localhost:3001/trash/detail/665000000000000000000000'
+curl 'https://hong97.ltd/api/trash/detail/665000000000000000000000'
 ```
 
 Create trash:
@@ -116,7 +116,7 @@ Create trash:
 curl -b /tmp/hong97-cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"content":"short text","tags":["life"]}' \
-  http://localhost:3001/trash/create
+  https://hong97.ltd/api/trash/create
 ```
 
 Create body:
@@ -135,7 +135,7 @@ Like:
 curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{"trashId":"665000000000000000000000"}' \
-  http://localhost:3001/trash/like
+  https://hong97.ltd/api/trash/like
 ```
 
 Comment:
@@ -144,7 +144,7 @@ Comment:
 curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{"trashId":"665000000000000000000000","content":"nice","anonymous":true}' \
-  http://localhost:3001/trash/comment/append
+  https://hong97.ltd/api/trash/comment/append
 ```
 
 Use cookies for optional-auth routes when `isLiked` should reflect the current user.
@@ -181,15 +181,15 @@ List query:
 Fetch blogs:
 
 ```bash
-curl 'http://localhost:3001/blog/list?page=1&pageSize=10'
+curl 'https://hong97.ltd/api/blog/list?page=1&pageSize=10'
 ```
 
 Fetch metadata, content, and comments:
 
 ```bash
-curl 'http://localhost:3001/blog/meta?blogId=my-blog-id'
-curl 'http://localhost:3001/blog/content?blogId=my-blog-id'
-curl 'http://localhost:3001/blog/comments?blogId=my-blog-id'
+curl 'https://hong97.ltd/api/blog/meta?blogId=my-blog-id'
+curl 'https://hong97.ltd/api/blog/content?blogId=my-blog-id'
+curl 'https://hong97.ltd/api/blog/comments?blogId=my-blog-id'
 ```
 
 Record view, like, and comment:
@@ -197,15 +197,15 @@ Record view, like, and comment:
 ```bash
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id"}' \
-  http://localhost:3001/blog/view
+  https://hong97.ltd/api/blog/view
 
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id"}' \
-  http://localhost:3001/blog/like
+  https://hong97.ltd/api/blog/like
 
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id","content":"nice post","anonymous":true}' \
-  http://localhost:3001/blog/comment
+  https://hong97.ltd/api/blog/comment
 ```
 
 Root-only authoring:
@@ -214,17 +214,17 @@ Root-only authoring:
 curl -b /tmp/hong97-cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"title":"New post","keywords":["note"],"coverImg":"https://example.com/cover.jpg"}' \
-  http://localhost:3001/blog/new2
+  https://hong97.ltd/api/blog/new2
 
 curl -X PUT -b /tmp/hong97-cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id","blogTitle":"Updated title","keywords":["note"],"hasPublished":true}' \
-  http://localhost:3001/blog/meta
+  https://hong97.ltd/api/blog/meta
 
 curl -X POST -b /tmp/hong97-cookies.txt \
   -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id","content":"# Markdown or MDX content"}' \
-  http://localhost:3001/blog/content
+  https://hong97.ltd/api/blog/content
 ```
 
 In list responses, the blog id is named `key`; in metadata/content APIs it is named `blogId`.
