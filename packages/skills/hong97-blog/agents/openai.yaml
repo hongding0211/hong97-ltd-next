@@ -1,0 +1,3 @@
+display_name: "Hong97 Blog"
+short_description: "Fetch and manage hong97 blog posts."
+default_prompt: "Use $hong97-blog to fetch blog list and content from the local API."
