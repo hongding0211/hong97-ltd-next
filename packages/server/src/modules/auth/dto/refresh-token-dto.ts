@@ -1,3 +1,5 @@
 export class RefreshTokenDto {
-  token: string
+  accessToken!: string
+  accessTokenExpiresIn!: string
+  refreshTokenExpiresIn!: string
 }

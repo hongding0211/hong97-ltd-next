@@ -30,6 +30,21 @@ export const useAppStore = create<AppStore & AppStoreAction>((set) => {
         if (initialUser) {
           set({ user: initialUser })
         } else {
+          try {
+            const response = await http.get('GetInfo', undefined, {
+              ignoreUnauthorized: true,
+            })
+            if (response.isSuccess) {
+              set({ user: response.data })
+              return
+            }
+          } catch {
+            // Try to restore the session with the refresh cookie below.
+          }
+
+          await http.post('PostRefreshToken', undefined, undefined, {
+            ignoreUnauthorized: true,
+          })
           const response = await http.get('GetInfo', undefined, {
             ignoreUnauthorized: true,
           })
@@ -37,9 +52,6 @@ export const useAppStore = create<AppStore & AppStoreAction>((set) => {
             set({ user: response.data })
           }
         }
-
-        // refresh access token
-        await http.get('GetRefreshToken')
       } catch {
         // noop
       } finally {

@@ -21,7 +21,7 @@ export type AuthAPIS = {
     typeof ModifyPasswordDto,
     typeof UserResponseDto
   >
-  GetRefreshToken: API<undefined, undefined, typeof RefreshTokenDto>
+  PostRefreshToken: API<undefined, undefined, typeof RefreshTokenDto>
   GetHasLocalAuth: API<undefined, undefined, typeof HasLocalAuthResponseDto>
   GetIsAdmin: API<undefined, undefined, IsAdminResponseDto>
   PostLogout: API<undefined, undefined, null>

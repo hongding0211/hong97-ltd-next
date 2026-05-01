@@ -83,7 +83,7 @@ class Http {
     if (
       !isClient &&
       opts?.enableOnlyWithAuthInServerSide &&
-      !opts?.serverSideCtx?.req?.cookies?.token
+      !opts?.serverSideCtx?.req?.cookies?.accessToken
     ) {
       return true
     }

@@ -1,14 +1,15 @@
+import { createHash, randomBytes } from 'crypto'
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
 import * as bcrypt from 'bcrypt'
-import type { Response } from 'express'
+import type { CookieOptions, Request, Response } from 'express'
 import { Model } from 'mongoose'
-import { GeneralException } from 'src/exceptions/general-exceptions'
-import { ServiceResponse } from 'src/interceptors/response/types'
-import { parseJwtExpiresInToMs } from 'src/utils/time-parser'
 import { v4 as uuidv4 } from 'uuid'
+import { GeneralException } from '../../exceptions/general-exceptions'
+import { ServiceResponse } from '../../interceptors/response/types'
+import { parseJwtExpiresInToMs } from '../../utils/time-parser'
 import { User, UserDocument } from '../user/schema/user.schema'
 import { UserService } from '../user/user.service'
 import { HasLocalAuthResponseDto } from './dto/hasLocalAuth.dto'
@@ -27,11 +28,17 @@ import {
   RegisterDto,
 } from './dto/register.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import {
+  RefreshSession,
+  RefreshSessionDocument,
+} from './schema/refresh-session.schema'
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(RefreshSession.name)
+    private refreshSessionModel: Model<RefreshSessionDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private userService: UserService,
@@ -125,30 +132,184 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(user: UserDocument): Promise<string> {
+  private getAccessTokenExpiresIn(): string {
+    return (
+      this.configService.get<string>('auth.jwt.accessExpiresIn') ||
+      this.configService.get<string>('auth.jwt.expiresIn') ||
+      '15m'
+    )
+  }
+
+  private getRefreshTokenExpiresIn(): string {
+    return this.configService.get<string>('auth.jwt.refreshExpiresIn') || '30d'
+  }
+
+  private getAccessCookieName(): string {
+    return (
+      this.configService.get<string>('auth.cookies.accessTokenName') ||
+      'accessToken'
+    )
+  }
+
+  private getRefreshCookieName(): string {
+    return (
+      this.configService.get<string>('auth.cookies.refreshTokenName') ||
+      'refreshToken'
+    )
+  }
+
+  private getLegacyCookieName(): string {
+    return (
+      this.configService.get<string>('auth.cookies.legacyTokenName') || 'token'
+    )
+  }
+
+  private generateAccessToken(user: UserDocument): string {
     if (!user.userId) {
       throw new UnauthorizedException('User ID not found')
     }
 
     const payload = { sub: user.userId }
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<number>('auth.jwt.expiresIn'),
+    return this.jwtService.sign(payload, {
+      expiresIn: this.getAccessTokenExpiresIn() as any,
     })
-
-    return accessToken
   }
 
-  private setAuthCookie(res: Response, token: string): void {
-    const expiresIn =
-      this.configService.get<string>('auth.jwt.expiresIn') || '1d'
-    const maxAge = parseJwtExpiresInToMs(expiresIn)
+  private getCookieOptions(expiresIn: string, path = '/'): CookieOptions {
+    const sameSite =
+      this.configService.get<'strict' | 'lax' | 'none'>(
+        'auth.cookies.sameSite',
+      ) || 'strict'
 
-    res.cookie('token', token, {
+    return {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: maxAge,
+      secure:
+        this.configService.get<boolean>('auth.cookies.secure') ||
+        process.env.NODE_ENV === 'production',
+      sameSite,
+      maxAge: parseJwtExpiresInToMs(expiresIn),
+      path,
+    }
+  }
+
+  private getClearCookieOptions(path = '/'): CookieOptions {
+    const sameSite =
+      this.configService.get<'strict' | 'lax' | 'none'>(
+        'auth.cookies.sameSite',
+      ) || 'strict'
+
+    return {
+      httpOnly: true,
+      secure:
+        this.configService.get<boolean>('auth.cookies.secure') ||
+        process.env.NODE_ENV === 'production',
+      sameSite,
+      path,
+    }
+  }
+
+  private setAccessTokenCookie(res: Response, accessToken: string): void {
+    res.cookie(
+      this.getAccessCookieName(),
+      accessToken,
+      this.getCookieOptions(this.getAccessTokenExpiresIn()),
+    )
+  }
+
+  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    res.cookie(
+      this.getRefreshCookieName(),
+      refreshToken,
+      this.getCookieOptions(this.getRefreshTokenExpiresIn()),
+    )
+  }
+
+  private clearAuthCookies(res: Response): void {
+    res.clearCookie(this.getAccessCookieName(), this.getClearCookieOptions())
+    res.clearCookie(this.getRefreshCookieName(), this.getClearCookieOptions())
+    res.clearCookie(this.getLegacyCookieName(), this.getClearCookieOptions())
+  }
+
+  private generateRefreshToken(sessionId = uuidv4()): string {
+    return `${sessionId}.${randomBytes(32).toString('base64url')}`
+  }
+
+  private hashRefreshToken(refreshToken: string): string {
+    return createHash('sha256').update(refreshToken).digest('hex')
+  }
+
+  private getRefreshSessionId(refreshToken: string): string {
+    const [sessionId, tokenPart] = refreshToken.split('.')
+    if (!sessionId || !tokenPart) {
+      throw new UnauthorizedException('Invalid refresh token')
+    }
+    return sessionId
+  }
+
+  private getRefreshExpiresAt(): Date {
+    return new Date(
+      Date.now() + parseJwtExpiresInToMs(this.getRefreshTokenExpiresIn()),
+    )
+  }
+
+  private async createRefreshSession(userId: string): Promise<string> {
+    const refreshToken = this.generateRefreshToken()
+    await this.refreshSessionModel.create({
+      sessionId: this.getRefreshSessionId(refreshToken),
+      userId,
+      tokenHash: this.hashRefreshToken(refreshToken),
+      expiresAt: this.getRefreshExpiresAt(),
+      revokedAt: null,
+      rotatedAt: null,
     })
+    return refreshToken
+  }
+
+  private async rotateRefreshSession(
+    session: RefreshSessionDocument,
+  ): Promise<string> {
+    const refreshToken = this.generateRefreshToken(session.sessionId)
+    session.tokenHash = this.hashRefreshToken(refreshToken)
+    session.expiresAt = this.getRefreshExpiresAt()
+    session.rotatedAt = new Date()
+    session.revokedAt = null
+    await session.save()
+    return refreshToken
+  }
+
+  private async revokeRefreshSession(
+    session: RefreshSessionDocument,
+  ): Promise<void> {
+    if (!session.revokedAt) {
+      session.revokedAt = new Date()
+      await session.save()
+    }
+  }
+
+  private extractRefreshToken(req?: Request): string | undefined {
+    return req?.cookies?.[this.getRefreshCookieName()]
+  }
+
+  private async validateRefreshSession(
+    refreshToken?: string,
+  ): Promise<RefreshSessionDocument> {
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided')
+    }
+
+    const sessionId = this.getRefreshSessionId(refreshToken)
+    const session = await this.refreshSessionModel.findOne({ sessionId })
+
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException('Invalid or expired refresh token')
+    }
+
+    if (session.tokenHash !== this.hashRefreshToken(refreshToken)) {
+      await this.revokeRefreshSession(session)
+      throw new UnauthorizedException('Invalid refresh token')
+    }
+
+    return session
   }
 
   private async loginWithLocal(credentials: LocalLoginDto, res?: Response) {
@@ -182,14 +343,19 @@ export class AuthService {
     user.lastLoginAt = new Date()
     await user.save()
 
-    const token = await this.generateTokens(user)
+    const accessToken = this.generateAccessToken(user)
+    const refreshToken = await this.createRefreshSession(user.userId)
 
     if (res) {
-      this.setAuthCookie(res, token)
+      this.clearAuthCookies(res)
+      this.setAccessTokenCookie(res, accessToken)
+      this.setRefreshTokenCookie(res, refreshToken)
     }
 
     return {
-      token,
+      accessToken,
+      accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
+      refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
       user: this.userService.mapUserToResponse(user),
     }
   }
@@ -213,21 +379,47 @@ export class AuthService {
     }
   }
 
-  async refreshToken(userId: string, res?: Response): Promise<RefreshTokenDto> {
-    const user = await this.userModel.findOne({ userId })
+  async refreshToken(req?: Request, res?: Response): Promise<RefreshTokenDto> {
+    const session = await this.validateRefreshSession(
+      this.extractRefreshToken(req),
+    )
+    const user = await this.userModel.findOne({ userId: session.userId })
     if (!user) {
       throw new UnauthorizedException('User not found')
     }
 
-    const token = await this.generateTokens(user)
+    const accessToken = this.generateAccessToken(user)
+    const refreshToken = await this.rotateRefreshSession(session)
 
     if (res) {
-      this.setAuthCookie(res, token)
+      this.clearAuthCookies(res)
+      this.setAccessTokenCookie(res, accessToken)
+      this.setRefreshTokenCookie(res, refreshToken)
     }
 
     return {
-      token,
+      accessToken,
+      accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
+      refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
     }
+  }
+
+  async logout(req?: Request, res?: Response): Promise<Record<string, never>> {
+    const refreshToken = this.extractRefreshToken(req)
+    if (refreshToken) {
+      try {
+        const session = await this.validateRefreshSession(refreshToken)
+        await this.revokeRefreshSession(session)
+      } catch {
+        // Logout is best-effort; stale refresh credentials should still be cleared.
+      }
+    }
+
+    if (res) {
+      this.clearAuthCookies(res)
+    }
+
+    return {}
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {

@@ -5,15 +5,24 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { User, UserSchema } from '../user/schema/user.schema'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
+import {
+  RefreshSession,
+  RefreshSessionSchema,
+} from './schema/refresh-session.schema'
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: RefreshSession.name, schema: RefreshSessionSchema },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get('auth.jwt.secret'),
-        signOptions: { expiresIn: configService.get('auth.jwt.expiresIn') },
+        signOptions: {
+          expiresIn: configService.get('auth.jwt.accessExpiresIn') as any,
+        },
       }),
       inject: [ConfigService],
     }),

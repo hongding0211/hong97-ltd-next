@@ -109,9 +109,9 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
               /** If a redirect url is provided, redirect to it */
               window.location.href = redirect
             } else {
-              /** Otherwise, append the token to the current url */
+              /** Otherwise, append the access token to the current url */
               const url = new URL(window.location.href)
-              window.location.href = `${url}#${loginRes.data.token}`
+              window.location.href = `${url}#${loginRes.data.accessToken}`
               set({
                 showRedirecting: true,
                 avatar: loginRes.data.user.profile.avatar ?? '',

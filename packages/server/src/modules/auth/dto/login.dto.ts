@@ -21,34 +21,36 @@ export class LocalLoginDto {
 
   @IsString()
   @MinLength(6)
-  password: string
+  password!: string
 }
 
 export class PhoneLoginDto {
   @IsPhoneNumber()
-  phoneNumber: string
+  phoneNumber!: string
 
   @IsString()
-  verificationCode: string
+  verificationCode!: string
 }
 
 export class OAuthLoginDto {
   @IsString()
-  provider: string
+  provider!: string
 
   @IsString()
-  accessToken: string
+  accessToken!: string
 }
 
 export class LoginDto {
   @IsString()
-  type: LoginType
+  type!: LoginType
 
   @IsObject()
-  credentials: LocalLoginDto | PhoneLoginDto | OAuthLoginDto
+  credentials!: LocalLoginDto | PhoneLoginDto | OAuthLoginDto
 }
 
 export class LoginResponseDto {
-  token: string
-  user: UserResponseDto
+  accessToken!: string
+  accessTokenExpiresIn!: string
+  refreshTokenExpiresIn!: string
+  user!: UserResponseDto
 }

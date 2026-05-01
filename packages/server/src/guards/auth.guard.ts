@@ -52,8 +52,11 @@ export class AuthGuard implements CanActivate {
 
   private extractToken(request: any): string | undefined {
     // 优先从 cookie 读取
-    if (request.cookies?.token) {
-      return request.cookies.token
+    const accessCookieName =
+      this.configService.get<string>('auth.cookies.accessTokenName') ||
+      'accessToken'
+    if (request.cookies?.[accessCookieName]) {
+      return request.cookies[accessCookieName]
     }
 
     // 回退到 Authorization header

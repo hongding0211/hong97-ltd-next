@@ -6,10 +6,11 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Req,
   Res,
 } from '@nestjs/common'
-import type { Response } from 'express'
-import { UserId } from 'src/decorators/user-id.decorator'
+import type { Request, Response } from 'express'
+import { UserId } from '../../decorators/user-id.decorator'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { ModifyPasswordDto } from './dto/modify-password.dto'
@@ -41,13 +42,13 @@ export class AuthController {
     return this.authService.info(userId)
   }
 
-  @Get('refreshToken')
+  @Post('refreshToken')
   @HttpCode(HttpStatus.OK)
   async refreshToken(
-    @UserId() userId: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshToken(userId, res)
+    return this.authService.refreshToken(req, res)
   }
 
   @Patch('profile')
@@ -82,8 +83,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('token')
-    return {}
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.logout(req, res)
   }
 }
