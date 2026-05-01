@@ -9,6 +9,7 @@ export interface IStructureErrorResponse {
   isSuccess: false
   msg: string
   errCode?: number
+  data: null
 }
 
 export interface IStructureSuccessResponse<T> {

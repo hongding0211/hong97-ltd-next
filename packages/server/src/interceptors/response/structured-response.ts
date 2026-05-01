@@ -5,21 +5,25 @@ import {
   NestInterceptor,
 } from '@nestjs/common'
 import { I18nService } from 'nestjs-i18n'
-import { Observable } from 'rxjs'
+import { Observable, of, throwError } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
-import { GeneralException } from 'src/exceptions/general-exceptions'
-import { IStructureResponse, IStructureSuccessResponse } from './types'
+import { GeneralException } from '../../exceptions/general-exceptions'
+import {
+  IStructureErrorResponse,
+  IStructureResponse,
+  IStructureSuccessResponse,
+} from './types'
 
 @Injectable()
 export class StructuredResponseInterceptor implements NestInterceptor {
   constructor(private readonly i18n: I18nService) {}
 
-  async intercept(
+  intercept(
     _context: ExecutionContext,
     next: CallHandler,
-  ): Promise<Observable<any>> {
+  ): Observable<IStructureResponse> {
     return next.handle().pipe(
-      map(async (data) => {
+      map((data) => {
         // 如果已经是 ApiResponse 类型，直接返回
         if (this.isApiResponse(data)) {
           return data
@@ -32,27 +36,25 @@ export class StructuredResponseInterceptor implements NestInterceptor {
         }
         return successResponse
       }),
-      catchError(async (err) => {
+      catchError((err) => {
         if (err instanceof GeneralException) {
-          return {
-            iSuccess: false,
+          const errorResponse: IStructureErrorResponse = {
+            isSuccess: false,
             msg: this.i18n.t(err.message),
-            code: err.code,
+            errCode: err.code,
             data: null,
           }
+          return of(errorResponse)
         }
+
+        return throwError(() => err)
       }),
     )
   }
 
   private isApiResponse(data: any): data is IStructureResponse {
     return (
-      data &&
-      typeof data === 'object' &&
-      'isSuccess' in data &&
-      'data' in data &&
-      'msg' in data &&
-      'errCode' in data
+      data && typeof data === 'object' && typeof data.isSuccess === 'boolean'
     )
   }
 }
