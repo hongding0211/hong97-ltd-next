@@ -17,11 +17,19 @@ export default registerAs('auth', () => ({
       process.env.AUTH_COOKIE_SECURE === 'true' ||
       process.env.NODE_ENV === 'production',
   },
+  github: {
+    clientId: process.env.GITHUB_CLIENT_ID || '',
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+    callbackUrl: process.env.GITHUB_OAUTH_CALLBACK_URL || '',
+  },
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   ignore: [
     '/auth/login',
     '/auth/register',
     '/auth/logout',
     '/auth/refreshToken',
+    '/auth/github',
+    '/auth/github/callback',
     '/oss/requestUpload',
     '/trash/detail/*',
     '/shortlink/redirect/*',

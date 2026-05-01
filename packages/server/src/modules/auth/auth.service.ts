@@ -1,8 +1,9 @@
-import { createHash, randomBytes } from 'crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto'
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { InjectModel } from '@nestjs/mongoose'
+import axios from 'axios'
 import * as bcrypt from 'bcrypt'
 import type { CookieOptions, Request, Response } from 'express'
 import { Model } from 'mongoose'
@@ -32,6 +33,52 @@ import {
   RefreshSession,
   RefreshSessionDocument,
 } from './schema/refresh-session.schema'
+
+interface GithubOAuthConfig {
+  clientId: string
+  clientSecret: string
+  callbackUrl: string
+  frontendUrl: string
+}
+
+interface GithubOAuthState {
+  redirect: string
+  nonce: string
+  exp: number
+}
+
+interface GithubAccessTokenResponse {
+  access_token?: string
+  token_type?: string
+  scope?: string
+  error?: string
+  error_description?: string
+}
+
+interface GithubUserResponse {
+  id: number
+  login: string
+  name?: string | null
+  avatar_url?: string | null
+  html_url?: string | null
+  email?: string | null
+}
+
+interface GithubEmailResponse {
+  email: string
+  primary: boolean
+  verified: boolean
+  visibility?: string | null
+}
+
+interface GithubProfile {
+  githubId: string
+  login: string
+  name?: string
+  avatarUrl?: string
+  htmlUrl?: string
+  email?: string
+}
 
 @Injectable()
 export class AuthService {
@@ -132,6 +179,52 @@ export class AuthService {
     }
   }
 
+  getGithubAuthorizationRedirect(redirect?: string): string {
+    const config = this.getGithubOAuthConfig()
+    if (!this.isGithubOAuthConfigured(config)) {
+      return this.getOAuthFailureRedirect('config')
+    }
+
+    const url = new URL('https://github.com/login/oauth/authorize')
+    url.searchParams.set('client_id', config.clientId)
+    url.searchParams.set('redirect_uri', config.callbackUrl)
+    url.searchParams.set('scope', 'read:user user:email')
+    url.searchParams.set('state', this.createOAuthState(redirect))
+    return url.toString()
+  }
+
+  async handleGithubCallback(
+    params: { code?: string; state?: string; error?: string },
+    res?: Response,
+  ): Promise<string> {
+    if (params.error || !params.code || !params.state) {
+      return this.getOAuthFailureRedirect(params.error || 'invalid_callback')
+    }
+
+    const state = this.verifyOAuthState(params.state)
+    if (!state) {
+      return this.getOAuthFailureRedirect('invalid_state')
+    }
+
+    const config = this.getGithubOAuthConfig()
+    if (!this.isGithubOAuthConfigured(config)) {
+      return this.getOAuthFailureRedirect('config')
+    }
+
+    try {
+      const githubAccessToken = await this.exchangeGithubCode(
+        params.code,
+        config,
+      )
+      const githubProfile = await this.fetchGithubProfile(githubAccessToken)
+      const user = await this.upsertGithubUser(githubProfile)
+      await this.issueLoginSession(user, res)
+      return this.resolveFrontendRedirect(state.redirect)
+    } catch {
+      return this.getOAuthFailureRedirect('github')
+    }
+  }
+
   private getAccessTokenExpiresIn(): string {
     return (
       this.configService.get<string>('auth.jwt.accessExpiresIn') ||
@@ -162,6 +255,109 @@ export class AuthService {
     return (
       this.configService.get<string>('auth.cookies.legacyTokenName') || 'token'
     )
+  }
+
+  private getGithubOAuthConfig(): GithubOAuthConfig {
+    return {
+      clientId: this.configService.get<string>('auth.github.clientId') || '',
+      clientSecret:
+        this.configService.get<string>('auth.github.clientSecret') || '',
+      callbackUrl:
+        this.configService.get<string>('auth.github.callbackUrl') || '',
+      frontendUrl: this.getFrontendUrl(),
+    }
+  }
+
+  private getFrontendUrl(): string {
+    const frontendUrl =
+      this.configService.get<string>('auth.frontendUrl') ||
+      process.env.FRONTEND_URL ||
+      'http://localhost:3000'
+    return frontendUrl.replace(/\/+$/, '')
+  }
+
+  private isGithubOAuthConfigured(config: GithubOAuthConfig): boolean {
+    return Boolean(config.clientId && config.clientSecret && config.callbackUrl)
+  }
+
+  private getOAuthStateSecret(): string {
+    return (
+      this.configService.get<string>('auth.jwt.secret') ||
+      process.env.JWT_SECRET ||
+      'your-secret-key'
+    )
+  }
+
+  private createOAuthState(redirect?: string): string {
+    const payload: GithubOAuthState = {
+      redirect: this.resolveFrontendRedirect(redirect),
+      nonce: randomBytes(16).toString('base64url'),
+      exp: Date.now() + 10 * 60 * 1000,
+    }
+    const payloadPart = Buffer.from(JSON.stringify(payload)).toString(
+      'base64url',
+    )
+    const signaturePart = this.signOAuthState(payloadPart)
+    return `${payloadPart}.${signaturePart}`
+  }
+
+  private verifyOAuthState(state: string): GithubOAuthState | null {
+    const [payloadPart, signaturePart] = state.split('.')
+    if (!payloadPart || !signaturePart) {
+      return null
+    }
+
+    const expectedSignature = this.signOAuthState(payloadPart)
+    const signatureBuffer = Buffer.from(signaturePart)
+    const expectedSignatureBuffer = Buffer.from(expectedSignature)
+    if (
+      signatureBuffer.length !== expectedSignatureBuffer.length ||
+      !timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+    ) {
+      return null
+    }
+
+    try {
+      const payload = JSON.parse(
+        Buffer.from(payloadPart, 'base64url').toString('utf8'),
+      ) as GithubOAuthState
+      if (!payload.exp || payload.exp < Date.now()) {
+        return null
+      }
+      return payload
+    } catch {
+      return null
+    }
+  }
+
+  private signOAuthState(payloadPart: string): string {
+    return createHmac('sha256', this.getOAuthStateSecret())
+      .update(payloadPart)
+      .digest('base64url')
+  }
+
+  private resolveFrontendRedirect(redirect?: string): string {
+    const frontendUrl = this.getFrontendUrl()
+    if (!redirect) {
+      return frontendUrl
+    }
+
+    try {
+      const targetUrl = new URL(redirect, frontendUrl)
+      const allowedOrigin = new URL(frontendUrl).origin
+      if (targetUrl.origin !== allowedOrigin) {
+        return frontendUrl
+      }
+      return targetUrl.toString()
+    } catch {
+      return frontendUrl
+    }
+  }
+
+  private getOAuthFailureRedirect(reason: string): string {
+    const url = new URL('/sso/login', this.getFrontendUrl())
+    url.searchParams.set('github_error', reason)
+    return url.toString()
   }
 
   private generateAccessToken(user: UserDocument): string {
@@ -312,6 +508,27 @@ export class AuthService {
     return session
   }
 
+  private async issueLoginSession(user: UserDocument, res?: Response) {
+    user.lastLoginAt = new Date()
+    await user.save()
+
+    const accessToken = this.generateAccessToken(user)
+    const refreshToken = await this.createRefreshSession(user.userId)
+
+    if (res) {
+      this.clearAuthCookies(res)
+      this.setAccessTokenCookie(res, accessToken)
+      this.setRefreshTokenCookie(res, refreshToken)
+    }
+
+    return {
+      accessToken,
+      accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
+      refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
+      user: this.userService.mapUserToResponse(user),
+    }
+  }
+
   private async loginWithLocal(credentials: LocalLoginDto, res?: Response) {
     const { email, phoneNumber, password } = credentials
 
@@ -339,25 +556,7 @@ export class AuthService {
       throw new GeneralException('auth.wrongPassword')
     }
 
-    // 更新最后登录时间
-    user.lastLoginAt = new Date()
-    await user.save()
-
-    const accessToken = this.generateAccessToken(user)
-    const refreshToken = await this.createRefreshSession(user.userId)
-
-    if (res) {
-      this.clearAuthCookies(res)
-      this.setAccessTokenCookie(res, accessToken)
-      this.setRefreshTokenCookie(res, refreshToken)
-    }
-
-    return {
-      accessToken,
-      accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
-      refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
-      user: this.userService.mapUserToResponse(user),
-    }
+    return this.issueLoginSession(user, res)
   }
 
   private async loginWithPhone(_: PhoneLoginDto, _res?: Response) {
@@ -366,6 +565,111 @@ export class AuthService {
 
   private async loginWithOAuth(_: OAuthLoginDto, _res?: Response) {
     throw new GeneralException('auth.oauthLoginNotImplemented')
+  }
+
+  private async exchangeGithubCode(
+    code: string,
+    config: GithubOAuthConfig,
+  ): Promise<string> {
+    const response = await axios.post<GithubAccessTokenResponse>(
+      'https://github.com/login/oauth/access_token',
+      {
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        code,
+        redirect_uri: config.callbackUrl,
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      },
+    )
+
+    if (response.data.error || !response.data.access_token) {
+      throw new UnauthorizedException(
+        response.data.error_description || 'GitHub OAuth token exchange failed',
+      )
+    }
+
+    return response.data.access_token
+  }
+
+  private async fetchGithubProfile(
+    accessToken: string,
+  ): Promise<GithubProfile> {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    }
+    const [userResponse, emailsResponse] = await Promise.all([
+      axios.get<GithubUserResponse>('https://api.github.com/user', {
+        headers,
+      }),
+      axios
+        .get<GithubEmailResponse[]>('https://api.github.com/user/emails', {
+          headers,
+        })
+        .catch(() => ({ data: [] as GithubEmailResponse[] })),
+    ])
+
+    const primaryEmail = emailsResponse.data.find(
+      (email) => email.primary && email.verified,
+    )
+
+    return {
+      githubId: String(userResponse.data.id),
+      login: userResponse.data.login,
+      name: userResponse.data.name || undefined,
+      avatarUrl: userResponse.data.avatar_url || undefined,
+      htmlUrl: userResponse.data.html_url || undefined,
+      email: primaryEmail?.email || userResponse.data.email || undefined,
+    }
+  }
+
+  private async upsertGithubUser(
+    profile: GithubProfile,
+  ): Promise<UserDocument> {
+    const githubAuthData = {
+      githubId: profile.githubId,
+      login: profile.login,
+      name: profile.name,
+      avatarUrl: profile.avatarUrl,
+      htmlUrl: profile.htmlUrl,
+      email: profile.email,
+      lastSyncedAt: new Date(),
+    }
+    const existingUser = await this.userModel.findOne({
+      'authData.github.githubId': profile.githubId,
+    })
+
+    if (existingUser) {
+      existingUser.authData = {
+        ...(existingUser.authData || {}),
+        github: githubAuthData,
+      }
+      existingUser.authProviders = existingUser.authProviders || []
+      if (!existingUser.authProviders.includes('github')) {
+        existingUser.authProviders.push('github')
+      }
+      return existingUser
+    }
+
+    const user = new this.userModel({
+      userId: uuidv4(),
+      profile: {
+        name: profile.name || profile.login,
+        avatar: profile.avatarUrl,
+      },
+      authProviders: ['github'],
+      authData: {
+        github: githubAuthData,
+      },
+      isActive: true,
+    })
+
+    return user
   }
 
   async info(userId: string) {

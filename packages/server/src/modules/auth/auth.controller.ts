@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common'
@@ -34,6 +35,28 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.login(loginDto, res)
+  }
+
+  @Get('github')
+  async githubLogin(
+    @Query('redirect') redirect: string | undefined,
+    @Res() res: Response,
+  ) {
+    res.redirect(this.authService.getGithubAuthorizationRedirect(redirect))
+  }
+
+  @Get('github/callback')
+  async githubCallback(
+    @Query('code') code: string | undefined,
+    @Query('state') state: string | undefined,
+    @Query('error') error: string | undefined,
+    @Res() res: Response,
+  ) {
+    const redirectUrl = await this.authService.handleGithubCallback(
+      { code, state, error },
+      res,
+    )
+    res.redirect(redirectUrl)
   }
 
   @Get('info')

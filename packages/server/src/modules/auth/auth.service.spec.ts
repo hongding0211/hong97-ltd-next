@@ -1,9 +1,12 @@
 /// <reference types="jest" />
 
 import { UnauthorizedException } from '@nestjs/common'
+import axios from 'axios'
 import * as bcrypt from 'bcrypt'
 import { AuthGuard } from '../../guards/auth.guard'
 import { AuthService } from './auth.service'
+
+jest.mock('axios')
 
 describe('AuthService token flow', () => {
   const user = {
@@ -25,6 +28,9 @@ describe('AuthService token flow', () => {
   let refreshSessionModel: any
   let service: AuthService
   let res: any
+  let createdUser: any
+
+  const mockedAxios = axios as jest.Mocked<typeof axios>
 
   const configService = {
     get: jest.fn((key: string) => {
@@ -38,6 +44,11 @@ describe('AuthService token flow', () => {
         'auth.cookies.legacyTokenName': 'token',
         'auth.cookies.sameSite': 'strict',
         'auth.cookies.secure': false,
+        'auth.github.clientId': 'github-client-id',
+        'auth.github.clientSecret': 'github-client-secret',
+        'auth.github.callbackUrl':
+          'http://localhost:3000/api/auth/github/callback',
+        'auth.frontendUrl': 'http://localhost:3000',
       }
       return config[key]
     }),
@@ -46,20 +57,30 @@ describe('AuthService token flow', () => {
   beforeEach(async () => {
     accessTokenCount = 0
     activeSession = null
+    createdUser = null
+    mockedAxios.post.mockReset()
+    mockedAxios.get.mockReset()
     user.authData.local.passwordHash = await bcrypt.hash('password123', 10)
     user.save.mockClear()
 
-    userModel = {
-      findOne: jest.fn(async (query: any) => {
-        if (query?.['authData.local.email'] === 'hong@example.com') {
-          return user
-        }
-        if (query?.userId === 'user-1') {
-          return user
-        }
-        return null
-      }),
-    }
+    userModel = jest.fn((value: any) => {
+      createdUser = {
+        ...value,
+        save: jest.fn(async function save(this: any) {
+          return this
+        }),
+      }
+      return createdUser
+    })
+    userModel.findOne = jest.fn(async (query: any) => {
+      if (query?.['authData.local.email'] === 'hong@example.com') {
+        return user
+      }
+      if (query?.userId === 'user-1') {
+        return user
+      }
+      return null
+    })
 
     refreshSessionModel = {
       create: jest.fn(async (session: any) => {
@@ -152,6 +173,186 @@ describe('AuthService token flow', () => {
         expiresAt: expect.any(Date),
       }),
     )
+  })
+
+  it('builds a GitHub authorization URL with signed state and configured callback', () => {
+    const redirect = 'http://localhost:3000/tools/oss'
+    const url = new URL(service.getGithubAuthorizationRedirect(redirect))
+
+    expect(url.origin + url.pathname).toBe(
+      'https://github.com/login/oauth/authorize',
+    )
+    expect(url.searchParams.get('client_id')).toBe('github-client-id')
+    expect(url.searchParams.get('redirect_uri')).toBe(
+      'http://localhost:3000/api/auth/github/callback',
+    )
+    expect(url.searchParams.get('scope')).toBe('read:user user:email')
+    expect(url.searchParams.get('state')).toEqual(expect.any(String))
+  })
+
+  it('creates a local user and issues session cookies after GitHub callback', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'github-access-token' },
+    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 123,
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          html_url: 'https://github.com/octocat',
+          email: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            email: 'octocat@example.com',
+            primary: true,
+            verified: true,
+          },
+        ],
+      })
+
+    const authUrl = new URL(
+      service.getGithubAuthorizationRedirect('http://localhost:3000/about'),
+    )
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe('http://localhost:3000/about')
+    expect(userModel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authProviders: ['github'],
+        authData: {
+          github: expect.objectContaining({
+            githubId: '123',
+            login: 'octocat',
+            email: 'octocat@example.com',
+          }),
+        },
+      }),
+    )
+    expect(createdUser.save).toHaveBeenCalled()
+    expect(res.cookie).toHaveBeenCalledWith(
+      'accessToken',
+      'access-1',
+      expect.objectContaining({ httpOnly: true }),
+    )
+    expect(res.cookie).toHaveBeenCalledWith(
+      'refreshToken',
+      expect.any(String),
+      expect.objectContaining({ httpOnly: true }),
+    )
+  })
+
+  it('updates an existing GitHub user and issues a standard app session', async () => {
+    const githubUser = {
+      userId: 'github-user-1',
+      profile: { name: 'Old Name' },
+      authProviders: ['github'],
+      authData: {
+        github: {
+          githubId: '123',
+          login: 'old-login',
+        },
+      },
+      save: jest.fn(async function save(this: any) {
+        return this
+      }),
+    } as any
+    userModel.findOne.mockImplementation(async (query: any) => {
+      if (query?.['authData.github.githubId'] === '123') {
+        return githubUser
+      }
+      return null
+    })
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'github-access-token' },
+    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 123,
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          html_url: 'https://github.com/octocat',
+          email: 'octocat-public@example.com',
+        },
+      })
+      .mockResolvedValueOnce({ data: [] })
+
+    const authUrl = new URL(service.getGithubAuthorizationRedirect('/about'))
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe('http://localhost:3000/about')
+    expect(githubUser.authData.github).toEqual(
+      expect.objectContaining({
+        githubId: '123',
+        login: 'octocat',
+        email: 'octocat-public@example.com',
+      }),
+    )
+    expect(githubUser.save).toHaveBeenCalled()
+    expect(res.cookie).toHaveBeenCalledWith(
+      'accessToken',
+      'access-1',
+      expect.objectContaining({ httpOnly: true }),
+    )
+  })
+
+  it('rejects invalid GitHub OAuth state without calling GitHub', async () => {
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: 'invalid-state',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe(
+      'http://localhost:3000/sso/login?github_error=invalid_state',
+    )
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+    expect(userModel).not.toHaveBeenCalled()
+    expect(res.cookie).not.toHaveBeenCalled()
+  })
+
+  it('redirects to a safe error destination when GitHub token exchange fails', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        error: 'bad_verification_code',
+        error_description: 'The code passed is incorrect or expired.',
+      },
+    })
+
+    const authUrl = new URL(service.getGithubAuthorizationRedirect('/about'))
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe(
+      'http://localhost:3000/sso/login?github_error=github',
+    )
+    expect(userModel).not.toHaveBeenCalled()
+    expect(res.cookie).not.toHaveBeenCalled()
   })
 
   it('refreshes from the refresh cookie and rotates the stored token hash', async () => {

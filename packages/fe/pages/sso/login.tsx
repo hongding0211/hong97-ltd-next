@@ -18,6 +18,7 @@ import {
   Coffee,
   Eye,
   EyeClosed,
+  Github,
   Loader2,
   Trash2,
   Upload,
@@ -220,6 +221,22 @@ function Login() {
     [tab, login, signUp],
   )
 
+  const githubError = useMemo(() => {
+    return typeof router.query.github_error === 'string'
+      ? router.query.github_error
+      : ''
+  }, [router.query.github_error])
+
+  const handleGithubLogin = useCallback(() => {
+    const redirect =
+      typeof router.query.redirect === 'string' ? router.query.redirect : ''
+    const url = new URL('/api/auth/github', window.location.origin)
+    if (redirect) {
+      url.searchParams.set('redirect', redirect)
+    }
+    window.location.href = url.toString()
+  }, [router.query.redirect])
+
   const loginComponent = useMemo(() => {
     const PasswordRight = showPassword ? Eye : EyeClosed
 
@@ -306,6 +323,20 @@ function Login() {
             {t('signup')}
           </Button>
         </div>
+        <div className="mt-1 -mb-1">
+          <Button
+            size="xs"
+            variant="outline"
+            className="h-8 w-full gap-1 text-xs font-medium"
+            onClick={handleGithubLogin}
+            disabled={loading || showRedirecting}
+            aria-label={t('githubLogin')}
+            title={t('githubLogin')}
+          >
+            <Github className="!h-3 !w-3" />
+            {t('githubLogin')}
+          </Button>
+        </div>
       </>
     )
   }, [
@@ -321,6 +352,7 @@ function Login() {
     showRedirecting,
     showPassword,
     name,
+    handleGithubLogin,
   ])
 
   const signUpComponent = useMemo(() => {
@@ -439,6 +471,13 @@ function Login() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{tCommon('error')}</AlertTitle>
                   <AlertDescription>{t(msg)}</AlertDescription>
+                </Alert>
+              )}
+              {!!githubError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{tCommon('error')}</AlertTitle>
+                  <AlertDescription>{t('githubLoginFailed')}</AlertDescription>
                 </Alert>
               )}
               <motion.div

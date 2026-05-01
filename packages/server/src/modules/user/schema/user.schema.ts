@@ -50,6 +50,12 @@ export class User {
     github?: {
       githubId: string
       accessToken?: string
+      login?: string
+      name?: string
+      avatarUrl?: string
+      htmlUrl?: string
+      email?: string
+      lastSyncedAt?: Date
     }
     phone?: {
       phoneNumber: string
@@ -63,3 +69,8 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)
+
+UserSchema.index(
+  { 'authData.github.githubId': 1 },
+  { unique: true, sparse: true },
+)
