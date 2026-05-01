@@ -1,3 +1,0 @@
-display_name: "Hong97 Auth"
-short_description: "Login and session workflows for hong97 APIs."
-default_prompt: "Use $hong97-auth to log in locally and call an authenticated API."

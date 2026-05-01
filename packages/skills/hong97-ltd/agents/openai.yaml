@@ -1,0 +1,3 @@
+display_name: "Hong97 Ltd"
+short_description: "Login, blog, and trash API workflows."
+default_prompt: "Use $hong97-ltd to log in and fetch trash or blog data from the local API."

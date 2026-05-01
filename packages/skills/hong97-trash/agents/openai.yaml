@@ -1,3 +1,0 @@
-display_name: "Hong97 Trash"
-short_description: "Fetch and manage hong97 trash posts."
-default_prompt: "Use $hong97-trash to fetch the latest trash posts from the local API."
