@@ -1,3 +1,3 @@
 display_name: "Hong97 Ltd"
-short_description: "Login, blog, and trash API workflows."
-default_prompt: "Use $hong97-ltd to log in and fetch trash or blog data from the production API."
+short_description: "Guide for using hong97.ltd and its API."
+default_prompt: "Use $hong97-ltd to explain how to use hong97.ltd, sign in, manage API tokens, and call the live API."
