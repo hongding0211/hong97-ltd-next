@@ -262,40 +262,48 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
           <MdxLayout>
             <h1 className="!mb-2 !text-4xl">{meta.blogTitle}</h1>
-            <figcaption className="m-0 !mt-1 text-sm flex items-center gap-x-1">
-              {time.format(meta.time, 'datetimeShort')}
-              {!!meta.keywords?.length && <span> | </span>}
-              {meta.keywords?.map((k, _i) => (
-                <span key={k}>{` #${k}`}</span>
-              ))}
-              {showShareIcon && (
-                <div
-                  onClick={handleShare}
-                  className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                >
-                  <Share2 className="w-3 h-3" />
+            <figcaption className="m-0 !mt-1 text-sm flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-x-1 gap-y-1">
+              <span className="shrink-0 whitespace-nowrap">
+                {time.format(meta.time, 'datetimeShort')}
+              </span>
+              {(!!meta.keywords?.length || showShareIcon || showEdit) && (
+                <div className="min-w-0 flex flex-wrap items-center gap-x-1 gap-y-1">
+                  {!!meta.keywords?.length && (
+                    <span className="hidden sm:inline shrink-0"> | </span>
+                  )}
+                  {meta.keywords?.map((k, _i) => (
+                    <span className="shrink-0 whitespace-nowrap" key={k}>{` #${k}`}</span>
+                  ))}
+                  {showShareIcon && (
+                    <div
+                      onClick={handleShare}
+                      className="shrink-0 rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                    >
+                      <Share2 className="w-3 h-3" />
+                    </div>
+                  )}
+                  {showEdit && (
+                    <>
+                      <div className="shrink-0 rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
+                        <Link
+                          href={`/blog/edit?id=${meta.blogId}`}
+                          className="w-full h-full absolute top-0 left-0"
+                        />
+                        <Pencil className="w-3 h-3" />
+                      </div>
+                      <div
+                        onClick={handleToggleHidden}
+                        className="shrink-0 rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                      >
+                        {meta?.hidden2Public ? (
+                          <EyeClosed className="w-3 h-3" />
+                        ) : (
+                          <Eye className="w-3 h-3" />
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-              {showEdit && (
-                <>
-                  <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
-                    <Link
-                      href={`/blog/edit?id=${meta.blogId}`}
-                      className="w-full h-full absolute top-0 left-0"
-                    />
-                    <Pencil className="w-3 h-3" />
-                  </div>
-                  <div
-                    onClick={handleToggleHidden}
-                    className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                  >
-                    {meta?.hidden2Public ? (
-                      <EyeClosed className="w-3 h-3" />
-                    ) : (
-                      <Eye className="w-3 h-3" />
-                    )}
-                  </div>
-                </>
               )}
             </figcaption>
             <div className="pt-2">{children}</div>
