@@ -24,6 +24,8 @@ describe('AuthService token flow', () => {
 
   let accessTokenCount: number
   let activeSession: any
+  let apiTokens: any[]
+  let apiTokenModel: any
   let userModel: any
   let refreshSessionModel: any
   let service: AuthService
@@ -57,6 +59,7 @@ describe('AuthService token flow', () => {
   beforeEach(async () => {
     accessTokenCount = 0
     activeSession = null
+    apiTokens = []
     createdUser = null
     mockedAxios.post.mockReset()
     mockedAxios.get.mockReset()
@@ -100,7 +103,36 @@ describe('AuthService token flow', () => {
       }),
     }
 
+    apiTokenModel = {
+      create: jest.fn(async (token: any) => {
+        const savedToken = {
+          ...token,
+          createdAt: new Date('2026-05-02T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-02T00:00:00.000Z'),
+          save: jest.fn(async function save(this: any) {
+            return this
+          }),
+        }
+        apiTokens.push(savedToken)
+        return savedToken
+      }),
+      find: jest.fn(() => ({
+        sort: jest.fn(async () => apiTokens),
+      })),
+      findOne: jest.fn(async (query: any) => {
+        return apiTokens.find((token) => token.tokenHash === query?.tokenHash)
+      }),
+      deleteOne: jest.fn(async (query: any) => {
+        apiTokens = apiTokens.filter(
+          (token) =>
+            token.userId !== query?.userId || token.tokenId !== query?.tokenId,
+        )
+        return { deletedCount: 1 }
+      }),
+    }
+
     service = new AuthService(
+      apiTokenModel,
       userModel,
       refreshSessionModel,
       {
@@ -172,6 +204,44 @@ describe('AuthService token flow', () => {
         tokenHash: expect.any(String),
         expiresAt: expect.any(Date),
       }),
+    )
+  })
+
+  it('creates, lists, validates, and deletes permanent API tokens', async () => {
+    const created = await service.createApiToken('user-1', { name: 'CLI' })
+
+    expect(created.apiToken).toMatch(/^h97_/)
+    expect(created).toMatchObject({
+      name: 'CLI',
+      tokenPrefix: created.apiToken.slice(0, 12),
+    })
+    expect(apiTokenModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        name: 'CLI',
+        tokenHash: expect.any(String),
+      }),
+    )
+    expect(apiTokens[0]).not.toHaveProperty('apiToken')
+
+    const listed = await service.listApiTokens('user-1')
+    expect(listed).toEqual([
+      expect.objectContaining({
+        tokenId: created.tokenId,
+        name: 'CLI',
+        tokenPrefix: created.tokenPrefix,
+      }),
+    ])
+    expect(listed[0]).not.toHaveProperty('apiToken')
+
+    await expect(service.validateApiToken(created.apiToken)).resolves.toBe(
+      'user-1',
+    )
+    expect(apiTokens[0].lastUsedAt).toBeInstanceOf(Date)
+
+    await service.deleteApiToken('user-1', created.tokenId)
+    await expect(service.validateApiToken(created.apiToken)).resolves.toBe(
+      undefined,
     )
   })
 
@@ -473,6 +543,7 @@ describe('AuthGuard token extraction', () => {
         verifyAsync: jest.fn(async () => ({ sub: 'user-1' })),
       } as any,
       configService as any,
+      { validateApiToken: jest.fn(async () => undefined) } as any,
     )
     const request = {
       path: '/auth/info',
@@ -494,6 +565,7 @@ describe('AuthGuard token extraction', () => {
         verifyAsync: jest.fn(),
       } as any,
       configService as any,
+      { validateApiToken: jest.fn(async () => undefined) } as any,
     )
 
     await expect(
@@ -513,7 +585,11 @@ describe('AuthGuard token extraction', () => {
     const jwtService = {
       verifyAsync: jest.fn(async () => ({ sub: 'user-1' })),
     }
-    const guard = new AuthGuard(jwtService as any, configService as any)
+    const guard = new AuthGuard(
+      jwtService as any,
+      configService as any,
+      { validateApiToken: jest.fn(async () => undefined) } as any,
+    )
     const request = {
       path: '/auth/info',
       cookies: {},
@@ -528,5 +604,34 @@ describe('AuthGuard token extraction', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-access', {
       secret: 'test-secret',
     })
+  })
+
+  it('authenticates protected requests with a bearer API token', async () => {
+    const jwtService = {
+      verifyAsync: jest.fn(async () => {
+        throw new UnauthorizedException('expired')
+      }),
+    }
+    const authService = {
+      validateApiToken: jest.fn(async () => 'user-from-api-token'),
+    }
+    const guard = new AuthGuard(
+      jwtService as any,
+      configService as any,
+      authService as any,
+    )
+    const request = {
+      path: '/auth/info',
+      cookies: {},
+      headers: { authorization: 'Bearer h97_valid-token' },
+    }
+
+    await expect(
+      guard.canActivate({
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as any),
+    ).resolves.toBe(true)
+    expect(authService.validateApiToken).toHaveBeenCalledWith('h97_valid-token')
+    expect(request).toHaveProperty('user', { id: 'user-from-api-token' })
   })
 })

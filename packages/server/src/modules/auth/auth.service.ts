@@ -13,6 +13,11 @@ import { ServiceResponse } from '../../interceptors/response/types'
 import { parseJwtExpiresInToMs } from '../../utils/time-parser'
 import { User, UserDocument } from '../user/schema/user.schema'
 import { UserService } from '../user/user.service'
+import {
+  ApiTokenResponseDto,
+  CreateApiTokenDto,
+  CreateApiTokenResponseDto,
+} from './dto/api-token.dto'
 import { HasLocalAuthResponseDto } from './dto/hasLocalAuth.dto'
 import {
   LocalLoginDto,
@@ -29,6 +34,7 @@ import {
   RegisterDto,
 } from './dto/register.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import { ApiToken, ApiTokenDocument } from './schema/api-token.schema'
 import {
   RefreshSession,
   RefreshSessionDocument,
@@ -83,6 +89,7 @@ interface GithubProfile {
 @Injectable()
 export class AuthService {
   constructor(
+    @InjectModel(ApiToken.name) private apiTokenModel: Model<ApiTokenDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(RefreshSession.name)
     private refreshSessionModel: Model<RefreshSessionDocument>,
@@ -430,8 +437,38 @@ export class AuthService {
     return `${sessionId}.${randomBytes(32).toString('base64url')}`
   }
 
+  private generateApiToken(): string {
+    return `h97_${randomBytes(32).toString('base64url')}`
+  }
+
   private hashRefreshToken(refreshToken: string): string {
     return createHash('sha256').update(refreshToken).digest('hex')
+  }
+
+  private hashApiToken(apiToken: string): string {
+    return createHash('sha256').update(apiToken).digest('hex')
+  }
+
+  private safeHashEquals(a: string, b: string): boolean {
+    const aBuffer = Buffer.from(a)
+    const bBuffer = Buffer.from(b)
+    if (aBuffer.length !== bBuffer.length) {
+      return false
+    }
+    return timingSafeEqual(aBuffer, bBuffer)
+  }
+
+  private mapApiTokenToResponse(
+    apiToken: ApiTokenDocument,
+  ): ApiTokenResponseDto {
+    return {
+      tokenId: apiToken.tokenId,
+      name: apiToken.name,
+      tokenPrefix: apiToken.tokenPrefix,
+      lastUsedAt: apiToken.lastUsedAt,
+      createdAt: (apiToken as any).createdAt,
+      updatedAt: (apiToken as any).updatedAt,
+    }
   }
 
   private getRefreshSessionId(refreshToken: string): string {
@@ -500,7 +537,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token')
     }
 
-    if (session.tokenHash !== this.hashRefreshToken(refreshToken)) {
+    if (
+      !this.safeHashEquals(
+        session.tokenHash,
+        this.hashRefreshToken(refreshToken),
+      )
+    ) {
       await this.revokeRefreshSession(session)
       throw new UnauthorizedException('Invalid refresh token')
     }
@@ -724,6 +766,67 @@ export class AuthService {
     }
 
     return {}
+  }
+
+  async createApiToken(
+    userId: string,
+    createApiTokenDto: CreateApiTokenDto,
+  ): Promise<CreateApiTokenResponseDto> {
+    const user = await this.userModel.findOne({ userId })
+    if (!user) {
+      throw new GeneralException('auth.userNotFound')
+    }
+
+    const tokenName = createApiTokenDto.name.trim()
+    if (!tokenName) {
+      throw new GeneralException('auth.apiTokenNameRequired')
+    }
+
+    const apiToken = this.generateApiToken()
+    const token = await this.apiTokenModel.create({
+      tokenId: uuidv4(),
+      userId,
+      name: tokenName,
+      tokenHash: this.hashApiToken(apiToken),
+      tokenPrefix: apiToken.slice(0, 12),
+      lastUsedAt: null,
+    })
+
+    return {
+      ...this.mapApiTokenToResponse(token),
+      apiToken,
+    }
+  }
+
+  async listApiTokens(userId: string): Promise<ApiTokenResponseDto[]> {
+    const tokens = await this.apiTokenModel
+      .find({ userId })
+      .sort({ createdAt: -1 })
+    return tokens.map((token) => this.mapApiTokenToResponse(token))
+  }
+
+  async deleteApiToken(
+    userId: string,
+    tokenId: string,
+  ): Promise<Record<string, never>> {
+    await this.apiTokenModel.deleteOne({ userId, tokenId })
+    return {}
+  }
+
+  async validateApiToken(apiToken: string): Promise<string | undefined> {
+    if (!apiToken.startsWith('h97_')) {
+      return undefined
+    }
+
+    const tokenHash = this.hashApiToken(apiToken)
+    const token = await this.apiTokenModel.findOne({ tokenHash })
+    if (!token || !this.safeHashEquals(token.tokenHash, tokenHash)) {
+      return undefined
+    }
+
+    token.lastUsedAt = new Date()
+    await token.save()
+    return token.userId
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {

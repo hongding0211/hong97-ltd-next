@@ -17,6 +17,9 @@ const ITEMS = [
   {
     key: 'shortlink',
   },
+  {
+    key: 'api-tokens',
+  },
 ]
 
 const Item: React.FC<{

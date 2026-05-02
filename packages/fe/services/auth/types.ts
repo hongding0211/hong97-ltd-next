@@ -1,3 +1,9 @@
+import {
+  ApiTokenResponseDto,
+  CreateApiTokenDto,
+  CreateApiTokenResponseDto,
+  DeleteApiTokenParamsDto,
+} from '@server/modules/auth/dto/api-token.dto'
 import { HasLocalAuthResponseDto } from '@server/modules/auth/dto/hasLocalAuth.dto'
 import { LoginDto, LoginResponseDto } from '@server/modules/auth/dto/login.dto'
 import { ModifyPasswordDto } from '@server/modules/auth/dto/modify-password.dto'
@@ -25,4 +31,11 @@ export type AuthAPIS = {
   GetHasLocalAuth: API<undefined, undefined, typeof HasLocalAuthResponseDto>
   GetIsAdmin: API<undefined, undefined, IsAdminResponseDto>
   PostLogout: API<undefined, undefined, null>
+  GetApiTokens: API<undefined, undefined, ApiTokenResponseDto[]>
+  PostApiToken: API<
+    undefined,
+    typeof CreateApiTokenDto,
+    CreateApiTokenResponseDto
+  >
+  DeleteApiToken: API<DeleteApiTokenParamsDto, undefined, null>
 }

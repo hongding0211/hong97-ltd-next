@@ -66,6 +66,22 @@
       "urlRequired": "请输入原始URL",
       "invalidUrl": "请输入有效的URL",
       "invalidShortCode": "短码必须是6位小写字母"
+    },
+    "api-tokens": {
+      "title": "API Token",
+      "subTitle": "管理永久 API 访问令牌",
+      "description": "用于脚本或第三方客户端的永久 Bearer Token。Token 只会在创建后显示一次，请妥善保存。",
+      "create": "创建",
+      "namePlaceholder": "Token 名称，例如 CLI 或 Zapier",
+      "nameRequired": "请输入 Token 名称",
+      "createSuccess": "Token 创建成功",
+      "deleteSuccess": "Token 已删除",
+      "deleteConfirm": "确定要删除 Token \"{{name}}\" 吗？删除后无法继续使用。",
+      "createdTitle": "新 Token 已创建",
+      "createdHint": "请立即复制保存，关闭后不会再次显示完整 Token。",
+      "empty": "还没有 API Token",
+      "createdAt": "创建",
+      "lastUsedAt": "最后使用"
     }
   }
 }

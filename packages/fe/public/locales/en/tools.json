@@ -66,6 +66,22 @@
       "urlRequired": "Please enter the original URL",
       "invalidUrl": "Please enter a valid URL",
       "invalidShortCode": "Short code must be 6 lowercase letters"
+    },
+    "api-tokens": {
+      "title": "API Tokens",
+      "subTitle": "Manage permanent API access tokens",
+      "description": "Permanent bearer tokens for scripts or third-party clients. Tokens are shown only once after creation, so store them safely.",
+      "create": "Create",
+      "namePlaceholder": "Token name, e.g. CLI or Zapier",
+      "nameRequired": "Please enter a token name",
+      "createSuccess": "Token created",
+      "deleteSuccess": "Token deleted",
+      "deleteConfirm": "Delete token \"{{name}}\"? It will stop working immediately.",
+      "createdTitle": "New token created",
+      "createdHint": "Copy it now. The full token will not be shown again after you leave this page.",
+      "empty": "No API tokens yet",
+      "createdAt": "Created",
+      "lastUsedAt": "Last used"
     }
   }
 }

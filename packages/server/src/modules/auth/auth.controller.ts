@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Query,
@@ -11,8 +13,10 @@ import {
   Res,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
+import { RootOnly } from '../../decorators/root-only.decorator'
 import { UserId } from '../../decorators/user-id.decorator'
 import { AuthService } from './auth.service'
+import { CreateApiTokenDto, DeleteApiTokenParamsDto } from './dto/api-token.dto'
 import { LoginDto } from './dto/login.dto'
 import { ModifyPasswordDto } from './dto/modify-password.dto'
 import { RegisterDto } from './dto/register.dto'
@@ -108,5 +112,32 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return this.authService.logout(req, res)
+  }
+
+  @Get('api-tokens')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async listApiTokens(@UserId() userId: string) {
+    return this.authService.listApiTokens(userId)
+  }
+
+  @Post('api-tokens')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async createApiToken(
+    @UserId() userId: string,
+    @Body() createApiTokenDto: CreateApiTokenDto,
+  ) {
+    return this.authService.createApiToken(userId, createApiTokenDto)
+  }
+
+  @Delete('api-tokens/:tokenId')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async deleteApiToken(
+    @UserId() userId: string,
+    @Param() params: DeleteApiTokenParamsDto,
+  ) {
+    return this.authService.deleteApiToken(userId, params.tokenId)
   }
 }

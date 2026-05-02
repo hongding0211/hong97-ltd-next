@@ -7,12 +7,14 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import micromatch from 'micromatch'
+import { AuthService } from '../modules/auth/auth.service'
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private authService: AuthService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -35,17 +37,27 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('No token provided')
     }
 
+    if (!token) {
+      return true
+    }
+
     try {
-      if (token) {
-        const payload = await this.jwtService.verifyAsync(token, {
-          secret: this.configService.get<string>('auth.jwt.secret'),
-        })
-        request.user = {
-          id: payload.sub,
-        }
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get<string>('auth.jwt.secret'),
+      })
+      request.user = {
+        id: payload.sub,
       }
       return true
     } catch {
+      const apiTokenUserId = await this.authService.validateApiToken(token)
+      if (apiTokenUserId) {
+        request.user = {
+          id: apiTokenUserId,
+        }
+        return true
+      }
+
       throw new UnauthorizedException('Invalid or expired token')
     }
   }
