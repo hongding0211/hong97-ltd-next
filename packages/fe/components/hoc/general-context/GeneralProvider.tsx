@@ -23,15 +23,15 @@ export const GeneralProvider: React.FC<IGeneralProviderProps> = (props) => {
   const value = useMemo(
     () => ({
       router,
-      user: prefetchedUser ?? user,
+      user: user ?? prefetchedUser,
     }),
     [router, user, prefetchedUser],
   )
 
   useEffect(() => {
-    init(user)
+    init(prefetchedUser)
     return cleanUp
-  }, [init, cleanUp, user])
+  }, [init, cleanUp, prefetchedUser])
 
   return (
     <GeneralContext.Provider value={value}>
