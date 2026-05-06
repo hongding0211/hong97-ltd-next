@@ -43,6 +43,21 @@ const initialState: LoginStoreState = {
   avatar: '',
 }
 
+const shouldPassTokenToRedirect = (redirect: string) => {
+  try {
+    const url = new URL(redirect)
+    return ['walkingcalc:', 'exp:'].includes(url.protocol)
+  } catch {
+    return false
+  }
+}
+
+const withAccessTokenHash = (redirect: string, accessToken: string) => {
+  const url = new URL(redirect)
+  url.hash = accessToken
+  return url.toString()
+}
+
 export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
   (set, get) => {
     const validate = (isRegister: boolean) => {
@@ -107,7 +122,9 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
             const { redirect } = get()
             if (redirect) {
               /** If a redirect url is provided, redirect to it */
-              window.location.href = redirect
+              window.location.href = shouldPassTokenToRedirect(redirect)
+                ? withAccessTokenHash(redirect, loginRes.data.accessToken)
+                : redirect
             } else {
               /** Otherwise, append the access token to the current url */
               const url = new URL(window.location.href)

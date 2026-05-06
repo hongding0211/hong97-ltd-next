@@ -225,8 +225,11 @@ export class AuthService {
       )
       const githubProfile = await this.fetchGithubProfile(githubAccessToken)
       const user = await this.upsertGithubUser(githubProfile)
-      await this.issueLoginSession(user, res)
-      return this.resolveFrontendRedirect(state.redirect)
+      const session = await this.issueLoginSession(user, res)
+      return this.withAccessTokenForAppRedirect(
+        this.resolveFrontendRedirect(state.redirect),
+        session.accessToken,
+      )
     } catch {
       return this.getOAuthFailureRedirect('github')
     }
@@ -352,13 +355,41 @@ export class AuthService {
     try {
       const targetUrl = new URL(redirect, frontendUrl)
       const allowedOrigin = new URL(frontendUrl).origin
-      if (targetUrl.origin !== allowedOrigin) {
+      if (
+        targetUrl.origin !== allowedOrigin &&
+        !this.isAllowedAppRedirect(targetUrl)
+      ) {
         return frontendUrl
       }
       return targetUrl.toString()
     } catch {
       return frontendUrl
     }
+  }
+
+  private isAllowedAppRedirect(url: URL): boolean {
+    const defaultSchemes = ['walkingcalc:', 'exp:']
+    const configuredSchemes =
+      this.configService.get<string>('auth.allowedRedirectSchemes') ||
+      process.env.AUTH_ALLOWED_REDIRECT_SCHEMES
+    const allowedSchemes = configuredSchemes
+      ? configuredSchemes
+          .split(',')
+          .map((scheme) => scheme.trim())
+          .filter(Boolean)
+          .map((scheme) => (scheme.endsWith(':') ? scheme : `${scheme}:`))
+      : defaultSchemes
+
+    return allowedSchemes.includes(url.protocol)
+  }
+
+  private withAccessTokenForAppRedirect(redirect: string, accessToken: string) {
+    const redirectUrl = new URL(redirect)
+    if (!this.isAllowedAppRedirect(redirectUrl)) {
+      return redirect
+    }
+    redirectUrl.hash = accessToken
+    return redirectUrl.toString()
   }
 
   private getOAuthFailureRedirect(reason: string): string {
