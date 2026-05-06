@@ -260,6 +260,37 @@ describe('AuthService token flow', () => {
     expect(url.searchParams.get('state')).toEqual(expect.any(String))
   })
 
+  it('allows configured app redirects for GitHub authorization state', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'github-access-token' },
+    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 123,
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          html_url: 'https://github.com/octocat',
+          email: null,
+        },
+      })
+      .mockResolvedValueOnce({ data: [] })
+
+    const authUrl = new URL(
+      service.getGithubAuthorizationRedirect('walkingcalc://auth/callback'),
+    )
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe('walkingcalc://auth/callback#access-1')
+  })
+
   it('creates a local user and issues session cookies after GitHub callback', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { access_token: 'github-access-token' },
