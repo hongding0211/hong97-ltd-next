@@ -1,0 +1,14 @@
+{
+  "userNotFound": "用户不存在",
+  "groupNotFound": "群组不存在",
+  "groupNotFoundOrNoAccess": "群组不存在或你无权访问",
+  "groupOwnerRequired": "你不是该群组的所有者",
+  "userAlreadyInGroup": "用户已在该群组中",
+  "tempUserNameExists": "临时用户名称已存在",
+  "forWhomRequired": "至少需要一个参与者",
+  "zeroAmountRecord": "记录金额不能为 0",
+  "recordLimitReached": "群组记录数量已达上限",
+  "recordNotFound": "记录不存在",
+  "debtResolveRecordImmutable": "债务和解记录不能被修改",
+  "invalidParticipant": "无效的参与者"
+}

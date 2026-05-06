@@ -1,0 +1,14 @@
+{
+  "userNotFound": "User not found",
+  "groupNotFound": "Group not found",
+  "groupNotFoundOrNoAccess": "Group not found or you do not have access",
+  "groupOwnerRequired": "You do not own this group",
+  "userAlreadyInGroup": "User is already in this group",
+  "tempUserNameExists": "Temporary user name already exists",
+  "forWhomRequired": "At least one participant is required",
+  "zeroAmountRecord": "Record amount cannot be zero",
+  "recordLimitReached": "Group record limit reached",
+  "recordNotFound": "Record not found",
+  "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
+  "invalidParticipant": "Invalid participant"
+}

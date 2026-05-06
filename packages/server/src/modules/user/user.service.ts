@@ -27,4 +27,31 @@ export class UserService {
     }
     return users[0]
   }
+
+  async findPublicUsersByIds(userIds: string[]): Promise<UserResponseDto[]> {
+    if (!userIds.length) {
+      return []
+    }
+    return this.findUsersByIds([...new Set(userIds)])
+  }
+
+  async searchPublicUsersByName(
+    name: string,
+    limit = 10,
+  ): Promise<UserResponseDto[]> {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      return []
+    }
+
+    const users = await this.userModel
+      .find({
+        'profile.name': {
+          $regex: trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          $options: 'i',
+        },
+      })
+      .limit(limit)
+    return users.map((user) => this.mapUserToResponse(user))
+  }
 }
