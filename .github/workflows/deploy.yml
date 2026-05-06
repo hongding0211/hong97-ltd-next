@@ -28,11 +28,4 @@ jobs:
             nvm -v
             nvm use 20
             node -v
-            cd /root/srv/hong97-ltd-next
-            git fetch https://github.com/hongding0211/hong97-ltd-next.git main
-            git reset --hard FETCH_HEAD
-            pnpm install --frozen-lockfile
-            pnpm build:fe
-            pnpm build:server
-            docker restart hong97-ltd-next
-            docker restart hong97-ltd-next-server
+            sh /root/srv/deploy/hong97-ltd.sh
