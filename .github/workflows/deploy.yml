@@ -34,5 +34,5 @@ jobs:
             pnpm install --frozen-lockfile
             pnpm build:fe
             pnpm build:server
-            pm2 restart hong97-ltd-next
-            pm2 restart hong97-ltd-next-server
+            npx --yes pm2 restart hong97-ltd-next
+            npx --yes pm2 restart hong97-ltd-next-server
