@@ -222,7 +222,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
         />
       </Head>
       <AppLayout authRequired={meta.authRequired} simplifiedFooter>
-        <div className="relative w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
+        <div className="relative w-dvw mx-[-1.25rem] mt-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
           {meta?.coverImg ? (
             <>
               <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
