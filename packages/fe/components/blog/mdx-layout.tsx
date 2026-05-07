@@ -14,6 +14,8 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
         'prose-headings:text-black dark:prose-headings:text-white',
         'prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg',
         'prose-h4:text-lg prose-h5:text-lg prose-h6:text-lg',
+        'prose-blockquote:border-l-neutral-300 dark:prose-blockquote:border-l-neutral-700',
+        'prose-blockquote:text-neutral-500 dark:prose-blockquote:text-neutral-300',
       )}
     >
       {children}
