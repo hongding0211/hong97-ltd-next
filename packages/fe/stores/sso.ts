@@ -46,7 +46,10 @@ const initialState: LoginStoreState = {
 const shouldPassTokenToRedirect = (redirect: string) => {
   try {
     const url = new URL(redirect)
-    return ['walkingcalc:', 'exp:'].includes(url.protocol)
+    const isInternalCallback =
+      url.origin === window.location.origin && url.pathname === '/auth/callback'
+
+    return ['walkingcalc:', 'exp:'].includes(url.protocol) || isInternalCallback
   } catch {
     return false
   }
