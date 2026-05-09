@@ -11,6 +11,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator'
 
 export class AddWalkcalcRecordDto {
@@ -61,6 +62,34 @@ export class DropWalkcalcRecordDto {
   @IsString()
   @IsNotEmpty()
   recordId: string
+}
+
+export class BulkResolveWalkcalcDebtTransferDto {
+  @IsString()
+  @IsNotEmpty()
+  from: string
+
+  @IsString()
+  @IsNotEmpty()
+  to: string
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.0000000001)
+  amount: number
+}
+
+export class BulkResolveWalkcalcDebtsDto {
+  @IsString()
+  @IsNotEmpty()
+  groupCode: string
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => BulkResolveWalkcalcDebtTransferDto)
+  transfers: BulkResolveWalkcalcDebtTransferDto[]
 }
 
 export class UpdateWalkcalcRecordDto extends AddWalkcalcRecordDto {

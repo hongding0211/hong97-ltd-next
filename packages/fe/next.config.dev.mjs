@@ -4,7 +4,7 @@ export const devNextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/:path*',
+        destination: 'http://localhost:3500/:path*',
       },
     ]
   },

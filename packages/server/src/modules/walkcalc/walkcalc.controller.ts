@@ -21,6 +21,7 @@ import {
 } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
+  BulkResolveWalkcalcDebtsDto,
   DropWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
   UpdateWalkcalcRecordDto,
@@ -132,6 +133,15 @@ export class WalkcalcController {
   @HttpCode(HttpStatus.OK)
   async addRecord(@UserId() userId: string, @Body() dto: AddWalkcalcRecordDto) {
     return this.walkcalcService.addRecord(userId, dto)
+  }
+
+  @Post('records/resolve-debts')
+  @HttpCode(HttpStatus.OK)
+  async resolveDebts(
+    @UserId() userId: string,
+    @Body() dto: BulkResolveWalkcalcDebtsDto,
+  ) {
+    return this.walkcalcService.resolveDebts(userId, dto)
   }
 
   @Post('records/drop')

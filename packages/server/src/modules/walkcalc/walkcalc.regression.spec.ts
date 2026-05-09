@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common'
+import { RequestMethod, UnauthorizedException } from '@nestjs/common'
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { AuthGuard } from '../../guards/auth.guard'
 import { WalkcalcController } from './walkcalc.controller'
@@ -53,6 +53,22 @@ describe('Walkcalc migration boundaries', () => {
         'walkcalc/wx',
       ]),
     )
+  })
+
+  it('exposes a backend bulk debt-resolution route', () => {
+    const controllerPath = Reflect.getMetadata(
+      PATH_METADATA,
+      WalkcalcController,
+    )
+    const method = WalkcalcController.prototype.resolveDebts
+
+    expect({
+      method: Reflect.getMetadata(METHOD_METADATA, method),
+      path: `${controllerPath}/${Reflect.getMetadata(PATH_METADATA, method)}`,
+    }).toEqual({
+      method: RequestMethod.POST,
+      path: 'walkcalc/records/resolve-debts',
+    })
   })
 
   it('does not wire push providers into the walkcalc module or service', () => {

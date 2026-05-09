@@ -8,6 +8,7 @@ import { UserService } from '../user/user.service'
 import { CreateWalkcalcGroupDto, QueryWalkcalcGroupsDto } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
+  BulkResolveWalkcalcDebtsDto,
   QueryWalkcalcRecordsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
@@ -252,6 +253,42 @@ export class WalkcalcService {
     })
   }
 
+  async resolveDebts(
+    userId: string,
+    dto: BulkResolveWalkcalcDebtsDto,
+  ): Promise<WalkcalcRecordDto[]> {
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadGroupForMember(
+        dto.groupCode,
+        userId,
+        session,
+      )
+      this.assertBulkDebtTransfers(dto, group)
+
+      const now = Date.now()
+      const records: WalkcalcRecord[] = dto.transfers.map((transfer) => ({
+        recordId: uuidv4(),
+        who: transfer.from,
+        paid: transfer.amount,
+        forWhom: [transfer.to],
+        type: 'debtResolve',
+        text: 'Debt Resolve',
+        long: '',
+        lat: '',
+        isDebtResolve: true,
+        createdAt: now,
+        modifiedAt: now,
+        createdBy: userId,
+      }))
+
+      records.forEach((record) => this.applyRecordBalance(group, record, 1))
+      group.records.push(...records)
+      group.modifiedAt = now
+      await group.save({ session })
+      return records.map(this.mapRecordToDto)
+    })
+  }
+
   async dropRecord(
     userId: string,
     groupCode: string,
@@ -447,6 +484,26 @@ export class WalkcalcService {
     this.resolveParticipant(group, dto.who)
     dto.forWhom.forEach((participantId) => {
       this.resolveParticipant(group, participantId)
+    })
+  }
+
+  private assertBulkDebtTransfers(
+    dto: BulkResolveWalkcalcDebtsDto,
+    group: WalkcalcGroup,
+  ) {
+    if (!dto.transfers.length) {
+      throw new GeneralException('walkcalc.forWhomRequired')
+    }
+    if (group.records.length + dto.transfers.length > this.maxRecordsPerGroup) {
+      throw new GeneralException('walkcalc.recordLimitReached')
+    }
+
+    dto.transfers.forEach((transfer) => {
+      if (transfer.amount <= 0) {
+        throw new GeneralException('walkcalc.zeroAmountRecord')
+      }
+      this.resolveParticipant(group, transfer.from)
+      this.resolveParticipant(group, transfer.to)
     })
   }
 
