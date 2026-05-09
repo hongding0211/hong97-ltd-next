@@ -30,7 +30,7 @@ async function handleShortLinkRedirect(
 ) {
   try {
     // 调用后端API获取重定向URL
-    const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'
+    const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3500'
     const response = await fetch(`${apiUrl}/shortlink/redirect/${shortCode}`, {
       method: 'GET',
       headers: {
