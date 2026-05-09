@@ -6,7 +6,7 @@ import { TRASH_PATHS } from './trash/urls'
 import { APIs } from './types'
 import { UCP_PATHS } from './ucp/urls'
 
-export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? '/api'
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 
 export const PATHS: Record<keyof APIs, string> = {
   ...AUTH_PATHS,

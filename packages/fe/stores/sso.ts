@@ -43,13 +43,23 @@ const initialState: LoginStoreState = {
   avatar: '',
 }
 
+const accessTokenRedirectProtocols = (
+  process.env.NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_SCHEMES ?? ''
+)
+  .split(',')
+  .map((scheme) => scheme.trim())
+  .filter(Boolean)
+  .map((scheme) => (scheme.endsWith(':') ? scheme : `${scheme}:`))
+
 const shouldPassTokenToRedirect = (redirect: string) => {
   try {
     const url = new URL(redirect)
     const isInternalCallback =
       url.origin === window.location.origin && url.pathname === '/auth/callback'
 
-    return ['walkingcalc:', 'exp:'].includes(url.protocol) || isInternalCallback
+    return (
+      accessTokenRedirectProtocols.includes(url.protocol) || isInternalCallback
+    )
   } catch {
     return false
   }
