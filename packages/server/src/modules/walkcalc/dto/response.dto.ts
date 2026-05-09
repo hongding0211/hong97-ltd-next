@@ -1,5 +1,7 @@
 import { UserProfile } from '../../user/schema/user.schema'
 
+export type MoneyMinor = string
+
 export interface WalkcalcPublicUserDto {
   userId: string
   profile: UserProfile
@@ -8,6 +10,8 @@ export interface WalkcalcPublicUserDto {
 export interface WalkcalcMemberDto extends WalkcalcPublicUserDto {
   debt: number
   cost: number
+  debtMinor: MoneyMinor
+  costMinor: MoneyMinor
 }
 
 export interface WalkcalcTempUserDto {
@@ -15,12 +19,15 @@ export interface WalkcalcTempUserDto {
   name: string
   debt: number
   cost: number
+  debtMinor: MoneyMinor
+  costMinor: MoneyMinor
 }
 
 export interface WalkcalcRecordDto {
   recordId: string
   who: string
   paid: number
+  paidMinor: MoneyMinor
   forWhom: string[]
   type?: string
   text?: string

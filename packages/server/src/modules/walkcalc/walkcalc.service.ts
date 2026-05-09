@@ -25,10 +25,22 @@ import {
   WalkcalcTempUser,
 } from './schema/walkcalc-group.schema'
 import { generateGroupCode } from './utils/group-code'
+import {
+  MoneyMinor,
+  addMoneyMinor,
+  assertNonZeroMoneyMinor,
+  assertPositiveMoneyMinor,
+  legacyNumberToMoneyMinor,
+  moneyMinorToLegacyNumber,
+  negateMoneyMinor,
+  splitMoneyMinor,
+} from './utils/money'
 
 type Participant =
   | { type: 'member'; value: WalkcalcMember }
   | { type: 'temp'; value: WalkcalcTempUser }
+
+type MoneyParticipant = WalkcalcMember | WalkcalcTempUser
 
 @Injectable()
 export class WalkcalcService {
@@ -70,7 +82,7 @@ export class WalkcalcService {
       code: availableGroupCode.code,
       ownerUserId: userId,
       name: dto.name,
-      members: [{ userId, debt: 0, cost: 0 }],
+      members: [{ userId, debtMinor: '0', costMinor: '0' }],
       tempUsers: [],
       records: [],
       archivedUserIds: [],
@@ -91,7 +103,7 @@ export class WalkcalcService {
       throw new GeneralException('walkcalc.userAlreadyInGroup')
     }
 
-    group.members.push({ userId, debt: 0, cost: 0 })
+    group.members.push({ userId, debtMinor: '0', costMinor: '0' })
     group.modifiedAt = Date.now()
     await group.save()
     return { code }
@@ -116,8 +128,8 @@ export class WalkcalcService {
     const tempUser = {
       uuid: uuidv4(),
       name,
-      debt: 0,
-      cost: 0,
+      debtMinor: '0',
+      costMinor: '0',
     }
     group.tempUsers.push(tempUser)
     group.modifiedAt = Date.now()
@@ -140,8 +152,8 @@ export class WalkcalcService {
     group.members.push(
       ...invitedIds.map((targetUserId) => ({
         userId: targetUserId,
-        debt: 0,
-        cost: 0,
+        debtMinor: '0',
+        costMinor: '0',
       })),
     )
     if (invitedIds.length) {
@@ -230,10 +242,11 @@ export class WalkcalcService {
       }
 
       const now = Date.now()
+      const paidMinor = this.resolveRecordPaidMinor(dto)
       const record: WalkcalcRecord = {
         recordId: uuidv4(),
         who: dto.who,
-        paid: dto.paid,
+        paidMinor,
         forWhom: dto.forWhom,
         type: dto.type,
         text: dto.text,
@@ -266,26 +279,29 @@ export class WalkcalcService {
       this.assertBulkDebtTransfers(dto, group)
 
       const now = Date.now()
-      const records: WalkcalcRecord[] = dto.transfers.map((transfer) => ({
-        recordId: uuidv4(),
-        who: transfer.from,
-        paid: transfer.amount,
-        forWhom: [transfer.to],
-        type: 'debtResolve',
-        text: 'Debt Resolve',
-        long: '',
-        lat: '',
-        isDebtResolve: true,
-        createdAt: now,
-        modifiedAt: now,
-        createdBy: userId,
-      }))
+      const records: WalkcalcRecord[] = dto.transfers.map((transfer) => {
+        const amountMinor = this.resolveTransferAmountMinor(transfer)
+        return {
+          recordId: uuidv4(),
+          who: transfer.from,
+          paidMinor: amountMinor,
+          forWhom: [transfer.to],
+          type: 'debtResolve',
+          text: 'Debt Resolve',
+          long: '',
+          lat: '',
+          isDebtResolve: true,
+          createdAt: now,
+          modifiedAt: now,
+          createdBy: userId,
+        }
+      })
 
       records.forEach((record) => this.applyRecordBalance(group, record, 1))
       group.records.push(...records)
       group.modifiedAt = now
       await group.save({ session })
-      return records.map(this.mapRecordToDto)
+      return records.map((record) => this.mapRecordToDto(record))
     })
   }
 
@@ -338,10 +354,11 @@ export class WalkcalcService {
       this.applyRecordBalance(group, previousRecord, -1)
 
       const now = Date.now()
+      const paidMinor = this.resolveRecordPaidMinor(dto)
       const updatedRecord: WalkcalcRecord = {
         recordId: previousRecord.recordId,
         who: dto.who,
-        paid: dto.paid,
+        paidMinor,
         forWhom: dto.forWhom,
         type: dto.type,
         text: dto.text,
@@ -393,7 +410,9 @@ export class WalkcalcService {
     const skip = (page - 1) * pageSize
 
     return {
-      data: records.slice(skip, skip + pageSize).map(this.mapRecordToDto),
+      data: records
+        .slice(skip, skip + pageSize)
+        .map((record) => this.mapRecordToDto(record)),
       total: records.length,
       page,
       pageSize,
@@ -478,9 +497,7 @@ export class WalkcalcService {
     if (!dto.forWhom.length) {
       throw new GeneralException('walkcalc.forWhomRequired')
     }
-    if (dto.paid === 0) {
-      throw new GeneralException('walkcalc.zeroAmountRecord')
-    }
+    this.resolveRecordPaidMinor(dto)
     this.resolveParticipant(group, dto.who)
     dto.forWhom.forEach((participantId) => {
       this.resolveParticipant(group, participantId)
@@ -499,9 +516,7 @@ export class WalkcalcService {
     }
 
     dto.transfers.forEach((transfer) => {
-      if (transfer.amount <= 0) {
-        throw new GeneralException('walkcalc.zeroAmountRecord')
-      }
+      this.resolveTransferAmountMinor(transfer)
       this.resolveParticipant(group, transfer.from)
       this.resolveParticipant(group, transfer.to)
     })
@@ -524,23 +539,37 @@ export class WalkcalcService {
 
   private applyRecordBalance(
     group: WalkcalcGroup,
-    record: Pick<WalkcalcRecord, 'who' | 'paid' | 'forWhom' | 'isDebtResolve'>,
+    record: Pick<
+      WalkcalcRecord,
+      'who' | 'paid' | 'paidMinor' | 'forWhom' | 'isDebtResolve'
+    >,
     direction: 1 | -1,
   ) {
-    const avg = record.paid / record.forWhom.length
+    const paidMinor = this.resolvePersistedRecordPaidMinor(record)
+    const splitAmounts = splitMoneyMinor(paidMinor, record.forWhom.length)
     const forWhomParticipants = record.forWhom.map(
       (participantId) => this.resolveParticipant(group, participantId).value,
     )
     const payer = this.resolveParticipant(group, record.who).value
 
-    for (const participant of forWhomParticipants) {
-      participant.debt += direction * -avg
+    for (const [index, participant] of forWhomParticipants.entries()) {
+      const amount = splitAmounts[index]
+      this.addParticipantDebtMinor(
+        participant,
+        this.directedAmount(amount, this.reverseDirection(direction)),
+      )
       if (!record.isDebtResolve) {
-        participant.cost += direction * avg
+        this.addParticipantCostMinor(
+          participant,
+          this.directedAmount(amount, direction),
+        )
       }
     }
 
-    payer.debt += direction * record.paid
+    this.addParticipantDebtMinor(
+      payer,
+      this.directedAmount(paidMinor, direction),
+    )
   }
 
   private async mapGroupToDto(
@@ -561,15 +590,19 @@ export class WalkcalcService {
         return {
           userId: member.userId,
           profile: user?.profile ?? { name: member.userId },
-          debt: member.debt,
-          cost: member.cost,
+          debt: moneyMinorToLegacyNumber(this.getParticipantDebtMinor(member)),
+          cost: moneyMinorToLegacyNumber(this.getParticipantCostMinor(member)),
+          debtMinor: this.getParticipantDebtMinor(member),
+          costMinor: this.getParticipantCostMinor(member),
         }
       }),
       tempUsers: group.tempUsers.map((tempUser) => ({
         uuid: tempUser.uuid,
         name: tempUser.name,
-        debt: tempUser.debt,
-        cost: tempUser.cost,
+        debt: moneyMinorToLegacyNumber(this.getParticipantDebtMinor(tempUser)),
+        cost: moneyMinorToLegacyNumber(this.getParticipantCostMinor(tempUser)),
+        debtMinor: this.getParticipantDebtMinor(tempUser),
+        costMinor: this.getParticipantCostMinor(tempUser),
       })),
       archivedUserIds: group.archivedUserIds,
       isOwner: group.ownerUserId === userId,
@@ -582,7 +615,10 @@ export class WalkcalcService {
     return {
       recordId: record.recordId,
       who: record.who,
-      paid: record.paid,
+      paid: moneyMinorToLegacyNumber(
+        this.resolvePersistedRecordPaidMinor(record),
+      ),
+      paidMinor: this.resolvePersistedRecordPaidMinor(record),
       forWhom: record.forWhom,
       type: record.type,
       text: record.text,
@@ -594,6 +630,79 @@ export class WalkcalcService {
       createdBy: record.createdBy,
       modifiedBy: record.modifiedBy,
     }
+  }
+
+  private resolveRecordPaidMinor(
+    dto: Pick<AddWalkcalcRecordDto, 'paidMinor' | 'paid'>,
+  ): MoneyMinor {
+    try {
+      const paidMinor =
+        dto.paidMinor !== undefined
+          ? dto.paidMinor
+          : legacyNumberToMoneyMinor(dto.paid)
+      return assertNonZeroMoneyMinor(paidMinor)
+    } catch {
+      throw new GeneralException('walkcalc.zeroAmountRecord')
+    }
+  }
+
+  private resolveTransferAmountMinor(
+    transfer: Pick<
+      BulkResolveWalkcalcDebtsDto['transfers'][number],
+      'amountMinor' | 'amount'
+    >,
+  ): MoneyMinor {
+    try {
+      const amountMinor =
+        transfer.amountMinor !== undefined
+          ? transfer.amountMinor
+          : legacyNumberToMoneyMinor(transfer.amount)
+      return assertPositiveMoneyMinor(amountMinor)
+    } catch {
+      throw new GeneralException('walkcalc.zeroAmountRecord')
+    }
+  }
+
+  private resolvePersistedRecordPaidMinor(
+    record: Pick<WalkcalcRecord, 'paidMinor' | 'paid'>,
+  ): MoneyMinor {
+    return record.paidMinor ?? legacyNumberToMoneyMinor(record.paid)
+  }
+
+  private getParticipantDebtMinor(participant: MoneyParticipant): MoneyMinor {
+    return participant.debtMinor ?? legacyNumberToMoneyMinor(participant.debt)
+  }
+
+  private getParticipantCostMinor(participant: MoneyParticipant): MoneyMinor {
+    return participant.costMinor ?? legacyNumberToMoneyMinor(participant.cost)
+  }
+
+  private addParticipantDebtMinor(
+    participant: MoneyParticipant,
+    amount: MoneyMinor,
+  ) {
+    participant.debtMinor = addMoneyMinor(
+      this.getParticipantDebtMinor(participant),
+      amount,
+    )
+  }
+
+  private addParticipantCostMinor(
+    participant: MoneyParticipant,
+    amount: MoneyMinor,
+  ) {
+    participant.costMinor = addMoneyMinor(
+      this.getParticipantCostMinor(participant),
+      amount,
+    )
+  }
+
+  private directedAmount(amount: MoneyMinor, direction: 1 | -1): MoneyMinor {
+    return direction === 1 ? amount : negateMoneyMinor(amount)
+  }
+
+  private reverseDirection(direction: 1 | -1): 1 | -1 {
+    return direction === 1 ? -1 : 1
   }
 
   private async runInOptionalTransaction<T>(

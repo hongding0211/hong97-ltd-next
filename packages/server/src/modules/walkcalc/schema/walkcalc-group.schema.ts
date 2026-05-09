@@ -3,21 +3,26 @@ import { Document } from 'mongoose'
 
 export interface WalkcalcMember {
   userId: string
-  debt: number
-  cost: number
+  debt?: number
+  cost?: number
+  debtMinor: string
+  costMinor: string
 }
 
 export interface WalkcalcTempUser {
   uuid: string
   name: string
-  debt: number
-  cost: number
+  debt?: number
+  cost?: number
+  debtMinor: string
+  costMinor: string
 }
 
 export interface WalkcalcRecord {
   recordId: string
   who: string
-  paid: number
+  paid?: number
+  paidMinor: string
   forWhom: string[]
   type?: string
   text?: string
@@ -33,23 +38,28 @@ export interface WalkcalcRecord {
 const WalkcalcMemberSchema = {
   _id: false,
   userId: { type: String, required: true },
-  debt: { type: Number, required: true, default: 0 },
-  cost: { type: Number, required: true, default: 0 },
+  debt: { type: Number },
+  cost: { type: Number },
+  debtMinor: { type: String, required: true, default: '0' },
+  costMinor: { type: String, required: true, default: '0' },
 }
 
 const WalkcalcTempUserSchema = {
   _id: false,
   uuid: { type: String, required: true },
   name: { type: String, required: true },
-  debt: { type: Number, required: true, default: 0 },
-  cost: { type: Number, required: true, default: 0 },
+  debt: { type: Number },
+  cost: { type: Number },
+  debtMinor: { type: String, required: true, default: '0' },
+  costMinor: { type: String, required: true, default: '0' },
 }
 
 const WalkcalcRecordSchema = {
   _id: false,
   recordId: { type: String, required: true },
   who: { type: String, required: true },
-  paid: { type: Number, required: true },
+  paid: { type: Number },
+  paidMinor: { type: String, required: true },
   forWhom: { type: [String], required: true, default: [] },
   type: { type: String },
   text: { type: String },
