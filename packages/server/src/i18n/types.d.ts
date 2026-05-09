@@ -62,6 +62,7 @@ export type I18nTranslations = {
         "forWhomRequired": string;
         "zeroAmountRecord": string;
         "recordLimitReached": string;
+        "groupCodeUnavailable": string;
         "recordNotFound": string;
         "debtResolveRecordImmutable": string;
         "invalidParticipant": string;

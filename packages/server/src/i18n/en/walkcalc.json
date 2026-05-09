@@ -8,6 +8,7 @@
   "forWhomRequired": "At least one participant is required",
   "zeroAmountRecord": "Record amount cannot be zero",
   "recordLimitReached": "Group record limit reached",
+  "groupCodeUnavailable": "Could not generate an available group code",
   "recordNotFound": "Record not found",
   "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
   "invalidParticipant": "Invalid participant"
