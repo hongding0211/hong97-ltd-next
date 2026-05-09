@@ -9,10 +9,15 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
   ValidateNested,
 } from 'class-validator'
+
+export type MoneyMinor = string
+
+const MONEY_MINOR_PATTERN = /^-?(0|[1-9]\d*)$/
 
 export class AddWalkcalcRecordDto {
   @IsString()
@@ -23,9 +28,15 @@ export class AddWalkcalcRecordDto {
   @IsNotEmpty()
   who: string
 
+  @IsOptional()
+  @IsString()
+  @Matches(MONEY_MINOR_PATTERN)
+  paidMinor?: MoneyMinor
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  paid: number
+  paid?: number
 
   @IsArray()
   @ArrayNotEmpty()
@@ -73,10 +84,16 @@ export class BulkResolveWalkcalcDebtTransferDto {
   @IsNotEmpty()
   to: string
 
+  @IsOptional()
+  @IsString()
+  @Matches(MONEY_MINOR_PATTERN)
+  amountMinor?: MoneyMinor
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0.0000000001)
-  amount: number
+  amount?: number
 }
 
 export class BulkResolveWalkcalcDebtsDto {
