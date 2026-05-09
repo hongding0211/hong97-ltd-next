@@ -1,13 +1,32 @@
 import { GeneralException } from '../../exceptions/general-exceptions'
+import * as groupCode from './utils/group-code'
 import { WalkcalcService } from './walkcalc.service'
 
 describe('WalkcalcService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   function createService(userService: any = {}) {
     return new WalkcalcService(
       {} as any,
       { startSession: jest.fn() } as any,
       userService,
     )
+  }
+
+  function createServiceWithModel(model: any, userService: any = {}) {
+    return new WalkcalcService(model, { startSession: jest.fn() } as any, {
+      findUserById: jest.fn(async (userId: string) => ({
+        userId,
+        profile: { name: userId },
+      })),
+      findPublicUsersByIds: jest.fn(async (userIds: string[]) =>
+        userIds.map((userId) => ({ userId, profile: { name: userId } })),
+      ),
+      searchPublicUsersByName: jest.fn(async () => []),
+      ...userService,
+    })
   }
 
   function createGroup(): any {
@@ -45,6 +64,231 @@ describe('WalkcalcService', () => {
     )
     return service
   }
+
+  function createExecResult(value: any) {
+    return {
+      session: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      exec: jest.fn(async () => value),
+    }
+  }
+
+  function createGroupModel(options?: {
+    existsResults?: any[]
+    saveResults?: any[]
+    findOneResult?: any
+    findResults?: any[]
+    countResult?: number
+    updateOneResult?: any
+  }) {
+    const savedDocs: any[] = []
+    const saveResults = [...(options?.saveResults ?? [])]
+    const Model: any = jest.fn(function MockGroupModel(this: any, doc: any) {
+      Object.assign(this, doc)
+      this.save = jest.fn(async () => {
+        const next = saveResults.shift()
+        if (next instanceof Error) {
+          throw next
+        }
+        savedDocs.push(this)
+        return this
+      })
+    })
+    const existsResults = [...(options?.existsResults ?? [])]
+    Model.exists = jest.fn(async () =>
+      existsResults.length ? existsResults.shift() : false,
+    )
+    Model.findOne = jest.fn(() => createExecResult(options?.findOneResult))
+    Model.find = jest.fn(() => createExecResult(options?.findResults ?? []))
+    Model.countDocuments = jest.fn(() =>
+      createExecResult(options?.countResult ?? 0),
+    )
+    Model.updateOne = jest.fn(() =>
+      createExecResult(options?.updateOneResult ?? { modifiedCount: 1 }),
+    )
+    return { Model, savedDocs }
+  }
+
+  it('creates groups with random uppercase 4-character codes', async () => {
+    jest.spyOn(groupCode, 'generateGroupCode').mockReturnValue('AB12')
+    const { Model, savedDocs } = createGroupModel()
+    const service = createServiceWithModel(Model)
+
+    await expect(service.createGroup('u1', { name: 'Trip' })).resolves.toEqual({
+      code: 'AB12',
+    })
+
+    expect(Model.exists).toHaveBeenCalledWith({ code: 'AB12' })
+    expect(savedDocs[0]).toEqual(
+      expect.objectContaining({
+        code: 'AB12',
+        ownerUserId: 'u1',
+        name: 'Trip',
+        isDeleted: false,
+      }),
+    )
+  })
+
+  it('retries random group code collisions before saving', async () => {
+    jest
+      .spyOn(groupCode, 'generateGroupCode')
+      .mockReturnValueOnce('AAAA')
+      .mockReturnValueOnce('BBBB')
+    const { Model, savedDocs } = createGroupModel({
+      existsResults: [true, false],
+    })
+    const service = createServiceWithModel(Model)
+
+    await expect(service.createGroup('u1', { name: 'Trip' })).resolves.toEqual({
+      code: 'BBBB',
+    })
+
+    expect(Model).toHaveBeenCalledTimes(1)
+    expect(savedDocs[0].code).toBe('BBBB')
+  })
+
+  it('retries duplicate key errors from the unique code index', async () => {
+    jest
+      .spyOn(groupCode, 'generateGroupCode')
+      .mockReturnValueOnce('AAAA')
+      .mockReturnValueOnce('BBBB')
+    const duplicateKeyError = Object.assign(new Error('duplicate key'), {
+      code: 11000,
+      keyPattern: { code: 1 },
+    })
+    const { Model, savedDocs } = createGroupModel({
+      saveResults: [duplicateKeyError],
+    })
+    const service = createServiceWithModel(Model)
+
+    await expect(service.createGroup('u1', { name: 'Trip' })).resolves.toEqual({
+      code: 'BBBB',
+    })
+
+    expect(Model).toHaveBeenCalledTimes(2)
+    expect(savedDocs[0].code).toBe('BBBB')
+  })
+
+  it('does not hide duplicate key errors from unrelated legacy indexes', async () => {
+    jest.spyOn(groupCode, 'generateGroupCode').mockReturnValue('AAAA')
+    const duplicateIdxError = Object.assign(new Error('idx duplicate key'), {
+      code: 11000,
+      keyPattern: { idx: 1 },
+    })
+    const { Model } = createGroupModel({
+      saveResults: [duplicateIdxError],
+    })
+    const service = createServiceWithModel(Model)
+
+    await expect(service.createGroup('u1', { name: 'Trip' })).rejects.toBe(
+      duplicateIdxError,
+    )
+    expect(Model).toHaveBeenCalledTimes(1)
+  })
+
+  it('fails group creation after exhausting code retries', async () => {
+    jest.spyOn(groupCode, 'generateGroupCode').mockReturnValue('AAAA')
+    const { Model, savedDocs } = createGroupModel({
+      existsResults: Array.from({ length: 20 }, () => true),
+    })
+    const service = createServiceWithModel(Model)
+
+    await expect(
+      service.createGroup('u1', { name: 'Trip' }),
+    ).rejects.toBeInstanceOf(GeneralException)
+    expect(Model).not.toHaveBeenCalled()
+    expect(savedDocs).toHaveLength(0)
+  })
+
+  it('soft deletes groups owned by the current user', async () => {
+    const { Model } = createGroupModel()
+    const service = createServiceWithModel(Model)
+
+    await expect(service.dismissGroup('u1', 'AB12')).resolves.toEqual({
+      code: 'AB12',
+    })
+
+    expect(Model.updateOne).toHaveBeenCalledWith(
+      { code: 'AB12', ownerUserId: 'u1', isDeleted: { $ne: true } },
+      {
+        $set: expect.objectContaining({
+          isDeleted: true,
+          deletedBy: 'u1',
+        }),
+      },
+    )
+  })
+
+  it('rejects group dismissal when no active owned group is updated', async () => {
+    const { Model } = createGroupModel({
+      updateOneResult: { modifiedCount: 0 },
+    })
+    const service = createServiceWithModel(Model)
+
+    await expect(service.dismissGroup('u2', 'AB12')).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+  })
+
+  it('excludes soft-deleted groups from my groups', async () => {
+    const group = createPersistedGroup()
+    const { Model } = createGroupModel({
+      findResults: [group],
+      countResult: 1,
+    })
+    const service = createServiceWithModel(Model)
+
+    await service.myGroups('u1', {})
+
+    expect(Model.find).toHaveBeenCalledWith({
+      $or: [{ ownerUserId: 'u1' }, { 'members.userId': 'u1' }],
+      isDeleted: { $ne: true },
+    })
+    expect(Model.countDocuments).toHaveBeenCalledWith({
+      $or: [{ ownerUserId: 'u1' }, { 'members.userId': 'u1' }],
+      isDeleted: { $ne: true },
+    })
+  })
+
+  it('treats soft-deleted groups as inaccessible for normal group flows', async () => {
+    const { Model } = createGroupModel({ findOneResult: null })
+    const service = createServiceWithModel(Model)
+    ;(service as any).runInOptionalTransaction = jest.fn(
+      async (operation: any) => operation(undefined),
+    )
+
+    await expect(service.joinGroup('u2', 'AB12')).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+    await expect(service.getGroup('u1', 'AB12')).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+    await expect(
+      service.archiveGroup('u1', 'AB12', true),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.renameGroup('u1', 'AB12', 'Next'),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.addTempUser('u1', 'AB12', 'Guest 2'),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.addRecord('u1', {
+        groupCode: 'AB12',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u1'],
+      }),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(service.groupRecords('u1', 'AB12', {})).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+    await expect(service.getRecord('u1', 'record-1')).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+  })
 
   it('applies and reverses record balances for formal and temporary users', () => {
     const service = createService() as any

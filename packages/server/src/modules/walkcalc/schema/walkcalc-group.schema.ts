@@ -77,9 +77,6 @@ export class WalkcalcGroup {
   @Prop({ required: true, unique: true })
   code: string
 
-  @Prop({ required: true, unique: true })
-  idx: number
-
   @Prop({ required: true })
   ownerUserId: string
 
@@ -97,6 +94,15 @@ export class WalkcalcGroup {
 
   @Prop({ type: [String], default: [] })
   archivedUserIds: string[]
+
+  @Prop({ required: true, default: false })
+  isDeleted: boolean
+
+  @Prop()
+  deletedAt?: number
+
+  @Prop()
+  deletedBy?: string
 
   @Prop({ required: true, default: Date.now })
   createdAtMs: number

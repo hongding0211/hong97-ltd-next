@@ -45,6 +45,7 @@ type MoneyParticipant = WalkcalcMember | WalkcalcTempUser
 @Injectable()
 export class WalkcalcService {
   private readonly maxRecordsPerGroup = 5000
+  private readonly maxGroupCodeAttempts = 20
 
   constructor(
     @InjectModel(WalkcalcGroup.name)
@@ -73,29 +74,44 @@ export class WalkcalcService {
     dto: CreateWalkcalcGroupDto,
   ): Promise<{ code: string }> {
     await this.getPublicUserOrThrow(userId)
-    const idx = await this.getNextGroupIndex()
-    const availableGroupCode = await this.getAvailableGroupCode(idx)
-    const now = Date.now()
+    for (let attempt = 0; attempt < this.maxGroupCodeAttempts; attempt += 1) {
+      const code = generateGroupCode()
+      const exists = await this.walkcalcGroupModel.exists({ code })
+      if (exists) {
+        continue
+      }
 
-    const group = new this.walkcalcGroupModel({
-      idx: availableGroupCode.idx,
-      code: availableGroupCode.code,
-      ownerUserId: userId,
-      name: dto.name,
-      members: [{ userId, debtMinor: '0', costMinor: '0' }],
-      tempUsers: [],
-      records: [],
-      archivedUserIds: [],
-      createdAtMs: now,
-      modifiedAt: now,
-    })
-    await group.save()
-    return { code: availableGroupCode.code }
+      const now = Date.now()
+      const group = new this.walkcalcGroupModel({
+        code,
+        ownerUserId: userId,
+        name: dto.name,
+        members: [{ userId, debtMinor: '0', costMinor: '0' }],
+        tempUsers: [],
+        records: [],
+        archivedUserIds: [],
+        isDeleted: false,
+        createdAtMs: now,
+        modifiedAt: now,
+      })
+      try {
+        await group.save()
+        return { code }
+      } catch (err) {
+        if (this.isDuplicateGroupCodeError(err)) {
+          continue
+        }
+        throw err
+      }
+    }
+    throw new GeneralException('walkcalc.groupCodeUnavailable')
   }
 
   async joinGroup(userId: string, code: string): Promise<{ code: string }> {
     await this.getPublicUserOrThrow(userId)
-    const group = await this.walkcalcGroupModel.findOne({ code }).exec()
+    const group = await this.walkcalcGroupModel
+      .findOne(this.activeGroupFilter({ code }))
+      .exec()
     if (!group) {
       throw new GeneralException('walkcalc.groupNotFound')
     }
@@ -110,10 +126,18 @@ export class WalkcalcService {
   }
 
   async dismissGroup(userId: string, code: string): Promise<{ code: string }> {
+    const now = Date.now()
     const result = await this.walkcalcGroupModel
-      .deleteOne({ code, ownerUserId: userId })
+      .updateOne(this.activeGroupFilter({ code, ownerUserId: userId }), {
+        $set: {
+          isDeleted: true,
+          deletedAt: now,
+          deletedBy: userId,
+          modifiedAt: now,
+        },
+      })
       .exec()
-    if (result.deletedCount < 1) {
+    if (result.modifiedCount < 1) {
       throw new GeneralException('walkcalc.groupOwnerRequired')
     }
     return { code }
@@ -170,7 +194,7 @@ export class WalkcalcService {
   ): Promise<PaginationResponseDto<WalkcalcGroupDto>> {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
-    const filter = this.memberFilter(userId)
+    const filter = this.activeGroupFilter(this.memberFilter(userId))
     const [groups, total] = await Promise.all([
       this.walkcalcGroupModel
         .find(filter)
@@ -384,6 +408,7 @@ export class WalkcalcService {
   ): Promise<WalkcalcRecordDto> {
     const group = await this.walkcalcGroupModel
       .findOne({
+        ...this.activeGroupFilter(),
         ...this.memberFilter(userId),
         'records.recordId': recordId,
       })
@@ -429,24 +454,11 @@ export class WalkcalcService {
     }
   }
 
-  private async getNextGroupIndex(): Promise<number> {
-    const latest = await this.walkcalcGroupModel
-      .findOne({}, { idx: 1 })
-      .sort({ idx: -1 })
-      .exec()
-    return latest ? latest.idx + 1 : 0
-  }
-
-  private async getAvailableGroupCode(
-    startIndex: number,
-  ): Promise<{ idx: number; code: string }> {
-    let idx = startIndex
-    let code = generateGroupCode(idx)
-    while (await this.walkcalcGroupModel.exists({ code })) {
-      idx += 1
-      code = generateGroupCode(idx)
+  private activeGroupFilter<T extends Record<string, unknown>>(filter?: T) {
+    return {
+      ...(filter ?? {}),
+      isDeleted: { $ne: true },
     }
-    return { idx, code }
   }
 
   private memberFilter(userId: string) {
@@ -469,6 +481,7 @@ export class WalkcalcService {
   ): Promise<WalkcalcGroupDocument> {
     const group = await this.walkcalcGroupModel
       .findOne({
+        ...this.activeGroupFilter(),
         code,
         ...this.memberFilter(userId),
       })
@@ -485,7 +498,7 @@ export class WalkcalcService {
     userId: string,
   ): Promise<WalkcalcGroupDocument> {
     const group = await this.walkcalcGroupModel
-      .findOne({ code, ownerUserId: userId })
+      .findOne(this.activeGroupFilter({ code, ownerUserId: userId }))
       .exec()
     if (!group) {
       throw new GeneralException('walkcalc.groupOwnerRequired')
@@ -731,6 +744,24 @@ export class WalkcalcService {
     }
     return /Transaction numbers|replica set|sharded cluster|sessions are not supported/i.test(
       err.message,
+    )
+  }
+
+  private isDuplicateGroupCodeError(err: unknown): boolean {
+    const duplicateError = err as {
+      code?: number
+      keyPattern?: Record<string, unknown>
+      keyValue?: Record<string, unknown>
+      message?: string
+    }
+
+    return (
+      !!err &&
+      typeof err === 'object' &&
+      duplicateError.code === 11000 &&
+      (duplicateError.keyPattern?.code === 1 ||
+        duplicateError.keyValue?.code !== undefined ||
+        /code_1/.test(duplicateError.message ?? ''))
     )
   }
 }
