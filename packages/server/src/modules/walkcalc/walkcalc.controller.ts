@@ -75,6 +75,16 @@ export class WalkcalcController {
     return this.walkcalcService.myGroups(userId, query)
   }
 
+  @Get('groups/:code/records')
+  @HttpCode(HttpStatus.OK)
+  async groupRecords(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Query() query: QueryWalkcalcRecordsDto,
+  ) {
+    return this.walkcalcService.groupRecords(userId, code, query)
+  }
+
   @Get('groups/:code')
   @HttpCode(HttpStatus.OK)
   async getGroup(@UserId() userId: string, @Param('code') code: string) {
@@ -160,16 +170,6 @@ export class WalkcalcController {
     @Body() dto: UpdateWalkcalcRecordDto,
   ) {
     return this.walkcalcService.updateRecord(userId, dto)
-  }
-
-  @Get('records/group/:groupCode')
-  @HttpCode(HttpStatus.OK)
-  async groupRecords(
-    @UserId() userId: string,
-    @Param('groupCode') groupCode: string,
-    @Query() query: QueryWalkcalcRecordsDto,
-  ) {
-    return this.walkcalcService.groupRecords(userId, groupCode, query)
   }
 
   @Get('records/:recordId')

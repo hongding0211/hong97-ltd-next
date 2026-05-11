@@ -101,7 +101,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const router = useRouter()
   const { locale } = router
-  const hideNavBar = router.query.hideNavBar === '1'
+  const hideNavBar = router.query.hideNavbar === '1'
 
   const { t } = useTranslation('profile')
 

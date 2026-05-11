@@ -56,4 +56,8 @@ export class QueryWalkcalcGroupsDto {
   @Min(1)
   @Max(100)
   pageSize?: number = 10
+
+  @IsOptional()
+  @IsString()
+  search?: string
 }
