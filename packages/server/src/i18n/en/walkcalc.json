@@ -11,5 +11,6 @@
   "groupCodeUnavailable": "Could not generate an available group code",
   "recordNotFound": "Record not found",
   "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
-  "invalidParticipant": "Invalid participant"
+  "invalidParticipant": "Invalid participant",
+  "invalidRecordSearch": "Invalid record search"
 }

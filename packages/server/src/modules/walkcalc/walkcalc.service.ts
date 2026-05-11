@@ -42,6 +42,36 @@ type Participant =
 
 type MoneyParticipant = WalkcalcMember | WalkcalcTempUser
 
+type RecordSearchField = 'note' | 'categoryName'
+type RecordSearchOperator = 'or' | 'and'
+
+interface StructuredRecordSearchCondition {
+  field: RecordSearchField
+  query: string
+}
+
+interface StructuredRecordSearch {
+  operator: RecordSearchOperator
+  conditions: StructuredRecordSearchCondition[]
+}
+
+const recordSearchFields = new Set<RecordSearchField>(['note', 'categoryName'])
+const recordCategoryNames: Record<string, string[]> = {
+  food: ['meal', '餐饮'],
+  beverage: ['drink', '饮品'],
+  accommodation: ['hotel', '酒店'],
+  shopping: ['shopping', '购物'],
+  traffic: ['transport', '交通'],
+  stay: ['stay', '住宿'],
+  vacation: ['vacation', '旅行'],
+  transfer: ['transfer', '转账'],
+  ticket: ['ticket', '票务'],
+  game: ['game', '娱乐'],
+  other: ['other', '其他'],
+  debtResolve: ['transfer', '转账'],
+  'debt-resolve': ['transfer', '转账'],
+}
+
 @Injectable()
 export class WalkcalcService {
   private readonly maxRecordsPerGroup = 5000
@@ -505,7 +535,7 @@ export class WalkcalcService {
       )
     }
 
-    const search = query.search?.trim().toLowerCase()
+    const search = this.parseRecordSearch(query.search)
     if (search) {
       records = records.filter((record) =>
         this.recordMatchesSearch(record, search),
@@ -515,12 +545,100 @@ export class WalkcalcService {
     return records
   }
 
-  private recordMatchesSearch(record: WalkcalcRecord, search: string): boolean {
-    const paidMinor = this.resolvePersistedRecordPaidMinor(record)
-    const paid = String(moneyMinorToLegacyNumber(paidMinor))
-    return [record.text, record.type, record.recordId, paidMinor, paid].some(
-      (value) => value?.toLowerCase().includes(search),
+  private parseRecordSearch(
+    search?: string,
+  ): StructuredRecordSearch | undefined {
+    const trimmed = search?.trim()
+    if (!trimmed) {
+      return undefined
+    }
+
+    let raw: unknown
+    try {
+      raw = JSON.parse(trimmed)
+    } catch {
+      throw new GeneralException('walkcalc.invalidRecordSearch')
+    }
+
+    if (!this.isPlainObject(raw)) {
+      throw new GeneralException('walkcalc.invalidRecordSearch')
+    }
+
+    const operator = raw.operator
+    const conditions = raw.conditions
+    if (
+      (operator !== 'or' && operator !== 'and') ||
+      !Array.isArray(conditions) ||
+      conditions.length === 0
+    ) {
+      throw new GeneralException('walkcalc.invalidRecordSearch')
+    }
+
+    return {
+      operator,
+      conditions: conditions.map((condition) =>
+        this.parseRecordSearchCondition(condition),
+      ),
+    }
+  }
+
+  private parseRecordSearchCondition(
+    condition: unknown,
+  ): StructuredRecordSearchCondition {
+    if (!this.isPlainObject(condition)) {
+      throw new GeneralException('walkcalc.invalidRecordSearch')
+    }
+    const field = condition.field
+    const query = condition.query
+    if (
+      typeof field !== 'string' ||
+      !recordSearchFields.has(field as RecordSearchField) ||
+      typeof query !== 'string' ||
+      !query.trim()
+    ) {
+      throw new GeneralException('walkcalc.invalidRecordSearch')
+    }
+
+    return {
+      field: field as RecordSearchField,
+      query: query.trim().toLowerCase(),
+    }
+  }
+
+  private recordMatchesSearch(
+    record: WalkcalcRecord,
+    search: StructuredRecordSearch,
+  ): boolean {
+    const matches = search.conditions.map((condition) =>
+      this.recordMatchesSearchCondition(record, condition),
     )
+    return search.operator === 'and'
+      ? matches.every(Boolean)
+      : matches.some(Boolean)
+  }
+
+  private recordMatchesSearchCondition(
+    record: WalkcalcRecord,
+    condition: StructuredRecordSearchCondition,
+  ): boolean {
+    switch (condition.field) {
+      case 'note':
+        return (record.text ?? '').toLowerCase().includes(condition.query)
+      case 'categoryName':
+        return this.recordCategorySearchValues(record).some((value) =>
+          value.includes(condition.query),
+        )
+    }
+  }
+
+  private recordCategorySearchValues(record: WalkcalcRecord): string[] {
+    return (
+      recordCategoryNames[record.type ?? 'other'] ?? recordCategoryNames.other
+    ).map((value) => value.toLowerCase())
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
   }
 
   private searchRegex(search?: string): RegExp | undefined {
