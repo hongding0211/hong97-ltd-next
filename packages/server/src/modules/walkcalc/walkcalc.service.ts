@@ -194,7 +194,10 @@ export class WalkcalcService {
   ): Promise<PaginationResponseDto<WalkcalcGroupDto>> {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
-    const filter = this.activeGroupFilter(this.memberFilter(userId))
+    const filter = this.withGroupSearch(
+      this.activeGroupFilter(this.memberFilter(userId)),
+      query.search,
+    )
     const [groups, total] = await Promise.all([
       this.walkcalcGroupModel
         .find(filter)
@@ -431,7 +434,9 @@ export class WalkcalcService {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
     const group = await this.loadGroupForMember(groupCode, userId)
-    const records = [...group.records].sort((a, b) => b.createdAt - a.createdAt)
+    const records = this.filterRecords(group, query).sort(
+      (a, b) => b.createdAt - a.createdAt,
+    )
     const skip = (page - 1) * pageSize
 
     return {
@@ -465,6 +470,69 @@ export class WalkcalcService {
     return {
       $or: [{ ownerUserId: userId }, { 'members.userId': userId }],
     }
+  }
+
+  private withGroupSearch<T extends Record<string, unknown>>(
+    filter: T,
+    search?: string,
+  ) {
+    const regex = this.searchRegex(search)
+    if (!regex) {
+      return filter
+    }
+    return {
+      $and: [
+        filter,
+        {
+          $or: [{ name: regex }, { code: regex }],
+        },
+      ],
+    }
+  }
+
+  private filterRecords(
+    group: WalkcalcGroup,
+    query: QueryWalkcalcRecordsDto,
+  ): WalkcalcRecord[] {
+    let records = [...group.records]
+    const participantId = query.participantId?.trim()
+    if (participantId) {
+      this.resolveParticipant(group, participantId)
+      records = records.filter(
+        (record) =>
+          record.who === participantId ||
+          record.forWhom.includes(participantId),
+      )
+    }
+
+    const search = query.search?.trim().toLowerCase()
+    if (search) {
+      records = records.filter((record) =>
+        this.recordMatchesSearch(record, search),
+      )
+    }
+
+    return records
+  }
+
+  private recordMatchesSearch(record: WalkcalcRecord, search: string): boolean {
+    const paidMinor = this.resolvePersistedRecordPaidMinor(record)
+    const paid = String(moneyMinorToLegacyNumber(paidMinor))
+    return [record.text, record.type, record.recordId, paidMinor, paid].some(
+      (value) => value?.toLowerCase().includes(search),
+    )
+  }
+
+  private searchRegex(search?: string): RegExp | undefined {
+    const trimmed = search?.trim()
+    if (!trimmed) {
+      return undefined
+    }
+    return new RegExp(this.escapeRegExp(trimmed), 'i')
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
   private isGroupMember(group: WalkcalcGroup, userId: string): boolean {

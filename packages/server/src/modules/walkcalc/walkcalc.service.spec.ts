@@ -252,6 +252,89 @@ describe('WalkcalcService', () => {
     })
   })
 
+  it('searches my groups before pagination', async () => {
+    const { Model } = createGroupModel()
+    const service = createServiceWithModel(Model)
+
+    await service.myGroups('u1', { search: 'Trip.*', page: 1, pageSize: 10 })
+
+    const filter = Model.find.mock.calls[0][0]
+    expect(filter.$and[0]).toEqual({
+      $or: [{ ownerUserId: 'u1' }, { 'members.userId': 'u1' }],
+      isDeleted: { $ne: true },
+    })
+    expect(filter.$and[1].$or[0].name).toBeInstanceOf(RegExp)
+    expect(filter.$and[1].$or[0].name.test('Trip.*')).toBe(true)
+    expect(filter.$and[1].$or[0].name.test('TripX')).toBe(false)
+    expect(Model.countDocuments).toHaveBeenCalledWith(filter)
+  })
+
+  it('filters group records by participant and search before pagination', async () => {
+    const group = createPersistedGroup()
+    group.records = [
+      {
+        recordId: 'record-dinner',
+        who: 'u1',
+        paidMinor: '1200',
+        forWhom: ['u2'],
+        type: 'food',
+        text: 'Dinner noodles',
+        createdAt: 300,
+        modifiedAt: 300,
+        createdBy: 'u1',
+      },
+      {
+        recordId: 'record-hotel',
+        who: 'u2',
+        paidMinor: '2500',
+        forWhom: ['tmp1'],
+        type: 'accommodation',
+        text: 'Hotel',
+        createdAt: 200,
+        modifiedAt: 200,
+        createdBy: 'u2',
+      },
+      {
+        recordId: 'record-taxi',
+        who: 'tmp1',
+        paidMinor: '800',
+        forWhom: ['u1'],
+        type: 'traffic',
+        text: 'Taxi',
+        createdAt: 100,
+        modifiedAt: 100,
+        createdBy: 'u1',
+      },
+    ]
+    const service = createService() as any
+    service.loadGroupForMember = jest.fn(async () => group)
+
+    const result = await service.groupRecords('u1', 'AB12', {
+      participantId: 'u1',
+      search: 'taxi',
+      page: 1,
+      pageSize: 10,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.data).toEqual([
+      expect.objectContaining({
+        recordId: 'record-taxi',
+        paidMinor: '800',
+      }),
+    ])
+  })
+
+  it('rejects participant-filtered records for unknown participants', async () => {
+    const group = createPersistedGroup()
+    const service = createService() as any
+    service.loadGroupForMember = jest.fn(async () => group)
+
+    await expect(
+      service.groupRecords('u1', 'AB12', { participantId: 'missing' }),
+    ).rejects.toBeInstanceOf(GeneralException)
+  })
+
   it('treats soft-deleted groups as inaccessible for normal group flows', async () => {
     const { Model } = createGroupModel({ findOneResult: null })
     const service = createServiceWithModel(Model)
