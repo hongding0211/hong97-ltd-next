@@ -269,7 +269,18 @@ describe('WalkcalcService', () => {
     expect(Model.countDocuments).toHaveBeenCalledWith(filter)
   })
 
-  it('filters group records by participant and search before pagination', async () => {
+  function recordSearch(
+    query: string,
+    fields = ['note', 'categoryName'],
+    operator = 'or',
+  ) {
+    return JSON.stringify({
+      operator,
+      conditions: fields.map((field) => ({ field, query })),
+    })
+  }
+
+  it('filters group records by participant and structured search before pagination', async () => {
     const group = createPersistedGroup()
     group.records = [
       {
@@ -311,7 +322,7 @@ describe('WalkcalcService', () => {
 
     const result = await service.groupRecords('u1', 'AB12', {
       participantId: 'u1',
-      search: 'taxi',
+      search: recordSearch('taxi'),
       page: 1,
       pageSize: 10,
     })
@@ -323,6 +334,88 @@ describe('WalkcalcService', () => {
         paidMinor: '800',
       }),
     ])
+  })
+
+  it('matches structured record search by localized category name', async () => {
+    const group = createPersistedGroup()
+    group.records = [
+      {
+        recordId: 'record-meal',
+        who: 'u1',
+        paidMinor: '1200',
+        forWhom: ['u2'],
+        type: 'food',
+        text: '',
+        createdAt: 300,
+        modifiedAt: 300,
+        createdBy: 'u1',
+      },
+      {
+        recordId: 'record-transport',
+        who: 'u2',
+        paidMinor: '800',
+        forWhom: ['u1'],
+        type: 'traffic',
+        text: '',
+        createdAt: 200,
+        modifiedAt: 200,
+        createdBy: 'u2',
+      },
+    ]
+    const service = createService() as any
+    service.loadGroupForMember = jest.fn(async () => group)
+
+    const result = await service.groupRecords('u1', 'AB12', {
+      search: recordSearch('Meal'),
+      page: 1,
+      pageSize: 10,
+    })
+
+    expect(result.total).toBe(1)
+    expect(result.data[0].recordId).toBe('record-meal')
+  })
+
+  it('does not match fields omitted from structured record search', async () => {
+    const group = createPersistedGroup()
+    group.records = [
+      {
+        recordId: 'record-amount',
+        who: 'u1',
+        paidMinor: '1200',
+        forWhom: ['u2'],
+        type: 'food',
+        text: '',
+        createdAt: 300,
+        modifiedAt: 300,
+        createdBy: 'u1',
+      },
+    ]
+    const service = createService() as any
+    service.loadGroupForMember = jest.fn(async () => group)
+
+    const result = await service.groupRecords('u1', 'AB12', {
+      search: recordSearch('1200'),
+      page: 1,
+      pageSize: 10,
+    })
+
+    expect(result.total).toBe(0)
+    expect(result.data).toEqual([])
+  })
+
+  it('rejects scalar and unsupported structured record search', async () => {
+    const group = createPersistedGroup()
+    const service = createService() as any
+    service.loadGroupForMember = jest.fn(async () => group)
+
+    await expect(
+      service.groupRecords('u1', 'AB12', { search: 'taxi' }),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.groupRecords('u1', 'AB12', {
+        search: recordSearch('taxi', ['payer']),
+      }),
+    ).rejects.toBeInstanceOf(GeneralException)
   })
 
   it('rejects participant-filtered records for unknown participants', async () => {

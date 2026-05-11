@@ -11,5 +11,6 @@
   "groupCodeUnavailable": "无法生成可用的群组代码",
   "recordNotFound": "记录不存在",
   "debtResolveRecordImmutable": "债务和解记录不能被修改",
-  "invalidParticipant": "无效的参与者"
+  "invalidParticipant": "无效的参与者",
+  "invalidRecordSearch": "无效的记录搜索条件"
 }
