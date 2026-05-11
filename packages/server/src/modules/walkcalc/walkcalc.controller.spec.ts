@@ -80,13 +80,25 @@ describe('WalkcalcController', () => {
     service.inviteUsers.mockResolvedValue({ code: 'AB12', userIds: ['u2'] })
     service.archiveGroup.mockResolvedValue({ code: 'AB12' })
     service.renameGroup.mockResolvedValue({ code: 'AB12', name: 'Next' })
-    service.addRecord.mockResolvedValue({ recordId: 'record-1' } as any)
-    service.resolveDebts.mockResolvedValue([{ recordId: 'record-2' }] as any)
+    const addResponse = { recordId: 'record-1', group: { code: 'AB12' } }
+    const resolveResponse = {
+      records: [{ recordId: 'record-2' }],
+      group: { code: 'AB12' },
+    }
+    const dropResponse = {
+      groupCode: 'AB12',
+      recordId: 'record-1',
+      group: { code: 'AB12' },
+    }
+    const updateResponse = { recordId: 'record-1', group: { code: 'AB12' } }
+    service.addRecord.mockResolvedValue(addResponse as any)
+    service.resolveDebts.mockResolvedValue(resolveResponse as any)
     service.dropRecord.mockResolvedValue({
       groupCode: 'AB12',
       recordId: 'record-1',
-    })
-    service.updateRecord.mockResolvedValue({ recordId: 'record-1' } as any)
+      group: { code: 'AB12' },
+    } as any)
+    service.updateRecord.mockResolvedValue(updateResponse as any)
     service.groupRecords.mockResolvedValue({ data: [], total: 0 } as any)
     service.getRecord.mockResolvedValue({ recordId: 'record-1' } as any)
 
@@ -98,27 +110,37 @@ describe('WalkcalcController', () => {
     await controller.archiveGroup('u1', 'AB12')
     await controller.unarchiveGroup('u1', 'AB12')
     await controller.renameGroup('u1', 'AB12', { name: 'Next' })
-    await controller.addRecord('u1', {
-      groupCode: 'AB12',
-      who: 'u1',
-      paidMinor: '100',
-      forWhom: ['u1'],
-    })
-    await controller.resolveDebts('u1', {
-      groupCode: 'AB12',
-      transfers: [{ from: 'u1', to: 'u2', amountMinor: '100' }],
-    })
-    await controller.dropRecord('u1', {
-      groupCode: 'AB12',
-      recordId: 'record-1',
-    })
-    await controller.updateRecord('u1', {
-      groupCode: 'AB12',
-      recordId: 'record-1',
-      who: 'u1',
-      paidMinor: '100',
-      forWhom: ['u1'],
-    })
+    await expect(
+      controller.addRecord('u1', {
+        groupCode: 'AB12',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u1'],
+        createdAt: 1710086400000,
+      }),
+    ).resolves.toBe(addResponse)
+    await expect(
+      controller.resolveDebts('u1', {
+        groupCode: 'AB12',
+        transfers: [{ from: 'u1', to: 'u2', amountMinor: '100' }],
+      }),
+    ).resolves.toBe(resolveResponse)
+    await expect(
+      controller.dropRecord('u1', {
+        groupCode: 'AB12',
+        recordId: 'record-1',
+      }),
+    ).resolves.toEqual(dropResponse)
+    await expect(
+      controller.updateRecord('u1', {
+        groupCode: 'AB12',
+        recordId: 'record-1',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u1'],
+        createdAt: 1710086400000,
+      }),
+    ).resolves.toBe(updateResponse)
     await controller.groupRecords('u1', 'AB12', { page: 1, pageSize: 10 })
     await controller.getRecord('u1', 'record-1')
 
@@ -138,6 +160,7 @@ describe('WalkcalcController', () => {
       who: 'u1',
       paidMinor: '100',
       forWhom: ['u1'],
+      createdAt: 1710086400000,
     })
     expect(service.resolveDebts).toHaveBeenCalledWith('u1', {
       groupCode: 'AB12',
@@ -150,6 +173,7 @@ describe('WalkcalcController', () => {
       who: 'u1',
       paidMinor: '100',
       forWhom: ['u1'],
+      createdAt: 1710086400000,
     })
     expect(service.groupRecords).toHaveBeenCalledWith('u1', 'AB12', {
       page: 1,

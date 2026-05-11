@@ -51,3 +51,18 @@ export interface WalkcalcGroupDto {
   createdAt: number
   modifiedAt: number
 }
+
+export interface WalkcalcRecordMutationDto extends WalkcalcRecordDto {
+  group: WalkcalcGroupDto
+}
+
+export interface WalkcalcDropRecordMutationDto {
+  groupCode: string
+  recordId: string
+  group: WalkcalcGroupDto
+}
+
+export interface WalkcalcRecordsMutationDto {
+  records: WalkcalcRecordDto[]
+  group: WalkcalcGroupDto
+}

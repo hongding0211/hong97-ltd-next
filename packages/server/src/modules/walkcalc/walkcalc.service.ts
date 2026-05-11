@@ -13,9 +13,12 @@ import {
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
 import {
+  WalkcalcDropRecordMutationDto,
   WalkcalcGroupDto,
   WalkcalcPublicUserDto,
   WalkcalcRecordDto,
+  WalkcalcRecordMutationDto,
+  WalkcalcRecordsMutationDto,
 } from './dto/response.dto'
 import {
   WalkcalcGroup,
@@ -286,7 +289,7 @@ export class WalkcalcService {
   async addRecord(
     userId: string,
     dto: AddWalkcalcRecordDto,
-  ): Promise<WalkcalcRecordDto> {
+  ): Promise<WalkcalcRecordMutationDto> {
     return this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(
         dto.groupCode,
@@ -299,6 +302,7 @@ export class WalkcalcService {
       }
 
       const now = Date.now()
+      const createdAt = dto.createdAt ?? now
       const paidMinor = this.resolveRecordPaidMinor(dto)
       const record: WalkcalcRecord = {
         recordId: uuidv4(),
@@ -310,7 +314,7 @@ export class WalkcalcService {
         long: dto.long,
         lat: dto.lat,
         isDebtResolve: !!dto.isDebtResolve,
-        createdAt: now,
+        createdAt,
         modifiedAt: now,
         createdBy: userId,
       }
@@ -318,15 +322,16 @@ export class WalkcalcService {
       this.applyRecordBalance(group, record, 1)
       group.records.push(record)
       group.modifiedAt = now
+      this.markGroupFinancialStateModified(group)
       await group.save({ session })
-      return this.mapRecordToDto(record)
+      return this.mapRecordMutationToDto(group, userId, record)
     })
   }
 
   async resolveDebts(
     userId: string,
     dto: BulkResolveWalkcalcDebtsDto,
-  ): Promise<WalkcalcRecordDto[]> {
+  ): Promise<WalkcalcRecordsMutationDto> {
     return this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(
         dto.groupCode,
@@ -357,8 +362,12 @@ export class WalkcalcService {
       records.forEach((record) => this.applyRecordBalance(group, record, 1))
       group.records.push(...records)
       group.modifiedAt = now
+      this.markGroupFinancialStateModified(group)
       await group.save({ session })
-      return records.map((record) => this.mapRecordToDto(record))
+      return {
+        records: records.map((record) => this.mapRecordToDto(record)),
+        group: await this.mapGroupToDto(group, userId),
+      }
     })
   }
 
@@ -366,7 +375,7 @@ export class WalkcalcService {
     userId: string,
     groupCode: string,
     recordId: string,
-  ): Promise<{ groupCode: string; recordId: string }> {
+  ): Promise<WalkcalcDropRecordMutationDto> {
     return this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
       const recordIndex = group.records.findIndex(
@@ -380,15 +389,20 @@ export class WalkcalcService {
       this.applyRecordBalance(group, record, -1)
       group.records.splice(recordIndex, 1)
       group.modifiedAt = Date.now()
+      this.markGroupFinancialStateModified(group)
       await group.save({ session })
-      return { groupCode, recordId }
+      return {
+        groupCode,
+        recordId,
+        group: await this.mapGroupToDto(group, userId),
+      }
     })
   }
 
   async updateRecord(
     userId: string,
     dto: UpdateWalkcalcRecordDto,
-  ): Promise<WalkcalcRecordDto> {
+  ): Promise<WalkcalcRecordMutationDto> {
     return this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(
         dto.groupCode,
@@ -412,6 +426,7 @@ export class WalkcalcService {
 
       const now = Date.now()
       const paidMinor = this.resolveRecordPaidMinor(dto)
+      const createdAt = dto.createdAt ?? previousRecord.createdAt
       const updatedRecord: WalkcalcRecord = {
         recordId: previousRecord.recordId,
         who: dto.who,
@@ -422,7 +437,7 @@ export class WalkcalcService {
         long: dto.long,
         lat: dto.lat,
         isDebtResolve: !!dto.isDebtResolve,
-        createdAt: previousRecord.createdAt,
+        createdAt,
         modifiedAt: now,
         createdBy: previousRecord.createdBy,
         modifiedBy: userId,
@@ -430,8 +445,9 @@ export class WalkcalcService {
       this.applyRecordBalance(group, updatedRecord, 1)
       group.records[recordIndex] = updatedRecord
       group.modifiedAt = now
+      this.markGroupFinancialStateModified(group)
       await group.save({ session })
-      return this.mapRecordToDto(updatedRecord)
+      return this.mapRecordMutationToDto(group, userId, updatedRecord)
     })
   }
 
@@ -831,6 +847,17 @@ export class WalkcalcService {
     }
   }
 
+  private async mapRecordMutationToDto(
+    group: WalkcalcGroup,
+    userId: string,
+    record: WalkcalcRecord,
+  ): Promise<WalkcalcRecordMutationDto> {
+    return {
+      ...this.mapRecordToDto(record),
+      group: await this.mapGroupToDto(group, userId),
+    }
+  }
+
   private resolveRecordPaidMinor(
     dto: Pick<AddWalkcalcRecordDto, 'paidMinor' | 'paid'>,
   ): MoneyMinor {
@@ -902,6 +929,16 @@ export class WalkcalcService {
 
   private reverseDirection(direction: 1 | -1): 1 | -1 {
     return direction === 1 ? -1 : 1
+  }
+
+  private markGroupFinancialStateModified(group: WalkcalcGroup) {
+    const markModified = (group as WalkcalcGroupDocument).markModified
+    if (typeof markModified !== 'function') {
+      return
+    }
+    markModified.call(group, 'members')
+    markModified.call(group, 'tempUsers')
+    markModified.call(group, 'records')
   }
 
   private async runInOptionalTransaction<T>(
