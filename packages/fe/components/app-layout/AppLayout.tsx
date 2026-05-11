@@ -22,11 +22,13 @@ interface IAppLayout {
   children?: React.ReactNode
   simplifiedFooter?: boolean
   authRequired?: boolean
+  hideNavBar?: boolean
   className?: string
 }
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
+  const hideNavBar = props.hideNavBar === true
 
   const generalContext = useContext(GeneralContext)
   const { router, user } = generalContext
@@ -52,14 +54,20 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
       if (!c) {
         return
       }
-      c.style.minHeight = `${window.innerHeight - 64}px`
+      c.style.minHeight = `${window.innerHeight - (hideNavBar ? 0 : 64)}px`
     }
     resize()
     window.addEventListener('resize', resize)
     return () => {
       window.removeEventListener('resize', resize)
     }
-  }, [])
+  }, [hideNavBar])
+
+  useEffect(() => {
+    if (hideNavBar) {
+      setShowMenu(false)
+    }
+  }, [hideNavBar])
 
   function handleClickShowMenu() {
     menuContainerApi.start({
@@ -91,78 +99,80 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
 
   return (
     <div className="text-neutral-900 dark:text-neutral-50">
-      <nav className="sticky top-0 z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.8]">
-        <Logo width={20} className="fill-neutral-800 dark:fill-neutral-100" />
-        <FontAwesomeIcon
-          icon={showMenu ? faXmark : faEllipsisVertical}
-          className="h-[20px] cursor-pointer px-3 transition-transform duration-150 ease-in-out hover:scale-110 sm:hidden"
-          onClick={handleClickShowMenu}
-        />
+      {!hideNavBar && (
+        <nav className="sticky top-0 z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.8]">
+          <Logo width={20} className="fill-neutral-800 dark:fill-neutral-100" />
+          <FontAwesomeIcon
+            icon={showMenu ? faXmark : faEllipsisVertical}
+            className="h-[20px] cursor-pointer px-3 transition-transform duration-150 ease-in-out hover:scale-110 sm:hidden"
+            onClick={handleClickShowMenu}
+          />
 
-        <div className="hidden items-center sm:flex">
-          <div className="flex gap-x-[24px]">
-            {menuConfig.map((m) => (
-              <Link
-                key={m.key}
-                href={m.path}
-                target={m.externalLink ? '_blank' : ''}
-                className={`relative cursor-pointer ${
-                  currentPath.startsWith(m.path)
-                    ? 'text-neutral-900'
-                    : 'text-neutral-500'
-                } hover:text-neutral-900 ${
-                  currentPath.startsWith(m.path)
-                    ? 'dark:text-neutral-100'
-                    : 'dark:text-neutral-400'
-                } dark:hover:text-neutral-100`}
-              >
-                {t(`nav.${m.key}`)}
-                {m.icon && (
-                  <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
-                )}
-              </Link>
-            ))}
+          <div className="hidden items-center sm:flex">
+            <div className="flex gap-x-[24px]">
+              {menuConfig.map((m) => (
+                <Link
+                  key={m.key}
+                  href={m.path}
+                  target={m.externalLink ? '_blank' : ''}
+                  className={`relative cursor-pointer ${
+                    currentPath.startsWith(m.path)
+                      ? 'text-neutral-900'
+                      : 'text-neutral-500'
+                  } hover:text-neutral-900 ${
+                    currentPath.startsWith(m.path)
+                      ? 'dark:text-neutral-100'
+                      : 'dark:text-neutral-400'
+                  } dark:hover:text-neutral-100`}
+                >
+                  {t(`nav.${m.key}`)}
+                  {m.icon && (
+                    <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
+                  )}
+                </Link>
+              ))}
+            </div>
+            <div className="mx-[30px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
+            {user ? (
+              <>
+                <div
+                  className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5"
+                  onClick={handleClickAvatar}
+                >
+                  <Avatar user={user} width={20} borderWidth={1} />
+                  <span className="ml-2 text-sm">
+                    {truncate(user.profile.name)}
+                  </span>
+                </div>
+                <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-[-25px] mr-[-10px] text-neutral-600 dark:text-neutral-400"
+                  onClick={() => {
+                    window.location.href = `/${
+                      locale ?? 'en'
+                    }/sso/login?redirect=${encodeURIComponent(
+                      window.location.href,
+                    )}`
+                  }}
+                >
+                  <UserRound className="w-4 h-4 mr-2" />
+                  {t('login')}
+                </Button>
+                <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
+              </>
+            )}
+            <div className="relative top-[2px]">
+              <NavButtons />
+            </div>
           </div>
-          <div className="mx-[30px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
-          {user ? (
-            <>
-              <div
-                className="ml-[-15px] mr-[-10px] flex items-center cursor-pointer text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-md p-1.5"
-                onClick={handleClickAvatar}
-              >
-                <Avatar user={user} width={20} borderWidth={1} />
-                <span className="ml-2 text-sm">
-                  {truncate(user.profile.name)}
-                </span>
-              </div>
-              <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
-            </>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-[-25px] mr-[-10px] text-neutral-600 dark:text-neutral-400"
-                onClick={() => {
-                  window.location.href = `/${
-                    locale ?? 'en'
-                  }/sso/login?redirect=${encodeURIComponent(
-                    window.location.href,
-                  )}`
-                }}
-              >
-                <UserRound className="w-4 h-4 mr-2" />
-                {t('login')}
-              </Button>
-              <div className="mx-[20px] h-[20px] w-[1px] bg-neutral-300 dark:bg-neutral-600" />
-            </>
-          )}
-          <div className="relative top-[2px]">
-            <NavButtons />
-          </div>
-        </div>
-      </nav>
-      {showMenu && (
+        </nav>
+      )}
+      {!hideNavBar && showMenu && (
         // @ts-ignore
         <animated.div
           style={{ ...menuContainerStyle }}
