@@ -61,6 +61,12 @@ export class AddWalkcalcRecordDto {
   lat?: string
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  createdAt?: number
+
+  @IsOptional()
   @IsBoolean()
   isDebtResolve?: boolean
 }

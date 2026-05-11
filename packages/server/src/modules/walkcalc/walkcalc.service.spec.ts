@@ -53,11 +53,52 @@ describe('WalkcalcService', () => {
       save: jest.fn(async function save(this: any) {
         return this
       }),
+      markModified: jest.fn(),
     }
   }
 
+  function seedRecord(service: any, group: any, record: any) {
+    service.applyRecordBalance(group, record, 1)
+    group.records.push(record)
+  }
+
+  function member(group: any, userId: string) {
+    return group.members.find((item: any) => item.userId === userId)
+  }
+
+  function tempUser(group: any, uuid: string) {
+    return group.tempUsers.find((item: any) => item.uuid === uuid)
+  }
+
+  function dtoMember(groupDto: any, userId: string) {
+    return groupDto.members.find((item: any) => item.userId === userId)
+  }
+
+  function dtoTempUser(groupDto: any, uuid: string) {
+    return groupDto.tempUsers.find((item: any) => item.uuid === uuid)
+  }
+
+  function totalDebtMinor(group: any) {
+    return [...group.members, ...group.tempUsers].reduce(
+      (sum, participant) => sum + BigInt(participant.debtMinor),
+      0n,
+    )
+  }
+
+  function financialSnapshot(group: any) {
+    return JSON.stringify({
+      members: group.members,
+      tempUsers: group.tempUsers,
+      records: group.records,
+    })
+  }
+
   function createResolveService(group: any) {
-    const service = createService() as any
+    const service = createService({
+      findPublicUsersByIds: jest.fn(async (userIds: string[]) =>
+        userIds.map((userId) => ({ userId, profile: { name: userId } })),
+      ),
+    }) as any
     service.loadGroupForMember = jest.fn(async () => group)
     service.runInOptionalTransaction = jest.fn(async (operation: any) =>
       operation(undefined),
@@ -550,6 +591,454 @@ describe('WalkcalcService', () => {
     expect(group.members[1].costMinor).toBe('0')
   })
 
+  it('adds normal records with exact balances and returns the authoritative group snapshot', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+
+    const result = await service.addRecord('u1', {
+      groupCode: '0000',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '121.1',
+      lat: '31.2',
+      createdAt: 1710086400000,
+    } as any)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        who: 'u1',
+        paid: 300,
+        paidMinor: '300',
+        forWhom: ['u1', 'u2', 'tmp1'],
+        type: 'food',
+        text: 'Dinner',
+        createdAt: 1710086400000,
+      }),
+    )
+    expect(group.records).toHaveLength(1)
+    expect(member(group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '200', costMinor: '100' }),
+    )
+    expect(member(group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '-100', costMinor: '100' }),
+    )
+    expect(tempUser(group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-100', costMinor: '100' }),
+    )
+    expect(totalDebtMinor(group)).toBe(0n)
+    expect(dtoMember((result as any).group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '200', costMinor: '100' }),
+    )
+    expect(dtoMember((result as any).group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '-100', costMinor: '100' }),
+    )
+    expect(dtoTempUser((result as any).group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-100', costMinor: '100' }),
+    )
+    expect(group.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('updates amount and timestamp by reversing the old record before applying the new record', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+
+    const result = await service.updateRecord('u1', {
+      groupCode: '0000',
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '600',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'traffic',
+      text: 'Taxi',
+      long: '121.3',
+      lat: '31.4',
+      createdAt: 1710086400000,
+    } as any)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        recordId: 'record-1',
+        paid: 600,
+        paidMinor: '600',
+        type: 'traffic',
+        text: 'Taxi',
+        long: '121.3',
+        lat: '31.4',
+        createdAt: 1710086400000,
+        modifiedBy: 'u1',
+      }),
+    )
+    expect(group.records[0]).toEqual(
+      expect.objectContaining({
+        paidMinor: '600',
+        createdAt: 1710086400000,
+        type: 'traffic',
+        text: 'Taxi',
+      }),
+    )
+    expect(member(group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '400', costMinor: '200' }),
+    )
+    expect(member(group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '-200', costMinor: '200' }),
+    )
+    expect(tempUser(group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-200', costMinor: '200' }),
+    )
+    expect(totalDebtMinor(group)).toBe(0n)
+    expect(dtoMember((result as any).group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '400', costMinor: '200' }),
+    )
+    expect(dtoMember((result as any).group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '-200', costMinor: '200' }),
+    )
+    expect(dtoTempUser((result as any).group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-200', costMinor: '200' }),
+    )
+  })
+
+  it('updates payer and split members across formal and temporary participants exactly', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+
+    const result = await service.updateRecord('u1', {
+      groupCode: '0000',
+      recordId: 'record-1',
+      who: 'u2',
+      paidMinor: '450',
+      forWhom: ['u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+    } as any)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        recordId: 'record-1',
+        who: 'u2',
+        paidMinor: '450',
+        forWhom: ['u2', 'tmp1'],
+      }),
+    )
+    expect(member(group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(member(group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '225', costMinor: '225' }),
+    )
+    expect(tempUser(group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-225', costMinor: '225' }),
+    )
+    expect(totalDebtMinor(group)).toBe(0n)
+    expect(dtoMember((result as any).group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '225', costMinor: '225' }),
+    )
+    expect(dtoTempUser((result as any).group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '-225', costMinor: '225' }),
+    )
+  })
+
+  it('updates non-money fields without balance drift', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+    const beforeBalances = JSON.stringify({
+      members: group.members,
+      tempUsers: group.tempUsers,
+    })
+
+    const result = await service.updateRecord('u1', {
+      groupCode: '0000',
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'traffic',
+      text: 'Airport taxi',
+      long: '',
+      lat: '',
+      createdAt: 1710086400000,
+    } as any)
+
+    expect(
+      JSON.stringify({ members: group.members, tempUsers: group.tempUsers }),
+    ).toBe(beforeBalances)
+    expect(result).toEqual(
+      expect.objectContaining({
+        recordId: 'record-1',
+        paidMinor: '300',
+        type: 'traffic',
+        text: 'Airport taxi',
+        createdAt: 1710086400000,
+      }),
+    )
+    expect(dtoMember((result as any).group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '200', costMinor: '100' }),
+    )
+  })
+
+  it('updates negative uneven values without residual debt', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+
+    const result = await service.updateRecord('u1', {
+      groupCode: '0000',
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '-100',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Refund',
+      long: '',
+      lat: '',
+    } as any)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        recordId: 'record-1',
+        paid: -100,
+        paidMinor: '-100',
+      }),
+    )
+    expect(member(group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '-66', costMinor: '-34' }),
+    )
+    expect(member(group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '33', costMinor: '-33' }),
+    )
+    expect(tempUser(group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '33', costMinor: '-33' }),
+    )
+    expect(totalDebtMinor(group)).toBe(0n)
+    expect(dtoTempUser((result as any).group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '33', costMinor: '-33' }),
+    )
+  })
+
+  it('deletes records by reversing every balance contribution and returns the updated group', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+
+    const result = await service.dropRecord('u1', '0000', 'record-1')
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        groupCode: '0000',
+        recordId: 'record-1',
+      }),
+    )
+    expect(group.records).toHaveLength(0)
+    expect(member(group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(member(group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(tempUser(group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(totalDebtMinor(group)).toBe(0n)
+    expect(dtoMember((result as any).group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(dtoTempUser((result as any).group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+  })
+
+  it('rejects failed add, update, and delete mutations without changing financial state', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'record-1',
+      who: 'u1',
+      paidMinor: '300',
+      forWhom: ['u1', 'u2', 'tmp1'],
+      type: 'food',
+      text: 'Dinner',
+      long: '',
+      lat: '',
+      isDebtResolve: false,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+    const snapshot = financialSnapshot(group)
+
+    await expect(
+      service.addRecord('u1', {
+        groupCode: '0000',
+        who: 'missing',
+        paidMinor: '100',
+        forWhom: ['u1'],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.updateRecord('u1', {
+        groupCode: '0000',
+        recordId: 'record-1',
+        who: 'u1',
+        paidMinor: '0',
+        forWhom: ['u1'],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.updateRecord('u1', {
+        groupCode: '0000',
+        recordId: 'missing-record',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u1'],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.updateRecord('u1', {
+        groupCode: '0000',
+        recordId: 'record-1',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: [],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      service.dropRecord('u1', '0000', 'missing-record'),
+    ).rejects.toBeInstanceOf(GeneralException)
+
+    expect(financialSnapshot(group)).toBe(snapshot)
+    expect(group.save).not.toHaveBeenCalled()
+  })
+
+  it('keeps debt-resolution records immutable without changing financial state', async () => {
+    const group = createPersistedGroup()
+    const service = createResolveService(group)
+    seedRecord(service, group, {
+      recordId: 'resolve-1',
+      who: 'u1',
+      paidMinor: '80',
+      forWhom: ['u2'],
+      type: 'debtResolve',
+      text: 'Debt Resolve',
+      long: '',
+      lat: '',
+      isDebtResolve: true,
+      createdAt: 1710000000000,
+      modifiedAt: 1710000000000,
+      createdBy: 'u1',
+    })
+    const snapshot = financialSnapshot(group)
+
+    await expect(
+      service.updateRecord('u1', {
+        groupCode: '0000',
+        recordId: 'resolve-1',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u2'],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+
+    expect(financialSnapshot(group)).toBe(snapshot)
+    expect(group.save).not.toHaveBeenCalled()
+  })
+
+  it('rejects add record limit without persisting or changing balances', async () => {
+    const group = createPersistedGroup()
+    group.records = Array.from({ length: 5000 }, (_, index) => ({
+      recordId: `record-${index}`,
+      who: 'u1',
+      paidMinor: '1',
+      forWhom: ['u1'],
+      isDebtResolve: false,
+    }))
+    const service = createResolveService(group)
+    const snapshot = financialSnapshot(group)
+
+    await expect(
+      service.addRecord('u1', {
+        groupCode: '0000',
+        who: 'u1',
+        paidMinor: '100',
+        forWhom: ['u1'],
+      } as any),
+    ).rejects.toBeInstanceOf(GeneralException)
+
+    expect(financialSnapshot(group)).toBe(snapshot)
+    expect(group.save).not.toHaveBeenCalled()
+  })
+
   it('rejects invalid participants before changing balances', () => {
     const service = createService() as any
     const group = createGroup()
@@ -595,7 +1084,7 @@ describe('WalkcalcService', () => {
     group.tempUsers[0].debtMinor = '40'
     const service = createResolveService(group)
 
-    const records = await service.resolveDebts('u1', {
+    const result = await service.resolveDebts('u1', {
       groupCode: '0000',
       transfers: [
         { from: 'u1', to: 'u2', amountMinor: '80' },
@@ -603,6 +1092,7 @@ describe('WalkcalcService', () => {
       ],
     })
 
+    const records = result.records
     expect(records).toHaveLength(2)
     expect(records).toEqual([
       expect.objectContaining({
@@ -628,6 +1118,15 @@ describe('WalkcalcService', () => {
     expect(group.tempUsers[0].debtMinor).toBe('0')
     expect(group.members[1].costMinor).toBe('0')
     expect(group.tempUsers[0].costMinor).toBe('0')
+    expect(dtoMember(result.group, 'u1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(dtoMember(result.group, 'u2')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
+    expect(dtoTempUser(result.group, 'tmp1')).toEqual(
+      expect.objectContaining({ debtMinor: '0', costMinor: '0' }),
+    )
     expect(group.save).toHaveBeenCalledTimes(1)
   })
 
