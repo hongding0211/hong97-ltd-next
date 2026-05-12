@@ -186,6 +186,7 @@ responses.
 - **WHEN** a group owner or member updates an existing expense record
 - **THEN** the system reverses the prior record's exact projection effects
 - **AND** updates the record fields while preserving the existing `recordId`, stored Mongo `_id`, `createdBy`, and `createdAt`
+- **AND** updates `occurredAt` when the request supplies an edited record time
 - **AND** applies the updated record's exact projection effects
 - **AND** updates the record `updatedAt`, modifier identity, and group modified time
 - **AND** leaves record and projection state unchanged if any update step fails
@@ -194,6 +195,7 @@ responses.
 - **WHEN** a group owner or member updates an existing settlement record
 - **THEN** the system reverses the prior settlement effects
 - **AND** updates the settlement fields while preserving the existing `recordId`, stored Mongo `_id`, `createdBy`, and `createdAt`
+- **AND** updates `occurredAt` when the request supplies an edited record time
 - **AND** applies the updated settlement effects
 - **AND** updates the record `updatedAt`, modifier identity, and group modified time
 - **AND** leaves record and projection state unchanged if any update step fails
@@ -205,6 +207,7 @@ responses.
 #### Scenario: List group records
 - **WHEN** a group owner or member lists records for a group
 - **THEN** the response returns the group's records sorted by newest creation time first
+- **AND** editing `occurredAt` does not change record ordering
 - **AND** pagination limits the returned records
 - **AND** the total reflects all matching records before pagination
 

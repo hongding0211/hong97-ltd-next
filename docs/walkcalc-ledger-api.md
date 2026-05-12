@@ -201,6 +201,7 @@ Expense response：
   "long": "121.4737",
   "lat": "31.2304",
   "createdAt": 1710000000000,
+  "occurredAt": 1710000000000,
   "updatedAt": 1710000000000,
   "createdBy": "user_1",
   "updatedBy": "user_1"
@@ -220,6 +221,7 @@ Settlement response：
   "involvedParticipantIds": ["user_2", "user_1"],
   "category": "settlement",
   "createdAt": 1710000000000,
+  "occurredAt": 1710000000000,
   "updatedAt": 1710000000000,
   "createdBy": "user_1"
 }
@@ -619,7 +621,7 @@ Request:
   "note": "Dinner",
   "long": "121.4737",
   "lat": "31.2304",
-  "createdAt": 1710000000000
+  "occurredAt": 1710000000000
 }
 ```
 
@@ -629,6 +631,7 @@ Validation:
 - `amount` must be positive money string。
 - `payerId` is required。
 - `participantIds` is required, non-empty, max length `200`。
+- `occurredAt` is required and represents the bill occurrence time。
 - every involved participant must exist in the group。
 - duplicate `participantIds` are rejected。
 
@@ -669,7 +672,8 @@ Request:
   "amount": "30.00",
   "fromId": "user_2",
   "toId": "user_1",
-  "note": "Transfer"
+  "note": "Transfer",
+  "occurredAt": 1710000000000
 }
 ```
 
@@ -678,6 +682,7 @@ Validation:
 - `type` must be `"settlement"`。
 - `amount` must be positive money string。
 - `fromId` and `toId` are required。
+- `occurredAt` is required and represents the bill occurrence time。
 - `fromId !== toId`。
 - both participants must exist in the group。
 
@@ -703,7 +708,7 @@ Notes:
 
 `POST /walkcalc/records/update`
 
-Request uses the same shape as add record, plus `recordId`.
+Request uses the same shape as add record, plus `recordId`. `occurredAt` is the editable bill occurrence time. `createdAt` is backend-generated creation time and remains the record ordering key.
 
 Expense update example:
 
@@ -716,7 +721,8 @@ Expense update example:
   "payerId": "user_2",
   "participantIds": ["user_1", "user_2"],
   "category": "traffic",
-  "note": "Taxi"
+  "note": "Taxi",
+  "occurredAt": 1710000300000
 }
 ```
 
@@ -729,7 +735,8 @@ Settlement update example:
   "type": "settlement",
   "amount": "20.00",
   "fromId": "user_2",
-  "toId": "user_1"
+  "toId": "user_1",
+  "occurredAt": 1710000300000
 }
 ```
 
@@ -797,6 +804,7 @@ Response:
   "participantIds": ["user_1", "user_2"],
   "involvedParticipantIds": ["user_1", "user_2"],
   "createdAt": 1710000000000,
+  "occurredAt": 1710000000000,
   "updatedAt": 1710000000000,
   "createdBy": "user_1"
 }

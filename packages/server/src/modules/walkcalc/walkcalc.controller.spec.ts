@@ -162,6 +162,7 @@ describe('WalkcalcController', () => {
       participantIds: ['u1', 'u2'],
       category: 'food',
       note: 'Dinner',
+      occurredAt: 1710000000000,
     }
     const update = { ...expense, recordId: 'record-1', amount: '120.00' }
     service.addRecord.mockResolvedValue({
@@ -232,6 +233,7 @@ describe('WalkcalcController', () => {
           amount: '12.34',
           payerId: 'u1',
           participantIds: ['u1', 'u2'],
+          occurredAt: 1710000000000,
           paidMinor: '1234',
         },
         { type: 'body', metatype: AddWalkcalcRecordDto } as any,
@@ -246,6 +248,7 @@ describe('WalkcalcController', () => {
           amount: '-12.34',
           payerId: 'u1',
           participantIds: ['u1', 'u2'],
+          occurredAt: 1710000000000,
         },
         { type: 'body', metatype: AddWalkcalcRecordDto } as any,
       ),
@@ -259,6 +262,7 @@ describe('WalkcalcController', () => {
           amount: '12.34',
           payerId: 'u1',
           participantIds: ['u1', 'u2'],
+          occurredAt: 1710000000000,
         },
         { type: 'body', metatype: AddWalkcalcRecordDto } as any,
       ),
@@ -267,6 +271,7 @@ describe('WalkcalcController', () => {
         amount: '12.34',
         payerId: 'u1',
         participantIds: ['u1', 'u2'],
+        occurredAt: 1710000000000,
       }),
     )
   })

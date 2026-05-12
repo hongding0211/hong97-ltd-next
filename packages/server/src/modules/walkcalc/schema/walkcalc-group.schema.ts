@@ -103,6 +103,9 @@ export class WalkcalcRecord {
   createdAt: number
 
   @Prop({ required: true })
+  occurredAt: number
+
+  @Prop({ required: true })
   updatedAt: number
 
   @Prop({ required: true })

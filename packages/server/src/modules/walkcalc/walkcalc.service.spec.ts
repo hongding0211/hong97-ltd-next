@@ -292,7 +292,7 @@ describe('WalkcalcService normalized ledger', () => {
       participantIds: ['u1', 'u2', 'tmp1'],
       category: 'food',
       note: 'Dinner',
-      createdAt: 300,
+      occurredAt: 300,
     })
 
     expect(added.record).toEqual(
@@ -336,6 +336,7 @@ describe('WalkcalcService normalized ledger', () => {
       participantIds: ['u2', 'tmp1'],
       category: 'traffic',
       note: 'Taxi',
+      occurredAt: 400,
     })
 
     expect(updated.record).toEqual(
@@ -346,7 +347,8 @@ describe('WalkcalcService normalized ledger', () => {
         participantIds: ['u2', 'tmp1'],
         category: 'traffic',
         note: 'Taxi',
-        createdAt: 300,
+        createdAt: 1_700_000_000_000,
+        occurredAt: 400,
         updatedBy: 'u1',
       }),
     )
@@ -416,7 +418,7 @@ describe('WalkcalcService normalized ledger', () => {
       payerId: 'A',
       participantIds: ['A', 'B', 'T'],
       category: 'food',
-      createdAt: 1710000000000,
+      occurredAt: 1710000000000,
     })
     await ctx.service.addRecord('A', {
       groupCode: 'AB12',
@@ -425,7 +427,7 @@ describe('WalkcalcService normalized ledger', () => {
       payerId: 'B',
       participantIds: ['A', 'B', 'C'],
       category: 'food',
-      createdAt: 1710000001000,
+      occurredAt: 1710000001000,
     })
     const storedRecordId = ctx.recordStore.docs.find(
       (record) => record.recordId === first.record.recordId,
@@ -440,7 +442,7 @@ describe('WalkcalcService normalized ledger', () => {
       participantIds: ['B', 'T'],
       category: 'traffic',
       note: 'Updated',
-      createdAt: 1710000002000,
+      occurredAt: 1710000002000,
     })
 
     expect(ctx.recordStore.Model.replaceOne).not.toHaveBeenCalled()
@@ -453,7 +455,8 @@ describe('WalkcalcService normalized ledger', () => {
       expect.objectContaining({
         recordId: first.record.recordId,
         createdBy: 'A',
-        createdAt: 1710000000000,
+        createdAt: 1_700_000_000_000,
+        occurredAt: 1710000002000,
         updatedBy: 'A',
       }),
     )
@@ -541,6 +544,7 @@ describe('WalkcalcService normalized ledger', () => {
       amount: '12.50',
       fromId: 'u2',
       toId: 'u1',
+      occurredAt: 300,
     })
 
     expect(added.record).toEqual(
@@ -573,6 +577,7 @@ describe('WalkcalcService normalized ledger', () => {
       amount: '5.00',
       fromId: 'u1',
       toId: 'u2',
+      occurredAt: 400,
     })
     expectProjection(ctx, 'u1', {
       balanceValue: '500',
@@ -605,6 +610,7 @@ describe('WalkcalcService normalized ledger', () => {
       payerId: 'u1',
       participantIds: ['u1', 'u2', 'tmp1'],
       category: 'food',
+      occurredAt: 300,
     })
 
     await expect(
@@ -683,6 +689,7 @@ describe('WalkcalcService normalized ledger', () => {
           category: 'food',
           note: 'Dinner noodles',
           createdAt: 300,
+          occurredAt: 300,
         }),
         settlementRecord({
           recordId: 'r2',
@@ -692,6 +699,7 @@ describe('WalkcalcService normalized ledger', () => {
           involvedParticipantIds: ['u2', 'u1'],
           note: 'Transfer',
           createdAt: 200,
+          occurredAt: 200,
         }),
         expenseRecord({
           recordId: 'r3',
@@ -702,6 +710,7 @@ describe('WalkcalcService normalized ledger', () => {
           category: 'traffic',
           note: 'Taxi',
           createdAt: 100,
+          occurredAt: 100,
         }),
       ],
     })
@@ -724,6 +733,33 @@ describe('WalkcalcService normalized ledger', () => {
       page: 1,
       pageSize: 1,
     })
+
+    await ctx.service.updateRecord('u1', {
+      groupCode: 'AB12',
+      recordId: 'r3',
+      type: 'expense',
+      amount: '8.00',
+      payerId: 'tmp1',
+      participantIds: ['tmp1'],
+      category: 'traffic',
+      note: 'Taxi',
+      occurredAt: 999,
+    })
+
+    await expect(
+      ctx.service.groupRecords('u1', 'AB12', {
+        page: 1,
+        pageSize: 10,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({ recordId: 'r1' }),
+          expect.objectContaining({ recordId: 'r2' }),
+          expect.objectContaining({ recordId: 'r3', occurredAt: 999 }),
+        ],
+      }),
+    )
 
     await expect(
       ctx.service.groupRecords('u1', 'AB12', {
@@ -784,6 +820,7 @@ describe('WalkcalcService normalized ledger', () => {
         amount: '12.00',
         payerId: 'u1',
         participantIds: ['missing'],
+        occurredAt: 300,
       }),
     ).rejects.toBeInstanceOf(GeneralException)
     expect(ctx.recordStore.docs).toHaveLength(0)
@@ -796,6 +833,7 @@ describe('WalkcalcService normalized ledger', () => {
         amount: '0.00',
         payerId: 'u1',
         participantIds: ['u1'],
+        occurredAt: 300,
       }),
     ).rejects.toEqual(
       expect.objectContaining({ message: 'walkcalc.invalidMoneyAmount' }),
@@ -807,6 +845,7 @@ describe('WalkcalcService normalized ledger', () => {
         amount: '12.00',
         payerId: 'u1',
         participantIds: ['u1'],
+        occurredAt: 300,
       }),
     ).rejects.toEqual(
       expect.objectContaining({ message: 'walkcalc.groupNotFoundOrNoAccess' }),
@@ -819,6 +858,7 @@ describe('WalkcalcService normalized ledger', () => {
         amount: '12.00',
         payerId: 'u1',
         participantIds: ['u1'],
+        occurredAt: 300,
       }),
     ).rejects.toEqual(
       expect.objectContaining({ message: 'walkcalc.recordNotFound' }),
@@ -848,6 +888,7 @@ describe('WalkcalcService normalized ledger', () => {
         amount: '30.00',
         payerId: 'u1',
         participantIds: ['u1', 'u2', 'tmp1'],
+        occurredAt: 300,
       }),
     ).rejects.toThrow('projection write failed')
     ctx.projectionStore.failSaveWhen = undefined
@@ -873,7 +914,7 @@ describe('WalkcalcService normalized ledger', () => {
       payerId: 'u1',
       participantIds: ['u1', 'u2', 'tmp1'],
       category: 'food',
-      createdAt: 300,
+      occurredAt: 300,
     })
     ctx.session.withTransaction.mockImplementation(async () => {
       throw new Error(
@@ -893,6 +934,7 @@ describe('WalkcalcService normalized ledger', () => {
         payerId: 'u2',
         participantIds: ['u2', 'tmp1'],
         category: 'traffic',
+        occurredAt: 400,
       }),
     ).rejects.toThrow('group save failed')
 
@@ -917,6 +959,7 @@ describe('WalkcalcService normalized ledger', () => {
                 amount: '1.00',
                 payerId: 'u1',
                 participantIds: ['u1', 'u1'],
+                occurredAt: 300,
               }),
             ),
         }),
@@ -1383,6 +1426,7 @@ function expenseRecord(overrides: Partial<AnyDoc>) {
     category: 'food',
     note: '',
     createdAt: 100,
+    occurredAt: 100,
     updatedAt: 100,
     createdBy: 'u1',
     ...overrides,
@@ -1401,6 +1445,7 @@ function settlementRecord(overrides: Partial<AnyDoc>) {
     category: 'settlement',
     note: '',
     createdAt: 100,
+    occurredAt: 100,
     updatedAt: 100,
     createdBy: 'u1',
     ...overrides,

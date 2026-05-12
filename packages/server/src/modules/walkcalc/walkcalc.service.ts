@@ -575,6 +575,7 @@ export class WalkcalcService {
               amount: transfer.amount,
               fromId: transfer.fromId,
               toId: transfer.toId,
+              occurredAt: Date.now(),
             },
             userId,
             session,
@@ -769,7 +770,8 @@ export class WalkcalcService {
   ): Promise<WalkcalcRecordDocument> {
     const now = Date.now()
     const amountValue = this.resolveAmountValue(dto.amount)
-    const createdAt = previousRecord?.createdAt ?? dto.createdAt ?? now
+    const createdAt = previousRecord?.createdAt ?? now
+    const occurredAt = dto.occurredAt
 
     if (dto.type === 'expense') {
       const payerId = this.requiredParticipantId(dto.payerId)
@@ -805,6 +807,7 @@ export class WalkcalcService {
         long: dto.long,
         lat: dto.lat,
         createdAt,
+        occurredAt,
         updatedAt: now,
         createdBy: previousRecord?.createdBy ?? userId,
         updatedBy: previousRecord ? userId : undefined,
@@ -841,6 +844,7 @@ export class WalkcalcService {
         long: dto.long,
         lat: dto.lat,
         createdAt,
+        occurredAt,
         updatedAt: now,
         createdBy: previousRecord?.createdBy ?? userId,
         updatedBy: previousRecord ? userId : undefined,
@@ -1008,6 +1012,7 @@ export class WalkcalcService {
       amountValue: record.amountValue,
       involvedParticipantIds: record.involvedParticipantIds,
       createdAt: record.createdAt,
+      occurredAt: record.occurredAt,
       updatedAt: record.updatedAt,
       createdBy: record.createdBy,
     }
@@ -1434,6 +1439,7 @@ export class WalkcalcService {
       long: record.long,
       lat: record.lat,
       createdAt: record.createdAt,
+      occurredAt: record.occurredAt,
       updatedAt: record.updatedAt,
       createdBy: record.createdBy,
       updatedBy: record.updatedBy,

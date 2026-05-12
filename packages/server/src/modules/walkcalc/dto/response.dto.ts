@@ -44,6 +44,7 @@ export interface WalkcalcRecordDto {
   long?: string
   lat?: string
   createdAt: number
+  occurredAt: number
   updatedAt: number
   createdBy: string
   updatedBy?: string

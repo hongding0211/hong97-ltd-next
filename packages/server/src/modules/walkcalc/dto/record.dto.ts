@@ -63,11 +63,10 @@ export class AddWalkcalcRecordDto {
   @IsString()
   lat?: string
 
-  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  createdAt?: number
+  occurredAt: number
 }
 
 export class DropWalkcalcRecordDto {
