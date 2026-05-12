@@ -106,6 +106,12 @@ describe('WalkcalcService normalized ledger', () => {
           archivedUserIds: ['u1'],
         }),
         groupDoc({ code: 'CD34', name: 'Next Trip', modifiedAt: 200 }),
+        groupDoc({
+          code: 'EF56',
+          name: 'Deleted Trip',
+          isDeleted: true,
+          modifiedAt: 400,
+        }),
       ],
       participants: [
         userParticipant('AB12', 'u1'),
@@ -116,6 +122,7 @@ describe('WalkcalcService normalized ledger', () => {
       projections: [
         projection('AB12', 'u1', { balanceValue: '1000' }),
         projection('CD34', 'u1', { balanceValue: '-250' }),
+        projection('EF56', 'u1', { balanceValue: '999999' }),
       ],
     })
 
@@ -129,6 +136,7 @@ describe('WalkcalcService normalized ledger', () => {
         expect.objectContaining({
           code: 'AB12',
           archivedUserIds: ['u1'],
+          hasUnresolvedBalance: true,
           currentUserBalance: '10.00',
           participantCount: 3,
           participantPreview: [
@@ -808,6 +816,49 @@ describe('WalkcalcService normalized ledger', () => {
       },
     )
     expect(ctx.groupStore.docs[0].archivedUserIds).toEqual(['u1'])
+  })
+
+  it('resolves outstanding balances before deleting an owned group', async () => {
+    const ctx = createSeededGroupContext()
+    projectionDoc(ctx, 'u1').balanceValue = '1000'
+    projectionDoc(ctx, 'u2').balanceValue = '-600'
+    projectionDoc(ctx, 'tmp1').balanceValue = '-400'
+
+    await expect(ctx.service.dismissGroup('u1', 'AB12')).resolves.toEqual({
+      code: 'AB12',
+    })
+
+    expect(ctx.groupStore.docs[0]).toEqual(
+      expect.objectContaining({
+        isDeleted: true,
+        deletedBy: 'u1',
+      }),
+    )
+    expect(ctx.recordStore.docs).toHaveLength(2)
+    expect(ctx.recordStore.docs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          groupCode: 'AB12',
+          type: 'settlement',
+          amountValue: '600',
+          fromId: 'u2',
+          toId: 'u1',
+        }),
+        expect.objectContaining({
+          groupCode: 'AB12',
+          type: 'settlement',
+          amountValue: '400',
+          fromId: 'tmp1',
+          toId: 'u1',
+        }),
+      ]),
+    )
+    expectProjection(ctx, 'u1', { balanceValue: '0' })
+    expectProjection(ctx, 'u2', { balanceValue: '0' })
+    expectProjection(ctx, 'tmp1', { balanceValue: '0' })
+    await expect(ctx.service.homeSummary('u1')).resolves.toEqual({
+      totalBalance: '0.00',
+    })
   })
 
   it('keeps failed mutations atomic across validation, authorization, persistence, and limit errors', async () => {

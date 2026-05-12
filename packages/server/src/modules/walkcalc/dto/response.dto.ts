@@ -56,6 +56,7 @@ export interface WalkcalcGroupDto {
   ownerUserId: string
   archivedUserIds: string[]
   isOwner: boolean
+  hasUnresolvedBalance: boolean
   createdAt: number
   modifiedAt: number
   participants: WalkcalcParticipantProjectionDto[]
@@ -67,6 +68,7 @@ export interface WalkcalcGroupSummaryDto {
   ownerUserId: string
   archivedUserIds: string[]
   isOwner: boolean
+  hasUnresolvedBalance: boolean
   createdAt: number
   modifiedAt: number
   currentUserBalance: MoneyAmount

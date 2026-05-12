@@ -133,8 +133,21 @@ export class WalkcalcService {
     const projections = await this.walkcalcProjectionModel
       .find({ userId })
       .exec()
+    const groupCodes = [
+      ...new Set(projections.map((projection) => projection.groupCode)),
+    ]
+    const activeGroups = groupCodes.length
+      ? await this.walkcalcGroupModel
+          .find(this.activeGroupFilter({ code: { $in: groupCodes } }))
+          .select({ code: 1 })
+          .exec()
+      : []
+    const activeGroupCodes = new Set(activeGroups.map((group) => group.code))
     const total = projections.reduce(
-      (sum, projection) => addMoneyValues(sum, projection.balanceValue),
+      (sum, projection) =>
+        activeGroupCodes.has(projection.groupCode)
+          ? addMoneyValues(sum, projection.balanceValue)
+          : sum,
       '0',
     )
     return { totalBalance: formatMoneyAmount(total) }
@@ -214,21 +227,17 @@ export class WalkcalcService {
   }
 
   async dismissGroup(userId: string, code: string): Promise<{ code: string }> {
-    const now = Date.now()
-    const result = await this.walkcalcGroupModel
-      .updateOne(this.activeGroupFilter({ code, ownerUserId: userId }), {
-        $set: {
-          isDeleted: true,
-          deletedAt: now,
-          deletedBy: userId,
-          modifiedAt: now,
-        },
-      })
-      .exec()
-    if (result.modifiedCount < 1) {
-      throw new GeneralException('walkcalc.groupOwnerRequired')
-    }
-    return { code }
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadOwnedGroup(code, userId, session)
+      await this.resolveOutstandingBalancesForGroup(code, userId, session)
+      const now = Date.now()
+      group.isDeleted = true
+      group.deletedAt = now
+      group.deletedBy = userId
+      group.modifiedAt = now
+      await group.save({ session })
+      return { code }
+    })
   }
 
   async addTempUser(userId: string, code: string, name: string) {
@@ -566,25 +575,12 @@ export class WalkcalcService {
         groupCode,
         session,
       )
-      const records = await Promise.all(
-        suggestion.transfers.map((transfer) =>
-          this.createRecordDocument(
-            {
-              groupCode,
-              type: 'settlement',
-              amount: transfer.amount,
-              fromId: transfer.fromId,
-              toId: transfer.toId,
-              occurredAt: Date.now(),
-            },
-            userId,
-            session,
-          ),
-        ),
+      const records = await this.createSettlementRecordsForTransfers(
+        groupCode,
+        suggestion.transfers,
+        userId,
+        session,
       )
-      for (const record of records) {
-        await this.applyRecordProjectionEffects(record, 1, session)
-      }
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
@@ -1234,12 +1230,25 @@ export class WalkcalcService {
             .find({ groupCode: { $in: groupCodes } })
             .exec()
         : Promise.resolve([])
-    const [projections, participants] = await Promise.all([
-      projectionPromise,
-      participantPromise,
-    ])
+    const unresolvedProjectionPromise: Promise<
+      WalkcalcParticipantProjectionDocument[]
+    > = groupCodes.length
+      ? this.walkcalcProjectionModel
+          .find({ groupCode: { $in: groupCodes }, balanceValue: { $ne: '0' } })
+          .select({ groupCode: 1 })
+          .exec()
+      : Promise.resolve([])
+    const [projections, participants, unresolvedProjections] =
+      await Promise.all([
+        projectionPromise,
+        participantPromise,
+        unresolvedProjectionPromise,
+      ])
     const projectionMap = new Map(
       projections.map((projection) => [projection.groupCode, projection]),
+    )
+    const unresolvedGroupCodes = new Set(
+      unresolvedProjections.map((projection) => projection.groupCode),
     )
     const participantsByGroup = this.groupParticipantsForSummary(participants)
     const userIds = [
@@ -1273,6 +1282,7 @@ export class WalkcalcService {
         ownerUserId: group.ownerUserId,
         archivedUserIds: group.archivedUserIds,
         isOwner: group.ownerUserId === userId,
+        hasUnresolvedBalance: unresolvedGroupCodes.has(group.code),
         createdAt: group.createdAtMs,
         modifiedAt: group.modifiedAt,
         currentUserBalance: formatMoneyAmount(projection?.balanceValue ?? '0'),
@@ -1358,19 +1368,23 @@ export class WalkcalcService {
     userId: string,
     session?: ClientSession,
   ): Promise<WalkcalcGroupDto> {
+    const participants = await this.loadParticipantProjectionDtos(
+      group.code,
+      undefined,
+      session,
+    )
     return {
       code: group.code,
       name: group.name,
       ownerUserId: group.ownerUserId,
       archivedUserIds: group.archivedUserIds,
       isOwner: group.ownerUserId === userId,
+      hasUnresolvedBalance: participants.some(
+        (participant) => participant.balance !== '0.00',
+      ),
       createdAt: group.createdAtMs,
       modifiedAt: group.modifiedAt,
-      participants: await this.loadParticipantProjectionDtos(
-        group.code,
-        undefined,
-        session,
-      ),
+      participants,
     }
   }
 
@@ -1540,6 +1554,107 @@ export class WalkcalcService {
       toId: transfer.toId,
       amount: fromMoneyValueBigInt(transfer.amount),
     }))
+  }
+
+  private async resolveOutstandingBalancesForGroup(
+    groupCode: string,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
+    const transfers = await this.buildSettlementTransfersForGroup(
+      groupCode,
+      session,
+    )
+    await this.createSettlementRecordsForTransfers(
+      groupCode,
+      transfers.map((transfer) => ({
+        ...transfer,
+        amount: formatMoneyAmount(transfer.amount),
+      })),
+      userId,
+      session,
+    )
+  }
+
+  private async createSettlementRecordsForTransfers(
+    groupCode: string,
+    transfers: Array<{ fromId: string; toId: string; amount: string }>,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcRecordDocument[]> {
+    const occurredAt = Date.now()
+    const records = await Promise.all(
+      transfers.map((transfer) =>
+        this.createRecordDocument(
+          {
+            groupCode,
+            type: 'settlement',
+            amount: transfer.amount,
+            fromId: transfer.fromId,
+            toId: transfer.toId,
+            occurredAt,
+          },
+          userId,
+          session,
+        ),
+      ),
+    )
+    for (const record of records) {
+      await this.applyRecordProjectionEffects(record, 1, session)
+    }
+    return records
+  }
+
+  private async buildSettlementTransfersForGroup(
+    groupCode: string,
+    session?: ClientSession,
+  ): Promise<Array<{ fromId: string; toId: string; amount: MoneyValue }>> {
+    const projections = await this.walkcalcProjectionModel
+      .find({ groupCode })
+      .session(session ?? null)
+      .exec()
+    const creditors = projections
+      .map((projection) => ({
+        participantId: projection.participantId,
+        value: toMoneyValueBigInt(projection.balanceValue),
+      }))
+      .filter((balance) => balance.value > 0n)
+    const debtors = projections
+      .map((projection) => ({
+        participantId: projection.participantId,
+        value: toMoneyValueBigInt(projection.balanceValue),
+      }))
+      .filter((balance) => balance.value < 0n)
+
+    const transfers: Array<{
+      fromId: string
+      toId: string
+      amount: MoneyValue
+    }> = []
+    let debtorIndex = 0
+    let creditorIndex = 0
+    while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
+      const debtor = debtors[debtorIndex]
+      const creditor = creditors[creditorIndex]
+      const amount =
+        absBigInt(debtor.value) < creditor.value
+          ? absBigInt(debtor.value)
+          : creditor.value
+      transfers.push({
+        fromId: debtor.participantId,
+        toId: creditor.participantId,
+        amount: fromMoneyValueBigInt(amount),
+      })
+      debtor.value += amount
+      creditor.value -= amount
+      if (debtor.value === 0n) {
+        debtorIndex += 1
+      }
+      if (creditor.value === 0n) {
+        creditorIndex += 1
+      }
+    }
+    return transfers
   }
 
   private searchRegex(search?: string): RegExp | undefined {
