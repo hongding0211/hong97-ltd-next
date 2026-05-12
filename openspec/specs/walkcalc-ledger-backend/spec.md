@@ -143,6 +143,11 @@ projections on the backend.
 - **WHEN** the number of non-zero participants is within the configured exact-settlement limit
 - **THEN** the backend returns a settlement plan with the minimum number of transfers
 
+#### Scenario: Exact strategy limit is reported
+- **WHEN** the number of non-zero participants exceeds the configured exact-settlement limit
+- **THEN** the backend rejects settlement calculation with a structured error
+- **AND** the error data includes the configured limit and current non-zero participant count
+
 ### Requirement: Archive requires settled group balances
 The system SHALL allow group archive only when the entire group is financially
 settled.

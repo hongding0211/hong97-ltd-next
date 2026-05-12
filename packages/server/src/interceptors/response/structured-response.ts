@@ -42,7 +42,7 @@ export class StructuredResponseInterceptor implements NestInterceptor {
             isSuccess: false,
             msg: this.i18n.t(err.message),
             errCode: err.code,
-            data: null,
+            data: err.data ?? null,
           }
           return of(errorResponse)
         }

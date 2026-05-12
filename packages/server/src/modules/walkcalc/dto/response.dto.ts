@@ -27,6 +27,8 @@ export interface WalkcalcParticipantProjectionDto
   settlementOut: MoneyAmount
 }
 
+export type WalkcalcParticipantPreviewDto = WalkcalcParticipantDto
+
 export interface WalkcalcRecordDto {
   recordId: string
   groupCode: string
@@ -70,6 +72,8 @@ export interface WalkcalcGroupSummaryDto {
   currentUserExpenseShare: MoneyAmount
   currentUserPaidTotal: MoneyAmount
   currentUserRecordCount: number
+  participantCount: number
+  participantPreview: WalkcalcParticipantPreviewDto[]
 }
 
 export interface WalkcalcHomeSummaryDto {

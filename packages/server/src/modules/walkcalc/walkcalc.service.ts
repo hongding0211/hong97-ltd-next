@@ -19,6 +19,7 @@ import {
   WalkcalcGroupDto,
   WalkcalcGroupSummaryDto,
   WalkcalcHomeSummaryDto,
+  WalkcalcParticipantPreviewDto,
   WalkcalcParticipantProjectionDto,
   WalkcalcPublicUserDto,
   WalkcalcRecordDto,
@@ -94,6 +95,7 @@ const recordCategoryNames: Record<string, string[]> = {
 }
 
 const exactSettlementParticipantLimit = 12
+const groupSummaryParticipantPreviewLimit = 5
 
 @Injectable()
 export class WalkcalcService {
@@ -1208,14 +1210,51 @@ export class WalkcalcService {
     userId: string,
   ): Promise<WalkcalcGroupSummaryDto[]> {
     const groupCodes = groups.map((group) => group.code)
-    const projections = await this.walkcalcProjectionModel
-      .find({ groupCode: { $in: groupCodes }, participantId: userId })
-      .exec()
+    const projectionPromise: Promise<WalkcalcParticipantProjectionDocument[]> =
+      groupCodes.length
+        ? this.walkcalcProjectionModel
+            .find({ groupCode: { $in: groupCodes }, participantId: userId })
+            .exec()
+        : Promise.resolve([])
+    const participantPromise: Promise<WalkcalcParticipantDocument[]> =
+      groupCodes.length
+        ? this.walkcalcParticipantModel
+            .find({ groupCode: { $in: groupCodes } })
+            .exec()
+        : Promise.resolve([])
+    const [projections, participants] = await Promise.all([
+      projectionPromise,
+      participantPromise,
+    ])
     const projectionMap = new Map(
       projections.map((projection) => [projection.groupCode, projection]),
     )
+    const participantsByGroup = this.groupParticipantsForSummary(participants)
+    const userIds = [
+      ...new Set(
+        participants
+          .map((participant) => participant.userId)
+          .filter((value): value is string => !!value),
+      ),
+    ]
+    const users = userIds.length
+      ? await this.userService.findPublicUsersByIds(userIds)
+      : []
+    const userMap = new Map(users.map((user) => [user.userId, user]))
+
     return groups.map((group) => {
       const projection = projectionMap.get(group.code)
+      const groupParticipants = participantsByGroup.get(group.code) ?? []
+      const participantPreview = this.sortParticipantsForSummary(
+        groupParticipants,
+        group.ownerUserId,
+        userId,
+      )
+        .slice(0, groupSummaryParticipantPreviewLimit)
+        .map((participant) =>
+          this.mapParticipantPreviewToDto(participant, userMap),
+        )
+
       return {
         code: group.code,
         name: group.name,
@@ -1232,8 +1271,74 @@ export class WalkcalcService {
           projection?.paidTotalValue ?? '0',
         ),
         currentUserRecordCount: projection?.recordCount ?? 0,
+        participantCount: groupParticipants.length,
+        participantPreview,
       }
     })
+  }
+
+  private groupParticipantsForSummary(
+    participants: WalkcalcParticipant[],
+  ): Map<string, WalkcalcParticipant[]> {
+    const grouped = new Map<string, WalkcalcParticipant[]>()
+    for (const participant of participants) {
+      const list = grouped.get(participant.groupCode) ?? []
+      list.push(participant)
+      grouped.set(participant.groupCode, list)
+    }
+    return grouped
+  }
+
+  private sortParticipantsForSummary(
+    participants: WalkcalcParticipant[],
+    ownerUserId: string,
+    currentUserId: string,
+  ): WalkcalcParticipant[] {
+    return [...participants].sort((left, right) => {
+      const rankDiff =
+        this.summaryParticipantRank(left, ownerUserId, currentUserId) -
+        this.summaryParticipantRank(right, ownerUserId, currentUserId)
+      if (rankDiff !== 0) {
+        return rankDiff
+      }
+      const createdDiff = (left.createdAtMs ?? 0) - (right.createdAtMs ?? 0)
+      if (createdDiff !== 0) {
+        return createdDiff
+      }
+      return left.participantId.localeCompare(right.participantId)
+    })
+  }
+
+  private summaryParticipantRank(
+    participant: WalkcalcParticipant,
+    ownerUserId: string,
+    currentUserId: string,
+  ): number {
+    if (participant.kind === 'user' && participant.userId === ownerUserId) {
+      return 0
+    }
+    if (participant.kind === 'user' && participant.userId === currentUserId) {
+      return 1
+    }
+    if (participant.kind === 'user') {
+      return 2
+    }
+    return 3
+  }
+
+  private mapParticipantPreviewToDto(
+    participant: WalkcalcParticipant,
+    userMap: Map<string, WalkcalcPublicUserDto>,
+  ): WalkcalcParticipantPreviewDto {
+    return {
+      participantId: participant.participantId,
+      kind: participant.kind,
+      userId: participant.userId,
+      tempName: participant.tempName,
+      profile: participant.userId
+        ? userMap.get(participant.userId)?.profile
+        : undefined,
+    }
   }
 
   private async mapGroupToDto(
@@ -1344,7 +1449,14 @@ export class WalkcalcService {
       .filter((balance) => balance.value !== 0n)
 
     if (balances.length > exactSettlementParticipantLimit) {
-      throw new GeneralException('walkcalc.settlementLimitExceeded')
+      throw new GeneralException(
+        'walkcalc.settlementLimitExceeded',
+        undefined,
+        {
+          limit: exactSettlementParticipantLimit,
+          nonZeroParticipantCount: balances.length,
+        },
+      )
     }
 
     return {

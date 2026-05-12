@@ -109,6 +109,8 @@ describe('WalkcalcService normalized ledger', () => {
       ],
       participants: [
         userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+        tempParticipant('AB12', 'tmp1', 'Guest'),
         userParticipant('CD34', 'u1'),
       ],
       projections: [
@@ -128,12 +130,37 @@ describe('WalkcalcService normalized ledger', () => {
           code: 'AB12',
           archivedUserIds: ['u1'],
           currentUserBalance: '10.00',
+          participantCount: 3,
+          participantPreview: [
+            expect.objectContaining({
+              participantId: 'u1',
+              kind: 'user',
+              userId: 'u1',
+              profile: { name: 'Hong', avatar: 'u1.png' },
+            }),
+            expect.objectContaining({
+              participantId: 'u2',
+              kind: 'user',
+              userId: 'u2',
+              profile: { name: 'Ada', avatar: 'u2.png' },
+            }),
+            expect.objectContaining({
+              participantId: 'tmp1',
+              kind: 'tempUser',
+              tempName: 'Guest',
+              profile: undefined,
+            }),
+          ],
         }),
       ],
       total: 2,
       page: 1,
       pageSize: 1,
     })
+    expect(ctx.userService.findPublicUsersByIds).toHaveBeenCalledWith([
+      'u1',
+      'u2',
+    ])
   })
 
   it('resolves formal participant profiles from UserService without storing display copies', async () => {
@@ -747,7 +774,10 @@ describe('WalkcalcService normalized ledger', () => {
     await expect(
       limitCtx.service.settlementSuggestion('u1', 'BIG1'),
     ).rejects.toEqual(
-      expect.objectContaining({ message: 'walkcalc.settlementLimitExceeded' }),
+      expect.objectContaining({
+        message: 'walkcalc.settlementLimitExceeded',
+        data: { limit: 12, nonZeroParticipantCount: 13 },
+      }),
     )
   })
 

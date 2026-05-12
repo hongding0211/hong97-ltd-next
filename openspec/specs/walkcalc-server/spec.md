@@ -90,6 +90,7 @@ owner/member authorization and backend ledger constraints.
 - **THEN** the response includes groups where the user is a formal participant
 - **AND** groups are sorted by most recently modified first
 - **AND** the response includes the current user's backend-authoritative group balance and statistics
+- **AND** the response includes each group's full participant count and a bounded participant preview without full projection fields
 
 #### Scenario: Home summary includes all groups
 - **WHEN** an authenticated user requests their WalkCalc home summary
@@ -235,6 +236,10 @@ members.
 - **WHEN** a group owner or member requests suggested settlement
 - **THEN** the backend calculates the suggestion from current participant projections
 - **AND** the response contains transfers from participants with negative balances to participants with positive balances
+
+#### Scenario: Settlement limit error includes details
+- **WHEN** settlement suggestion or resolution exceeds the exact non-zero participant limit
+- **THEN** the structured error response includes `limit` and `nonZeroParticipantCount` in its data field
 
 #### Scenario: Resolve suggested settlement
 - **WHEN** a group owner or member resolves settlement for a group

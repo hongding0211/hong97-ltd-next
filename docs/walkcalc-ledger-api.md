@@ -397,7 +397,24 @@ Response:
       "currentUserBalance": "10.00",
       "currentUserExpenseShare": "33.34",
       "currentUserPaidTotal": "100.00",
-      "currentUserRecordCount": 2
+      "currentUserRecordCount": 2,
+      "participantCount": 3,
+      "participantPreview": [
+        {
+          "participantId": "user_1",
+          "kind": "user",
+          "userId": "user_1",
+          "profile": {
+            "name": "Hong",
+            "avatar": "https://example.com/avatar.png"
+          }
+        },
+        {
+          "participantId": "tmp_1",
+          "kind": "tempUser",
+          "tempName": "Guest"
+        }
+      ]
     }
   ],
   "total": 1,
@@ -411,6 +428,10 @@ Semantics:
 - 只返回当前用户作为 formal participant 加入的 groups。
 - 按 `modifiedAt` 倒序。
 - 每个 group summary 的当前用户余额来自 projection，不依赖客户端已加载 records。
+- `participantCount` 是 group 全量参与人数，包含 archived group 的所有参与人。
+- `participantPreview` 固定最多返回 5 个参与人，只包含身份和展示信息，不包含 projection。
+- preview 排序稳定：owner、当前用户、其他正式用户、临时用户；同 rank 内按创建时间和 participantId 排序。
+- 后端按当前页 groupCodes 批量查询 participants，并批量解析正式用户 profile；客户端不需要逐个 group 拉 detail。
 
 ### Get Group Detail
 
@@ -944,7 +965,15 @@ Semantics:
 - applying returned transfers would make all balances zero。
 - exact minimum-transfer algorithm is used up to the configured non-zero participant limit。
 - current limit: `12` non-zero participants。
-- exceeding the limit returns `walkcalc.settlementLimitExceeded`。
+- exceeding the limit returns `walkcalc.settlementLimitExceeded` with structured error `data`:
+
+```json
+{
+  "limit": 12,
+  "nonZeroParticipantCount": 18
+}
+```
+
 - client-provided balances or records are ignored。
 
 ### Resolve Settlements
@@ -1000,7 +1029,7 @@ Common WalkCalc business error keys:
 | `walkcalc.invalidMoneyAmount` | amount is invalid or non-positive |
 | `walkcalc.invalidProjectionState` | projection would become invalid, for example negative record count |
 | `walkcalc.groupUnsettled` | archive rejected because at least one participant balance is non-zero |
-| `walkcalc.settlementLimitExceeded` | exact settlement has too many non-zero participants |
+| `walkcalc.settlementLimitExceeded` | exact settlement has too many non-zero participants; error `data` includes `limit` and `nonZeroParticipantCount` |
 
 ## Endpoint Summary
 

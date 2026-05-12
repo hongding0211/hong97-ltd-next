@@ -66,7 +66,23 @@ describe('WalkcalcController', () => {
   it('wires group and balance routes to the service', async () => {
     service.createGroup.mockResolvedValue({ code: 'AB12' })
     service.joinGroup.mockResolvedValue({ code: 'AB12' })
-    service.myGroups.mockResolvedValue({ data: [], total: 0 } as any)
+    service.myGroups.mockResolvedValue({
+      data: [
+        {
+          code: 'AB12',
+          participantCount: 2,
+          participantPreview: [
+            {
+              participantId: 'u1',
+              kind: 'user',
+              userId: 'u1',
+              profile: { name: 'Hong' },
+            },
+          ],
+        },
+      ],
+      total: 1,
+    } as any)
     service.getGroup.mockResolvedValue({ code: 'AB12' } as any)
     service.addTempUser.mockResolvedValue({ participantId: 'tmp1' } as any)
     service.inviteUsers.mockResolvedValue({ code: 'AB12', userIds: ['u2'] })
@@ -79,7 +95,20 @@ describe('WalkcalcController', () => {
 
     await controller.createGroup('u1', { name: 'Trip' })
     await controller.joinGroup('u1', { code: 'AB12' })
-    await controller.myGroups('u1', { page: 1, pageSize: 10 })
+    await expect(
+      controller.myGroups('u1', { page: 1, pageSize: 10 }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            participantCount: 2,
+            participantPreview: [
+              expect.objectContaining({ participantId: 'u1' }),
+            ],
+          }),
+        ],
+      }),
+    )
     await controller.getGroup('u1', 'AB12')
     await controller.addTempUser('u1', 'AB12', { name: 'Guest' })
     await controller.inviteUsers('u1', 'AB12', { userIds: ['u2'] })

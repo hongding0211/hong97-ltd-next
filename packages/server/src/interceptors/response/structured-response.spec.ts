@@ -78,6 +78,24 @@ describe('StructuredResponseInterceptor', () => {
     expect(i18n.t).toHaveBeenCalledWith('auth.invalidLoginType')
   })
 
+  it('includes GeneralException data in structured error responses', async () => {
+    const error = new GeneralException(
+      'walkcalc.settlementLimitExceeded' as any,
+      undefined,
+      { limit: 12, nonZeroParticipantCount: 18 },
+    )
+    const next = createNext(() => throwError(() => error))
+
+    await expect(
+      lastValueFrom(interceptor.intercept(context, next)),
+    ).resolves.toEqual({
+      isSuccess: false,
+      msg: 'translated:walkcalc.settlementLimitExceeded',
+      errCode: undefined,
+      data: { limit: 12, nonZeroParticipantCount: 18 },
+    })
+  })
+
   it('rethrows unexpected errors', async () => {
     const error = new Error('boom')
     const next = createNext(() => throwError(() => error))
