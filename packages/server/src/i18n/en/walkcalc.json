@@ -12,5 +12,10 @@
   "recordNotFound": "Record not found",
   "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
   "invalidParticipant": "Invalid participant",
-  "invalidRecordSearch": "Invalid record search"
+  "invalidRecordSearch": "Invalid record search",
+  "invalidRecordType": "Invalid record type",
+  "invalidMoneyAmount": "Invalid money amount",
+  "invalidProjectionState": "Invalid balance state",
+  "groupUnsettled": "Group must be fully settled before archiving",
+  "settlementLimitExceeded": "Too many unsettled participants to calculate an exact settlement"
 }

@@ -8,42 +8,51 @@ import { UserService } from '../user/user.service'
 import { CreateWalkcalcGroupDto, QueryWalkcalcGroupsDto } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
-  BulkResolveWalkcalcDebtsDto,
   QueryWalkcalcRecordsDto,
+  ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
 import {
+  WalkcalcBalanceDetailDto,
+  WalkcalcBalanceListDto,
   WalkcalcDropRecordMutationDto,
   WalkcalcGroupDto,
+  WalkcalcGroupSummaryDto,
+  WalkcalcHomeSummaryDto,
+  WalkcalcParticipantProjectionDto,
   WalkcalcPublicUserDto,
   WalkcalcRecordDto,
   WalkcalcRecordMutationDto,
   WalkcalcRecordsMutationDto,
+  WalkcalcSettlementSuggestionDto,
 } from './dto/response.dto'
 import {
   WalkcalcGroup,
   WalkcalcGroupDocument,
-  WalkcalcMember,
+  WalkcalcParticipant,
+  WalkcalcParticipantDocument,
+  WalkcalcParticipantProjection,
+  WalkcalcParticipantProjectionDocument,
   WalkcalcRecord,
-  WalkcalcTempUser,
+  WalkcalcRecordDocument,
 } from './schema/walkcalc-group.schema'
 import { generateGroupCode } from './utils/group-code'
 import {
-  MoneyMinor,
-  addMoneyMinor,
-  assertNonZeroMoneyMinor,
-  assertPositiveMoneyMinor,
-  legacyNumberToMoneyMinor,
-  moneyMinorToLegacyNumber,
-  negateMoneyMinor,
-  splitMoneyMinor,
+  LedgerDelta,
+  buildExpenseLedgerDeltas,
+  buildSettlementLedgerDeltas,
+  involvedExpenseParticipants,
+  involvedSettlementParticipants,
+  reverseLedgerDeltas,
+} from './utils/ledger-effects'
+import {
+  MoneyValue,
+  addMoneyValues,
+  assertPositiveMoneyAmount,
+  formatMoneyAmount,
+  fromMoneyValueBigInt,
+  toMoneyValueBigInt,
 } from './utils/money'
-
-type Participant =
-  | { type: 'member'; value: WalkcalcMember }
-  | { type: 'temp'; value: WalkcalcTempUser }
-
-type MoneyParticipant = WalkcalcMember | WalkcalcTempUser
 
 type RecordSearchField = 'note' | 'categoryName'
 type RecordSearchOperator = 'or' | 'and'
@@ -56,6 +65,11 @@ interface StructuredRecordSearchCondition {
 interface StructuredRecordSearch {
   operator: RecordSearchOperator
   conditions: StructuredRecordSearchCondition[]
+}
+
+interface SettlementBalance {
+  participantId: string
+  value: bigint
 }
 
 const recordSearchFields = new Set<RecordSearchField>(['note', 'categoryName'])
@@ -71,18 +85,24 @@ const recordCategoryNames: Record<string, string[]> = {
   ticket: ['ticket', '票务'],
   game: ['game', '娱乐'],
   other: ['other', '其他'],
-  debtResolve: ['transfer', '转账'],
-  'debt-resolve': ['transfer', '转账'],
+  settlement: ['transfer', '转账'],
 }
+
+const exactSettlementParticipantLimit = 12
 
 @Injectable()
 export class WalkcalcService {
-  private readonly maxRecordsPerGroup = 5000
   private readonly maxGroupCodeAttempts = 20
 
   constructor(
     @InjectModel(WalkcalcGroup.name)
     private walkcalcGroupModel: Model<WalkcalcGroupDocument>,
+    @InjectModel(WalkcalcParticipant.name)
+    private walkcalcParticipantModel: Model<WalkcalcParticipantDocument>,
+    @InjectModel(WalkcalcRecord.name)
+    private walkcalcRecordModel: Model<WalkcalcRecordDocument>,
+    @InjectModel(WalkcalcParticipantProjection.name)
+    private walkcalcProjectionModel: Model<WalkcalcParticipantProjectionDocument>,
     @InjectConnection() private connection: Connection,
     private userService: UserService,
   ) {}
@@ -102,6 +122,17 @@ export class WalkcalcService {
     return this.userService.searchPublicUsersByName(name, 10)
   }
 
+  async homeSummary(userId: string): Promise<WalkcalcHomeSummaryDto> {
+    const projections = await this.walkcalcProjectionModel
+      .find({ userId })
+      .exec()
+    const total = projections.reduce(
+      (sum, projection) => addMoneyValues(sum, projection.balanceValue),
+      '0',
+    )
+    return { totalBalance: formatMoneyAmount(total) }
+  }
+
   async createGroup(
     userId: string,
     dto: CreateWalkcalcGroupDto,
@@ -114,21 +145,29 @@ export class WalkcalcService {
         continue
       }
 
-      const now = Date.now()
-      const group = new this.walkcalcGroupModel({
-        code,
-        ownerUserId: userId,
-        name: dto.name,
-        members: [{ userId, debtMinor: '0', costMinor: '0' }],
-        tempUsers: [],
-        records: [],
-        archivedUserIds: [],
-        isDeleted: false,
-        createdAtMs: now,
-        modifiedAt: now,
-      })
       try {
-        await group.save()
+        await this.runInOptionalTransaction(async (session) => {
+          const now = Date.now()
+          const group = new this.walkcalcGroupModel({
+            code,
+            ownerUserId: userId,
+            name: dto.name,
+            archivedUserIds: [],
+            isDeleted: false,
+            createdAtMs: now,
+            modifiedAt: now,
+          })
+          await group.save({ session })
+          await this.createParticipantWithProjection(
+            {
+              groupCode: code,
+              participantId: userId,
+              kind: 'user',
+              userId,
+            },
+            session,
+          )
+        })
         return { code }
       } catch (err) {
         if (this.isDuplicateGroupCodeError(err)) {
@@ -142,20 +181,29 @@ export class WalkcalcService {
 
   async joinGroup(userId: string, code: string): Promise<{ code: string }> {
     await this.getPublicUserOrThrow(userId)
-    const group = await this.walkcalcGroupModel
-      .findOne(this.activeGroupFilter({ code }))
-      .exec()
-    if (!group) {
-      throw new GeneralException('walkcalc.groupNotFound')
-    }
-    if (this.isGroupMember(group, userId)) {
-      throw new GeneralException('walkcalc.userAlreadyInGroup')
-    }
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadActiveGroup(code, session)
+      const existing = await this.walkcalcParticipantModel
+        .exists({ groupCode: code, kind: 'user', userId })
+        .session(session ?? null)
+        .exec()
+      if (existing) {
+        throw new GeneralException('walkcalc.userAlreadyInGroup')
+      }
 
-    group.members.push({ userId, debtMinor: '0', costMinor: '0' })
-    group.modifiedAt = Date.now()
-    await group.save()
-    return { code }
+      await this.createParticipantWithProjection(
+        {
+          groupCode: code,
+          participantId: userId,
+          kind: 'user',
+          userId,
+        },
+        session,
+      )
+      group.modifiedAt = Date.now()
+      await group.save({ session })
+      return { code }
+    })
   }
 
   async dismissGroup(userId: string, code: string): Promise<{ code: string }> {
@@ -177,21 +225,33 @@ export class WalkcalcService {
   }
 
   async addTempUser(userId: string, code: string, name: string) {
-    const group = await this.loadOwnedGroup(code, userId)
-    if (group.tempUsers.some((tempUser) => tempUser.name === name)) {
-      throw new GeneralException('walkcalc.tempUserNameExists')
-    }
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadOwnedGroup(code, userId, session)
+      const exists = await this.walkcalcParticipantModel
+        .exists({ groupCode: code, kind: 'tempUser', tempName: name })
+        .session(session ?? null)
+        .exec()
+      if (exists) {
+        throw new GeneralException('walkcalc.tempUserNameExists')
+      }
 
-    const tempUser = {
-      uuid: uuidv4(),
-      name,
-      debtMinor: '0',
-      costMinor: '0',
-    }
-    group.tempUsers.push(tempUser)
-    group.modifiedAt = Date.now()
-    await group.save()
-    return tempUser
+      const participant = await this.createParticipantWithProjection(
+        {
+          groupCode: code,
+          participantId: uuidv4(),
+          kind: 'tempUser',
+          tempName: name,
+        },
+        session,
+      )
+      group.modifiedAt = Date.now()
+      await group.save({ session })
+      return {
+        participantId: participant.participantId,
+        kind: participant.kind,
+        tempName: participant.tempName,
+      }
+    })
   }
 
   async inviteUsers(
@@ -199,38 +259,62 @@ export class WalkcalcService {
     code: string,
     userIds: string[],
   ): Promise<{ code: string; userIds: string[] }> {
-    const group = await this.loadGroupForMember(code, userId)
-    const existingIds = new Set(group.members.map((member) => member.userId))
-    const users = await this.userService.findPublicUsersByIds(userIds)
-    const invitedIds = users
-      .map((user) => user.userId)
-      .filter((targetUserId) => !existingIds.has(targetUserId))
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadGroupForMember(code, userId, session)
+      const users = await this.userService.findPublicUsersByIds(userIds)
+      const existingParticipants = await this.walkcalcParticipantModel
+        .find({
+          groupCode: code,
+          kind: 'user',
+          userId: { $in: users.map((user) => user.userId) },
+        })
+        .session(session ?? null)
+        .exec()
+      const existingIds = new Set(
+        existingParticipants.map((participant) => participant.userId),
+      )
+      const invitedIds = users
+        .map((user) => user.userId)
+        .filter((targetUserId) => !existingIds.has(targetUserId))
 
-    group.members.push(
-      ...invitedIds.map((targetUserId) => ({
-        userId: targetUserId,
-        debtMinor: '0',
-        costMinor: '0',
-      })),
-    )
-    if (invitedIds.length) {
-      group.modifiedAt = Date.now()
-      await group.save()
-    }
+      await Promise.all(
+        invitedIds.map((targetUserId) =>
+          this.createParticipantWithProjection(
+            {
+              groupCode: code,
+              participantId: targetUserId,
+              kind: 'user',
+              userId: targetUserId,
+            },
+            session,
+          ),
+        ),
+      )
+      if (invitedIds.length) {
+        group.modifiedAt = Date.now()
+        await group.save({ session })
+      }
 
-    return { code, userIds: invitedIds }
+      return { code, userIds: invitedIds }
+    })
   }
 
   async myGroups(
     userId: string,
     query: QueryWalkcalcGroupsDto,
-  ): Promise<PaginationResponseDto<WalkcalcGroupDto>> {
+  ): Promise<PaginationResponseDto<WalkcalcGroupSummaryDto>> {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
+    const memberships = await this.walkcalcParticipantModel
+      .find({ kind: 'user', userId })
+      .select({ groupCode: 1 })
+      .exec()
+    const groupCodes = memberships.map((membership) => membership.groupCode)
     const filter = this.withGroupSearch(
-      this.activeGroupFilter(this.memberFilter(userId)),
+      this.activeGroupFilter({ code: { $in: groupCodes } }),
       query.search,
     )
+
     const [groups, total] = await Promise.all([
       this.walkcalcGroupModel
         .find(filter)
@@ -242,9 +326,7 @@ export class WalkcalcService {
     ])
 
     return {
-      data: await Promise.all(
-        groups.map((group) => this.mapGroupToDto(group, userId)),
-      ),
+      data: await this.mapGroupsToSummaryDtos(groups, userId),
       total,
       page,
       pageSize,
@@ -261,17 +343,29 @@ export class WalkcalcService {
     code: string,
     isArchive: boolean,
   ): Promise<{ code: string }> {
-    const group = await this.loadGroupForMember(code, userId)
-    const archivedUserIds = new Set(group.archivedUserIds)
-    if (isArchive) {
-      archivedUserIds.add(userId)
-    } else {
-      archivedUserIds.delete(userId)
-    }
-    group.archivedUserIds = [...archivedUserIds]
-    group.modifiedAt = Date.now()
-    await group.save()
-    return { code }
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadGroupForMember(code, userId, session)
+      const archivedUserIds = new Set(group.archivedUserIds)
+      if (isArchive) {
+        const unsettled = await this.walkcalcProjectionModel
+          .exists({
+            groupCode: code,
+            balanceValue: { $ne: '0' },
+          })
+          .session(session ?? null)
+          .exec()
+        if (unsettled) {
+          throw new GeneralException('walkcalc.groupUnsettled')
+        }
+        archivedUserIds.add(userId)
+      } else {
+        archivedUserIds.delete(userId)
+      }
+      group.archivedUserIds = [...archivedUserIds]
+      group.modifiedAt = Date.now()
+      await group.save({ session })
+      return { code }
+    })
   }
 
   async renameGroup(
@@ -296,77 +390,13 @@ export class WalkcalcService {
         userId,
         session,
       )
-      this.assertRecordPayload(dto, group)
-      if (group.records.length >= this.maxRecordsPerGroup) {
-        throw new GeneralException('walkcalc.recordLimitReached')
-      }
-
-      const now = Date.now()
-      const createdAt = dto.createdAt ?? now
-      const paidMinor = this.resolveRecordPaidMinor(dto)
-      const record: WalkcalcRecord = {
-        recordId: uuidv4(),
-        who: dto.who,
-        paidMinor,
-        forWhom: dto.forWhom,
-        type: dto.type,
-        text: dto.text,
-        long: dto.long,
-        lat: dto.lat,
-        isDebtResolve: !!dto.isDebtResolve,
-        createdAt,
-        modifiedAt: now,
-        createdBy: userId,
-      }
-
-      this.applyRecordBalance(group, record, 1)
-      group.records.push(record)
-      group.modifiedAt = now
-      this.markGroupFinancialStateModified(group)
-      await group.save({ session })
-      return this.mapRecordMutationToDto(group, userId, record)
-    })
-  }
-
-  async resolveDebts(
-    userId: string,
-    dto: BulkResolveWalkcalcDebtsDto,
-  ): Promise<WalkcalcRecordsMutationDto> {
-    return this.runInOptionalTransaction(async (session) => {
-      const group = await this.loadGroupForMember(
-        dto.groupCode,
-        userId,
-        session,
-      )
-      this.assertBulkDebtTransfers(dto, group)
-
-      const now = Date.now()
-      const records: WalkcalcRecord[] = dto.transfers.map((transfer) => {
-        const amountMinor = this.resolveTransferAmountMinor(transfer)
-        return {
-          recordId: uuidv4(),
-          who: transfer.from,
-          paidMinor: amountMinor,
-          forWhom: [transfer.to],
-          type: 'debtResolve',
-          text: 'Debt Resolve',
-          long: '',
-          lat: '',
-          isDebtResolve: true,
-          createdAt: now,
-          modifiedAt: now,
-          createdBy: userId,
-        }
-      })
-
-      records.forEach((record) => this.applyRecordBalance(group, record, 1))
-      group.records.push(...records)
-      group.modifiedAt = now
-      this.markGroupFinancialStateModified(group)
+      const record = await this.createRecordDocument(dto, userId, session)
+      await this.applyRecordProjectionEffects(record, 1, session)
+      group.modifiedAt = Date.now()
       await group.save({ session })
       return {
-        records: records.map((record) => this.mapRecordToDto(record)),
-        group: await this.mapGroupToDto(group, userId),
+        record: this.mapRecordToDto(record),
+        group: await this.mapGroupToDto(group, userId, session),
       }
     })
   }
@@ -378,23 +408,18 @@ export class WalkcalcService {
   ): Promise<WalkcalcDropRecordMutationDto> {
     return this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
-      const recordIndex = group.records.findIndex(
-        (record) => record.recordId === recordId,
-      )
-      if (recordIndex < 0) {
-        throw new GeneralException('walkcalc.recordNotFound')
-      }
-
-      const record = group.records[recordIndex]
-      this.applyRecordBalance(group, record, -1)
-      group.records.splice(recordIndex, 1)
+      const record = await this.loadRecordForGroup(groupCode, recordId, session)
+      await this.applyRecordProjectionEffects(record, -1, session)
+      await this.walkcalcRecordModel
+        .deleteOne({ groupCode, recordId })
+        .session(session ?? null)
+        .exec()
       group.modifiedAt = Date.now()
-      this.markGroupFinancialStateModified(group)
       await group.save({ session })
       return {
         groupCode,
         recordId,
-        group: await this.mapGroupToDto(group, userId),
+        group: await this.mapGroupToDto(group, userId, session),
       }
     })
   }
@@ -409,45 +434,33 @@ export class WalkcalcService {
         userId,
         session,
       )
-      this.assertRecordPayload(dto, group)
-      const recordIndex = group.records.findIndex(
-        (record) => record.recordId === dto.recordId,
+      const previousRecord = await this.loadRecordForGroup(
+        dto.groupCode,
+        dto.recordId,
+        session,
       )
-      if (recordIndex < 0) {
-        throw new GeneralException('walkcalc.recordNotFound')
-      }
+      const nextRecord = await this.buildRecordDocument(
+        dto,
+        userId,
+        previousRecord,
+        session,
+      )
 
-      const previousRecord = group.records[recordIndex]
-      if (previousRecord.isDebtResolve) {
-        throw new GeneralException('walkcalc.debtResolveRecordImmutable')
-      }
-
-      this.applyRecordBalance(group, previousRecord, -1)
-
-      const now = Date.now()
-      const paidMinor = this.resolveRecordPaidMinor(dto)
-      const createdAt = dto.createdAt ?? previousRecord.createdAt
-      const updatedRecord: WalkcalcRecord = {
-        recordId: previousRecord.recordId,
-        who: dto.who,
-        paidMinor,
-        forWhom: dto.forWhom,
-        type: dto.type,
-        text: dto.text,
-        long: dto.long,
-        lat: dto.lat,
-        isDebtResolve: !!dto.isDebtResolve,
-        createdAt,
-        modifiedAt: now,
-        createdBy: previousRecord.createdBy,
-        modifiedBy: userId,
-      }
-      this.applyRecordBalance(group, updatedRecord, 1)
-      group.records[recordIndex] = updatedRecord
-      group.modifiedAt = now
-      this.markGroupFinancialStateModified(group)
+      await this.applyRecordProjectionEffects(previousRecord, -1, session)
+      await this.walkcalcRecordModel
+        .replaceOne(
+          { groupCode: dto.groupCode, recordId: dto.recordId },
+          this.documentToPlainObject(nextRecord),
+        )
+        .session(session ?? null)
+        .exec()
+      await this.applyRecordProjectionEffects(nextRecord, 1, session)
+      group.modifiedAt = Date.now()
       await group.save({ session })
-      return this.mapRecordMutationToDto(group, userId, updatedRecord)
+      return {
+        record: this.mapRecordToDto(nextRecord),
+        group: await this.mapGroupToDto(group, userId, session),
+      }
     })
   }
 
@@ -455,20 +468,11 @@ export class WalkcalcService {
     userId: string,
     recordId: string,
   ): Promise<WalkcalcRecordDto> {
-    const group = await this.walkcalcGroupModel
-      .findOne({
-        ...this.activeGroupFilter(),
-        ...this.memberFilter(userId),
-        'records.recordId': recordId,
-      })
-      .exec()
-    if (!group) {
-      throw new GeneralException('walkcalc.recordNotFound')
-    }
-    const record = group.records.find((item) => item.recordId === recordId)
+    const record = await this.walkcalcRecordModel.findOne({ recordId }).exec()
     if (!record) {
       throw new GeneralException('walkcalc.recordNotFound')
     }
+    await this.loadGroupForMember(record.groupCode, userId)
     return this.mapRecordToDto(record)
   }
 
@@ -477,21 +481,107 @@ export class WalkcalcService {
     groupCode: string,
     query: QueryWalkcalcRecordsDto,
   ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
-    const page = query.page ?? 1
-    const pageSize = query.pageSize ?? 10
-    const group = await this.loadGroupForMember(groupCode, userId)
-    const records = this.filterRecords(group, query).sort(
-      (a, b) => b.createdAt - a.createdAt,
-    )
-    const skip = (page - 1) * pageSize
+    await this.loadGroupForMember(groupCode, userId)
+    return this.queryRecords(groupCode, query)
+  }
 
+  async groupBalances(
+    userId: string,
+    groupCode: string,
+  ): Promise<WalkcalcBalanceListDto> {
+    await this.loadGroupForMember(groupCode, userId)
     return {
-      data: records
-        .slice(skip, skip + pageSize)
-        .map((record) => this.mapRecordToDto(record)),
-      total: records.length,
-      page,
-      pageSize,
+      groupCode,
+      participants: await this.loadParticipantProjectionDtos(groupCode),
+    }
+  }
+
+  async participantBalanceDetail(
+    userId: string,
+    groupCode: string,
+    participantId: string,
+    query: QueryWalkcalcRecordsDto,
+  ): Promise<WalkcalcBalanceDetailDto> {
+    await this.loadGroupForMember(groupCode, userId)
+    const [participant] = await this.loadParticipantProjectionDtos(
+      groupCode,
+      participantId,
+    )
+    if (!participant) {
+      throw new GeneralException('walkcalc.invalidParticipant')
+    }
+    const records = await this.queryRecords(groupCode, {
+      ...query,
+      participantId,
+    })
+    return {
+      ...participant,
+      records: records.data as WalkcalcRecordDto[],
+      total: records.total,
+      page: records.page,
+      pageSize: records.pageSize,
+    }
+  }
+
+  async settlementSuggestion(
+    userId: string,
+    groupCode: string,
+  ): Promise<WalkcalcSettlementSuggestionDto> {
+    await this.loadGroupForMember(groupCode, userId)
+    return this.buildSettlementSuggestion(groupCode)
+  }
+
+  async resolveSettlements(
+    userId: string,
+    groupCode: string,
+    _dto: ResolveWalkcalcSettlementsDto,
+  ): Promise<WalkcalcRecordsMutationDto> {
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadGroupForMember(groupCode, userId, session)
+      const suggestion = await this.buildSettlementSuggestion(
+        groupCode,
+        session,
+      )
+      const records = await Promise.all(
+        suggestion.transfers.map((transfer) =>
+          this.createRecordDocument(
+            {
+              groupCode,
+              type: 'settlement',
+              amount: transfer.amount,
+              fromId: transfer.fromId,
+              toId: transfer.toId,
+            },
+            userId,
+            session,
+          ),
+        ),
+      )
+      for (const record of records) {
+        await this.applyRecordProjectionEffects(record, 1, session)
+      }
+      group.modifiedAt = Date.now()
+      await group.save({ session })
+      return {
+        records: records.map((record) => this.mapRecordToDto(record)),
+        group: await this.mapGroupToDto(group, userId, session),
+      }
+    })
+  }
+
+  async rebuildProjectionsForGroup(groupCode: string): Promise<void> {
+    const participants = await this.walkcalcParticipantModel
+      .find({ groupCode })
+      .exec()
+    await this.walkcalcProjectionModel.deleteMany({ groupCode }).exec()
+    await Promise.all(
+      participants.map((participant) =>
+        this.createProjectionForParticipant(participant),
+      ),
+    )
+    const records = await this.walkcalcRecordModel.find({ groupCode }).exec()
+    for (const record of records) {
+      await this.applyRecordProjectionEffects(record, 1)
     }
   }
 
@@ -505,16 +595,51 @@ export class WalkcalcService {
     }
   }
 
+  private async createParticipantWithProjection(
+    participant: Pick<
+      WalkcalcParticipant,
+      'groupCode' | 'participantId' | 'kind' | 'userId' | 'tempName'
+    >,
+    session?: ClientSession,
+  ): Promise<WalkcalcParticipantDocument> {
+    const now = Date.now()
+    const participantDocument = new this.walkcalcParticipantModel({
+      ...participant,
+      createdAtMs: now,
+      modifiedAt: now,
+    })
+    await participantDocument.save({ session })
+    await this.createProjectionForParticipant(participantDocument, session)
+    return participantDocument
+  }
+
+  private async createProjectionForParticipant(
+    participant: Pick<
+      WalkcalcParticipant,
+      'groupCode' | 'participantId' | 'kind' | 'userId'
+    >,
+    session?: ClientSession,
+  ) {
+    const projection = new this.walkcalcProjectionModel({
+      groupCode: participant.groupCode,
+      participantId: participant.participantId,
+      kind: participant.kind,
+      userId: participant.userId,
+      balanceValue: '0',
+      expenseShareValue: '0',
+      paidTotalValue: '0',
+      recordCount: 0,
+      settlementInValue: '0',
+      settlementOutValue: '0',
+      modifiedAt: Date.now(),
+    })
+    await projection.save({ session })
+  }
+
   private activeGroupFilter<T extends Record<string, unknown>>(filter?: T) {
     return {
       ...(filter ?? {}),
       isDeleted: { $ne: true },
-    }
-  }
-
-  private memberFilter(userId: string) {
-    return {
-      $or: [{ ownerUserId: userId }, { 'members.userId': userId }],
     }
   }
 
@@ -527,38 +652,332 @@ export class WalkcalcService {
       return filter
     }
     return {
-      $and: [
-        filter,
-        {
-          $or: [{ name: regex }, { code: regex }],
-        },
-      ],
+      $and: [filter, { $or: [{ name: regex }, { code: regex }] }],
     }
   }
 
-  private filterRecords(
-    group: WalkcalcGroup,
+  private async loadActiveGroup(
+    code: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcGroupDocument> {
+    const group = await this.walkcalcGroupModel
+      .findOne(this.activeGroupFilter({ code }))
+      .session(session ?? null)
+      .exec()
+    if (!group) {
+      throw new GeneralException('walkcalc.groupNotFound')
+    }
+    return group
+  }
+
+  private async loadGroupForMember(
+    code: string,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcGroupDocument> {
+    const group = await this.walkcalcGroupModel
+      .findOne(this.activeGroupFilter({ code }))
+      .session(session ?? null)
+      .exec()
+    if (!group) {
+      throw new GeneralException('walkcalc.groupNotFoundOrNoAccess')
+    }
+    const membership = await this.walkcalcParticipantModel
+      .exists({ groupCode: code, kind: 'user', userId })
+      .session(session ?? null)
+      .exec()
+    if (!membership) {
+      throw new GeneralException('walkcalc.groupNotFoundOrNoAccess')
+    }
+    return group
+  }
+
+  private async loadOwnedGroup(
+    code: string,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcGroupDocument> {
+    const group = await this.walkcalcGroupModel
+      .findOne(this.activeGroupFilter({ code, ownerUserId: userId }))
+      .session(session ?? null)
+      .exec()
+    if (!group) {
+      throw new GeneralException('walkcalc.groupOwnerRequired')
+    }
+    return group
+  }
+
+  private async loadRecordForGroup(
+    groupCode: string,
+    recordId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcRecordDocument> {
+    const record = await this.walkcalcRecordModel
+      .findOne({ groupCode, recordId })
+      .session(session ?? null)
+      .exec()
+    if (!record) {
+      throw new GeneralException('walkcalc.recordNotFound')
+    }
+    return record
+  }
+
+  private async createRecordDocument(
+    dto: AddWalkcalcRecordDto,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcRecordDocument> {
+    const record = await this.buildRecordDocument(
+      dto,
+      userId,
+      undefined,
+      session,
+    )
+    await record.save({ session })
+    return record
+  }
+
+  private async buildRecordDocument(
+    dto: AddWalkcalcRecordDto,
+    userId: string,
+    previousRecord?: WalkcalcRecord,
+    session?: ClientSession,
+  ): Promise<WalkcalcRecordDocument> {
+    const now = Date.now()
+    const amountValue = this.resolveAmountValue(dto.amount)
+    const createdAt = dto.createdAt ?? previousRecord?.createdAt ?? now
+
+    if (dto.type === 'expense') {
+      const payerId = this.requiredParticipantId(dto.payerId)
+      const participantIds = this.requiredParticipantIds(dto.participantIds)
+      const involvedParticipantIds = involvedExpenseParticipants({
+        payerId,
+        participantIds,
+      })
+      await this.assertParticipantsExist(
+        dto.groupCode,
+        involvedParticipantIds,
+        session,
+      )
+      buildExpenseLedgerDeltas({
+        amount: dto.amount,
+        payerId,
+        participantIds,
+      })
+      return new this.walkcalcRecordModel({
+        groupCode: dto.groupCode,
+        recordId: previousRecord?.recordId ?? uuidv4(),
+        type: dto.type,
+        amountValue,
+        payerId,
+        participantIds,
+        involvedParticipantIds,
+        category: dto.category,
+        note: dto.note,
+        long: dto.long,
+        lat: dto.lat,
+        createdAt,
+        updatedAt: now,
+        createdBy: previousRecord?.createdBy ?? userId,
+        updatedBy: previousRecord ? userId : undefined,
+      })
+    }
+
+    if (dto.type === 'settlement') {
+      const fromId = this.requiredParticipantId(dto.fromId)
+      const toId = this.requiredParticipantId(dto.toId)
+      const involvedParticipantIds = involvedSettlementParticipants({
+        fromId,
+        toId,
+      })
+      await this.assertParticipantsExist(
+        dto.groupCode,
+        involvedParticipantIds,
+        session,
+      )
+      buildSettlementLedgerDeltas({ amount: dto.amount, fromId, toId })
+      return new this.walkcalcRecordModel({
+        groupCode: dto.groupCode,
+        recordId: previousRecord?.recordId ?? uuidv4(),
+        type: dto.type,
+        amountValue,
+        fromId,
+        toId,
+        involvedParticipantIds,
+        category: dto.category ?? 'settlement',
+        note: dto.note,
+        long: dto.long,
+        lat: dto.lat,
+        createdAt,
+        updatedAt: now,
+        createdBy: previousRecord?.createdBy ?? userId,
+        updatedBy: previousRecord ? userId : undefined,
+      })
+    }
+
+    throw new GeneralException('walkcalc.invalidRecordType')
+  }
+
+  private resolveAmountValue(amount: string): MoneyValue {
+    try {
+      return assertPositiveMoneyAmount(amount)
+    } catch {
+      throw new GeneralException('walkcalc.invalidMoneyAmount')
+    }
+  }
+
+  private requiredParticipantId(participantId?: string): string {
+    const trimmed = participantId?.trim()
+    if (!trimmed) {
+      throw new GeneralException('walkcalc.invalidParticipant')
+    }
+    return trimmed
+  }
+
+  private requiredParticipantIds(participantIds?: string[]): string[] {
+    if (!participantIds?.length) {
+      throw new GeneralException('walkcalc.forWhomRequired')
+    }
+    return participantIds.map((participantId) =>
+      this.requiredParticipantId(participantId),
+    )
+  }
+
+  private async assertParticipantsExist(
+    groupCode: string,
+    participantIds: string[],
+    session?: ClientSession,
+  ) {
+    const participants = await this.walkcalcParticipantModel
+      .find({ groupCode, participantId: { $in: participantIds } })
+      .session(session ?? null)
+      .exec()
+    const foundIds = new Set(
+      participants.map((participant) => participant.participantId),
+    )
+    if (participantIds.some((participantId) => !foundIds.has(participantId))) {
+      throw new GeneralException('walkcalc.invalidParticipant')
+    }
+  }
+
+  private async applyRecordProjectionEffects(
+    record: WalkcalcRecord,
+    direction: 1 | -1,
+    session?: ClientSession,
+  ) {
+    const deltas =
+      direction === 1
+        ? this.buildDeltasForRecord(record)
+        : reverseLedgerDeltas(this.buildDeltasForRecord(record))
+
+    for (const delta of deltas) {
+      await this.applyProjectionDelta(record.groupCode, delta, session)
+    }
+  }
+
+  private buildDeltasForRecord(record: WalkcalcRecord): LedgerDelta[] {
+    const amount = formatMoneyAmount(record.amountValue)
+    if (record.type === 'expense') {
+      return buildExpenseLedgerDeltas({
+        amount,
+        payerId: this.requiredParticipantId(record.payerId),
+        participantIds: this.requiredParticipantIds(record.participantIds),
+      })
+    }
+    return buildSettlementLedgerDeltas({
+      amount,
+      fromId: this.requiredParticipantId(record.fromId),
+      toId: this.requiredParticipantId(record.toId),
+    })
+  }
+
+  private async applyProjectionDelta(
+    groupCode: string,
+    delta: LedgerDelta,
+    session?: ClientSession,
+  ) {
+    const projection = await this.walkcalcProjectionModel
+      .findOne({ groupCode, participantId: delta.participantId })
+      .session(session ?? null)
+      .exec()
+    if (!projection) {
+      throw new GeneralException('walkcalc.invalidParticipant')
+    }
+
+    projection.balanceValue = addMoneyValues(
+      projection.balanceValue,
+      delta.balanceValue,
+    )
+    projection.expenseShareValue = addMoneyValues(
+      projection.expenseShareValue,
+      delta.expenseShareValue,
+    )
+    projection.paidTotalValue = addMoneyValues(
+      projection.paidTotalValue,
+      delta.paidTotalValue,
+    )
+    projection.settlementInValue = addMoneyValues(
+      projection.settlementInValue,
+      delta.settlementInValue,
+    )
+    projection.settlementOutValue = addMoneyValues(
+      projection.settlementOutValue,
+      delta.settlementOutValue,
+    )
+    projection.recordCount += delta.recordCount
+    if (projection.recordCount < 0) {
+      throw new GeneralException('walkcalc.invalidProjectionState')
+    }
+    projection.modifiedAt = Date.now()
+    await projection.save({ session })
+  }
+
+  private async queryRecords(
+    groupCode: string,
     query: QueryWalkcalcRecordsDto,
-  ): WalkcalcRecord[] {
-    let records = [...group.records]
+  ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
+    const page = query.page ?? 1
+    const pageSize = query.pageSize ?? 10
+    const filter: Record<string, unknown> = { groupCode }
     const participantId = query.participantId?.trim()
     if (participantId) {
-      this.resolveParticipant(group, participantId)
-      records = records.filter(
-        (record) =>
-          record.who === participantId ||
-          record.forWhom.includes(participantId),
-      )
+      await this.assertParticipantsExist(groupCode, [participantId])
+      filter.involvedParticipantIds = participantId
+    }
+    const searchFilter = this.recordSearchFilter(query.search)
+    const finalFilter = searchFilter ? { $and: [filter, searchFilter] } : filter
+    const [records, total] = await Promise.all([
+      this.walkcalcRecordModel
+        .find(finalFilter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .exec(),
+      this.walkcalcRecordModel.countDocuments(finalFilter).exec(),
+    ])
+
+    return {
+      data: records.map((record) => this.mapRecordToDto(record)),
+      total,
+      page,
+      pageSize,
+    }
+  }
+
+  private recordSearchFilter(
+    search?: string,
+  ): Record<string, unknown> | undefined {
+    const parsedSearch = this.parseRecordSearch(search)
+    if (!parsedSearch) {
+      return undefined
     }
 
-    const search = this.parseRecordSearch(query.search)
-    if (search) {
-      records = records.filter((record) =>
-        this.recordMatchesSearch(record, search),
-      )
-    }
-
-    return records
+    const filters = parsedSearch.conditions.map((condition) =>
+      this.recordSearchConditionFilter(condition),
+    )
+    return parsedSearch.operator === 'and'
+      ? { $and: filters }
+      : { $or: filters }
   }
 
   private parseRecordSearch(
@@ -579,7 +998,6 @@ export class WalkcalcService {
     if (!this.isPlainObject(raw)) {
       throw new GeneralException('walkcalc.invalidRecordSearch')
     }
-
     const operator = raw.operator
     const conditions = raw.conditions
     if (
@@ -589,7 +1007,6 @@ export class WalkcalcService {
     ) {
       throw new GeneralException('walkcalc.invalidRecordSearch')
     }
-
     return {
       operator,
       conditions: conditions.map((condition) =>
@@ -614,47 +1031,243 @@ export class WalkcalcService {
     ) {
       throw new GeneralException('walkcalc.invalidRecordSearch')
     }
-
     return {
       field: field as RecordSearchField,
       query: query.trim().toLowerCase(),
     }
   }
 
-  private recordMatchesSearch(
-    record: WalkcalcRecord,
-    search: StructuredRecordSearch,
-  ): boolean {
-    const matches = search.conditions.map((condition) =>
-      this.recordMatchesSearchCondition(record, condition),
-    )
-    return search.operator === 'and'
-      ? matches.every(Boolean)
-      : matches.some(Boolean)
-  }
-
-  private recordMatchesSearchCondition(
-    record: WalkcalcRecord,
+  private recordSearchConditionFilter(
     condition: StructuredRecordSearchCondition,
-  ): boolean {
+  ): Record<string, unknown> {
     switch (condition.field) {
       case 'note':
-        return (record.text ?? '').toLowerCase().includes(condition.query)
-      case 'categoryName':
-        return this.recordCategorySearchValues(record).some((value) =>
-          value.includes(condition.query),
-        )
+        return { note: this.searchRegex(condition.query) ?? /$a/ }
+      case 'categoryName': {
+        const categories = Object.entries(recordCategoryNames)
+          .filter(([, names]) =>
+            names.some((name) => name.toLowerCase().includes(condition.query)),
+          )
+          .map(([category]) => category)
+        return categories.length
+          ? { category: { $in: categories } }
+          : { category: '__walkcalc_no_category_match__' }
+      }
     }
   }
 
-  private recordCategorySearchValues(record: WalkcalcRecord): string[] {
-    return (
-      recordCategoryNames[record.type ?? 'other'] ?? recordCategoryNames.other
-    ).map((value) => value.toLowerCase())
+  private async mapGroupsToSummaryDtos(
+    groups: WalkcalcGroup[],
+    userId: string,
+  ): Promise<WalkcalcGroupSummaryDto[]> {
+    const groupCodes = groups.map((group) => group.code)
+    const projections = await this.walkcalcProjectionModel
+      .find({ groupCode: { $in: groupCodes }, participantId: userId })
+      .exec()
+    const projectionMap = new Map(
+      projections.map((projection) => [projection.groupCode, projection]),
+    )
+    return groups.map((group) => {
+      const projection = projectionMap.get(group.code)
+      return {
+        code: group.code,
+        name: group.name,
+        ownerUserId: group.ownerUserId,
+        archivedUserIds: group.archivedUserIds,
+        isOwner: group.ownerUserId === userId,
+        createdAt: group.createdAtMs,
+        modifiedAt: group.modifiedAt,
+        currentUserBalance: formatMoneyAmount(projection?.balanceValue ?? '0'),
+        currentUserExpenseShare: formatMoneyAmount(
+          projection?.expenseShareValue ?? '0',
+        ),
+        currentUserPaidTotal: formatMoneyAmount(
+          projection?.paidTotalValue ?? '0',
+        ),
+        currentUserRecordCount: projection?.recordCount ?? 0,
+      }
+    })
   }
 
-  private isPlainObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  private async mapGroupToDto(
+    group: WalkcalcGroup,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcGroupDto> {
+    return {
+      code: group.code,
+      name: group.name,
+      ownerUserId: group.ownerUserId,
+      archivedUserIds: group.archivedUserIds,
+      isOwner: group.ownerUserId === userId,
+      createdAt: group.createdAtMs,
+      modifiedAt: group.modifiedAt,
+      participants: await this.loadParticipantProjectionDtos(
+        group.code,
+        undefined,
+        session,
+      ),
+    }
+  }
+
+  private async loadParticipantProjectionDtos(
+    groupCode: string,
+    participantId?: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcParticipantProjectionDto[]> {
+    const participantFilter: Record<string, unknown> = { groupCode }
+    if (participantId) {
+      participantFilter.participantId = participantId
+    }
+    const [participants, projections] = await Promise.all([
+      this.walkcalcParticipantModel
+        .find(participantFilter)
+        .session(session ?? null)
+        .exec(),
+      this.walkcalcProjectionModel
+        .find(participantFilter)
+        .session(session ?? null)
+        .exec(),
+    ])
+    const projectionMap = new Map(
+      projections.map((projection) => [projection.participantId, projection]),
+    )
+    const userIds = participants
+      .map((participant) => participant.userId)
+      .filter((value): value is string => !!value)
+    const users = await this.userService.findPublicUsersByIds(userIds)
+    const userMap = new Map(users.map((user) => [user.userId, user]))
+
+    return participants.map((participant) => {
+      const projection = projectionMap.get(participant.participantId)
+      return {
+        participantId: participant.participantId,
+        kind: participant.kind,
+        userId: participant.userId,
+        tempName: participant.tempName,
+        profile: participant.userId
+          ? userMap.get(participant.userId)?.profile
+          : undefined,
+        balance: formatMoneyAmount(projection?.balanceValue ?? '0'),
+        expenseShare: formatMoneyAmount(projection?.expenseShareValue ?? '0'),
+        paidTotal: formatMoneyAmount(projection?.paidTotalValue ?? '0'),
+        recordCount: projection?.recordCount ?? 0,
+        settlementIn: formatMoneyAmount(projection?.settlementInValue ?? '0'),
+        settlementOut: formatMoneyAmount(projection?.settlementOutValue ?? '0'),
+      }
+    })
+  }
+
+  private mapRecordToDto(record: WalkcalcRecord): WalkcalcRecordDto {
+    return {
+      recordId: record.recordId,
+      groupCode: record.groupCode,
+      type: record.type,
+      amount: formatMoneyAmount(record.amountValue),
+      payerId: record.payerId,
+      participantIds:
+        record.type === 'expense' ? record.participantIds : undefined,
+      fromId: record.fromId,
+      toId: record.toId,
+      involvedParticipantIds: record.involvedParticipantIds,
+      category: record.category,
+      note: record.note,
+      long: record.long,
+      lat: record.lat,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      createdBy: record.createdBy,
+      updatedBy: record.updatedBy,
+    }
+  }
+
+  private async buildSettlementSuggestion(
+    groupCode: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcSettlementSuggestionDto> {
+    const projections = await this.walkcalcProjectionModel
+      .find({ groupCode })
+      .session(session ?? null)
+      .exec()
+    const balances = projections
+      .map((projection) => ({
+        participantId: projection.participantId,
+        value: toMoneyValueBigInt(projection.balanceValue),
+      }))
+      .filter((balance) => balance.value !== 0n)
+
+    if (balances.length > exactSettlementParticipantLimit) {
+      throw new GeneralException('walkcalc.settlementLimitExceeded')
+    }
+
+    return {
+      groupCode,
+      strategy: 'exact',
+      transfers: this.minimizeSettlementTransfers(balances).map((transfer) => ({
+        ...transfer,
+        amount: formatMoneyAmount(transfer.amount),
+      })),
+    }
+  }
+
+  private minimizeSettlementTransfers(
+    balances: SettlementBalance[],
+  ): Array<{ fromId: string; toId: string; amount: MoneyValue }> {
+    const ids = balances.map((balance) => balance.participantId)
+    const values = balances.map((balance) => balance.value)
+    let best:
+      | Array<{ fromId: string; toId: string; amount: bigint }>
+      | undefined
+
+    const search = (
+      currentValues: bigint[],
+      plan: Array<{ fromId: string; toId: string; amount: bigint }>,
+    ) => {
+      if (best && plan.length >= best.length) {
+        return
+      }
+      let index = 0
+      while (index < currentValues.length && currentValues[index] === 0n) {
+        index += 1
+      }
+      if (index === currentValues.length) {
+        best = plan
+        return
+      }
+
+      for (let next = index + 1; next < currentValues.length; next += 1) {
+        if (currentValues[index] * currentValues[next] >= 0n) {
+          continue
+        }
+        const valuesCopy = [...currentValues]
+        const indexValue = valuesCopy[index]
+        const nextValue = valuesCopy[next]
+        const amount =
+          absBigInt(indexValue) < absBigInt(nextValue)
+            ? absBigInt(indexValue)
+            : absBigInt(nextValue)
+        const transfer =
+          indexValue < 0n
+            ? { fromId: ids[index], toId: ids[next], amount }
+            : { fromId: ids[next], toId: ids[index], amount }
+
+        if (indexValue < 0n) {
+          valuesCopy[index] += amount
+          valuesCopy[next] -= amount
+        } else {
+          valuesCopy[index] -= amount
+          valuesCopy[next] += amount
+        }
+        search(valuesCopy, [...plan, transfer])
+      }
+    }
+
+    search(values, [])
+    return (best ?? []).map((transfer) => ({
+      fromId: transfer.fromId,
+      toId: transfer.toId,
+      amount: fromMoneyValueBigInt(transfer.amount),
+    }))
   }
 
   private searchRegex(search?: string): RegExp | undefined {
@@ -669,276 +1282,8 @@ export class WalkcalcService {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
-  private isGroupMember(group: WalkcalcGroup, userId: string): boolean {
-    return (
-      group.ownerUserId === userId ||
-      group.members.some((member) => member.userId === userId)
-    )
-  }
-
-  private async loadGroupForMember(
-    code: string,
-    userId: string,
-    session?: ClientSession,
-  ): Promise<WalkcalcGroupDocument> {
-    const group = await this.walkcalcGroupModel
-      .findOne({
-        ...this.activeGroupFilter(),
-        code,
-        ...this.memberFilter(userId),
-      })
-      .session(session ?? null)
-      .exec()
-    if (!group) {
-      throw new GeneralException('walkcalc.groupNotFoundOrNoAccess')
-    }
-    return group
-  }
-
-  private async loadOwnedGroup(
-    code: string,
-    userId: string,
-  ): Promise<WalkcalcGroupDocument> {
-    const group = await this.walkcalcGroupModel
-      .findOne(this.activeGroupFilter({ code, ownerUserId: userId }))
-      .exec()
-    if (!group) {
-      throw new GeneralException('walkcalc.groupOwnerRequired')
-    }
-    return group
-  }
-
-  private assertRecordPayload(dto: AddWalkcalcRecordDto, group: WalkcalcGroup) {
-    if (!dto.forWhom.length) {
-      throw new GeneralException('walkcalc.forWhomRequired')
-    }
-    this.resolveRecordPaidMinor(dto)
-    this.resolveParticipant(group, dto.who)
-    dto.forWhom.forEach((participantId) => {
-      this.resolveParticipant(group, participantId)
-    })
-  }
-
-  private assertBulkDebtTransfers(
-    dto: BulkResolveWalkcalcDebtsDto,
-    group: WalkcalcGroup,
-  ) {
-    if (!dto.transfers.length) {
-      throw new GeneralException('walkcalc.forWhomRequired')
-    }
-    if (group.records.length + dto.transfers.length > this.maxRecordsPerGroup) {
-      throw new GeneralException('walkcalc.recordLimitReached')
-    }
-
-    dto.transfers.forEach((transfer) => {
-      this.resolveTransferAmountMinor(transfer)
-      this.resolveParticipant(group, transfer.from)
-      this.resolveParticipant(group, transfer.to)
-    })
-  }
-
-  private resolveParticipant(
-    group: WalkcalcGroup,
-    participantId: string,
-  ): Participant {
-    const member = group.members.find((item) => item.userId === participantId)
-    if (member) {
-      return { type: 'member', value: member }
-    }
-    const tempUser = group.tempUsers.find((item) => item.uuid === participantId)
-    if (tempUser) {
-      return { type: 'temp', value: tempUser }
-    }
-    throw new GeneralException('walkcalc.invalidParticipant')
-  }
-
-  private applyRecordBalance(
-    group: WalkcalcGroup,
-    record: Pick<
-      WalkcalcRecord,
-      'who' | 'paid' | 'paidMinor' | 'forWhom' | 'isDebtResolve'
-    >,
-    direction: 1 | -1,
-  ) {
-    const paidMinor = this.resolvePersistedRecordPaidMinor(record)
-    const splitAmounts = splitMoneyMinor(paidMinor, record.forWhom.length)
-    const forWhomParticipants = record.forWhom.map(
-      (participantId) => this.resolveParticipant(group, participantId).value,
-    )
-    const payer = this.resolveParticipant(group, record.who).value
-
-    for (const [index, participant] of forWhomParticipants.entries()) {
-      const amount = splitAmounts[index]
-      this.addParticipantDebtMinor(
-        participant,
-        this.directedAmount(amount, this.reverseDirection(direction)),
-      )
-      if (!record.isDebtResolve) {
-        this.addParticipantCostMinor(
-          participant,
-          this.directedAmount(amount, direction),
-        )
-      }
-    }
-
-    this.addParticipantDebtMinor(
-      payer,
-      this.directedAmount(paidMinor, direction),
-    )
-  }
-
-  private async mapGroupToDto(
-    group: WalkcalcGroup,
-    userId: string,
-  ): Promise<WalkcalcGroupDto> {
-    const users = await this.userService.findPublicUsersByIds(
-      group.members.map((member) => member.userId),
-    )
-    const userMap = new Map(users.map((user) => [user.userId, user]))
-
-    return {
-      code: group.code,
-      name: group.name,
-      ownerUserId: group.ownerUserId,
-      members: group.members.map((member) => {
-        const user = userMap.get(member.userId)
-        return {
-          userId: member.userId,
-          profile: user?.profile ?? { name: member.userId },
-          debt: moneyMinorToLegacyNumber(this.getParticipantDebtMinor(member)),
-          cost: moneyMinorToLegacyNumber(this.getParticipantCostMinor(member)),
-          debtMinor: this.getParticipantDebtMinor(member),
-          costMinor: this.getParticipantCostMinor(member),
-        }
-      }),
-      tempUsers: group.tempUsers.map((tempUser) => ({
-        uuid: tempUser.uuid,
-        name: tempUser.name,
-        debt: moneyMinorToLegacyNumber(this.getParticipantDebtMinor(tempUser)),
-        cost: moneyMinorToLegacyNumber(this.getParticipantCostMinor(tempUser)),
-        debtMinor: this.getParticipantDebtMinor(tempUser),
-        costMinor: this.getParticipantCostMinor(tempUser),
-      })),
-      archivedUserIds: group.archivedUserIds,
-      isOwner: group.ownerUserId === userId,
-      createdAt: group.createdAtMs,
-      modifiedAt: group.modifiedAt,
-    }
-  }
-
-  private mapRecordToDto(record: WalkcalcRecord): WalkcalcRecordDto {
-    return {
-      recordId: record.recordId,
-      who: record.who,
-      paid: moneyMinorToLegacyNumber(
-        this.resolvePersistedRecordPaidMinor(record),
-      ),
-      paidMinor: this.resolvePersistedRecordPaidMinor(record),
-      forWhom: record.forWhom,
-      type: record.type,
-      text: record.text,
-      long: record.long,
-      lat: record.lat,
-      isDebtResolve: record.isDebtResolve,
-      createdAt: record.createdAt,
-      modifiedAt: record.modifiedAt,
-      createdBy: record.createdBy,
-      modifiedBy: record.modifiedBy,
-    }
-  }
-
-  private async mapRecordMutationToDto(
-    group: WalkcalcGroup,
-    userId: string,
-    record: WalkcalcRecord,
-  ): Promise<WalkcalcRecordMutationDto> {
-    return {
-      ...this.mapRecordToDto(record),
-      group: await this.mapGroupToDto(group, userId),
-    }
-  }
-
-  private resolveRecordPaidMinor(
-    dto: Pick<AddWalkcalcRecordDto, 'paidMinor' | 'paid'>,
-  ): MoneyMinor {
-    try {
-      const paidMinor =
-        dto.paidMinor !== undefined
-          ? dto.paidMinor
-          : legacyNumberToMoneyMinor(dto.paid)
-      return assertNonZeroMoneyMinor(paidMinor)
-    } catch {
-      throw new GeneralException('walkcalc.zeroAmountRecord')
-    }
-  }
-
-  private resolveTransferAmountMinor(
-    transfer: Pick<
-      BulkResolveWalkcalcDebtsDto['transfers'][number],
-      'amountMinor' | 'amount'
-    >,
-  ): MoneyMinor {
-    try {
-      const amountMinor =
-        transfer.amountMinor !== undefined
-          ? transfer.amountMinor
-          : legacyNumberToMoneyMinor(transfer.amount)
-      return assertPositiveMoneyMinor(amountMinor)
-    } catch {
-      throw new GeneralException('walkcalc.zeroAmountRecord')
-    }
-  }
-
-  private resolvePersistedRecordPaidMinor(
-    record: Pick<WalkcalcRecord, 'paidMinor' | 'paid'>,
-  ): MoneyMinor {
-    return record.paidMinor ?? legacyNumberToMoneyMinor(record.paid)
-  }
-
-  private getParticipantDebtMinor(participant: MoneyParticipant): MoneyMinor {
-    return participant.debtMinor ?? legacyNumberToMoneyMinor(participant.debt)
-  }
-
-  private getParticipantCostMinor(participant: MoneyParticipant): MoneyMinor {
-    return participant.costMinor ?? legacyNumberToMoneyMinor(participant.cost)
-  }
-
-  private addParticipantDebtMinor(
-    participant: MoneyParticipant,
-    amount: MoneyMinor,
-  ) {
-    participant.debtMinor = addMoneyMinor(
-      this.getParticipantDebtMinor(participant),
-      amount,
-    )
-  }
-
-  private addParticipantCostMinor(
-    participant: MoneyParticipant,
-    amount: MoneyMinor,
-  ) {
-    participant.costMinor = addMoneyMinor(
-      this.getParticipantCostMinor(participant),
-      amount,
-    )
-  }
-
-  private directedAmount(amount: MoneyMinor, direction: 1 | -1): MoneyMinor {
-    return direction === 1 ? amount : negateMoneyMinor(amount)
-  }
-
-  private reverseDirection(direction: 1 | -1): 1 | -1 {
-    return direction === 1 ? -1 : 1
-  }
-
-  private markGroupFinancialStateModified(group: WalkcalcGroup) {
-    const markModified = (group as WalkcalcGroupDocument).markModified
-    if (typeof markModified !== 'function') {
-      return
-    }
-    markModified.call(group, 'members')
-    markModified.call(group, 'tempUsers')
-    markModified.call(group, 'records')
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
   }
 
   private async runInOptionalTransaction<T>(
@@ -987,4 +1332,23 @@ export class WalkcalcService {
         /code_1/.test(duplicateError.message ?? ''))
     )
   }
+
+  private documentToPlainObject(document: unknown): Record<string, unknown> {
+    if (
+      document &&
+      typeof document === 'object' &&
+      'toObject' in document &&
+      typeof (document as { toObject: () => unknown }).toObject === 'function'
+    ) {
+      return (
+        document as { toObject: () => Record<string, unknown> }
+      ).toObject()
+    }
+
+    return { ...(document as Record<string, unknown>) }
+  }
+}
+
+function absBigInt(value: bigint): bigint {
+  return value < 0n ? -value : value
 }

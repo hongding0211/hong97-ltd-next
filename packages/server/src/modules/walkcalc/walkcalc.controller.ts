@@ -21,9 +21,9 @@ import {
 } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
-  BulkResolveWalkcalcDebtsDto,
   DropWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
+  ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
 import { SearchWalkcalcUsersDto, WalkcalcUsersLookupDto } from './dto/user.dto'
@@ -49,6 +49,12 @@ export class WalkcalcController {
   @HttpCode(HttpStatus.OK)
   async searchUsers(@Query() query: SearchWalkcalcUsersDto) {
     return this.walkcalcService.searchUsers(query.name)
+  }
+
+  @Get('home/summary')
+  @HttpCode(HttpStatus.OK)
+  async homeSummary(@UserId() userId: string) {
+    return this.walkcalcService.homeSummary(userId)
   }
 
   @Post('groups')
@@ -83,6 +89,47 @@ export class WalkcalcController {
     @Query() query: QueryWalkcalcRecordsDto,
   ) {
     return this.walkcalcService.groupRecords(userId, code, query)
+  }
+
+  @Get('groups/:code/balances')
+  @HttpCode(HttpStatus.OK)
+  async groupBalances(@UserId() userId: string, @Param('code') code: string) {
+    return this.walkcalcService.groupBalances(userId, code)
+  }
+
+  @Get('groups/:code/balances/:participantId/records')
+  @HttpCode(HttpStatus.OK)
+  async participantRecords(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Param('participantId') participantId: string,
+    @Query() query: QueryWalkcalcRecordsDto,
+  ) {
+    return this.walkcalcService.participantBalanceDetail(
+      userId,
+      code,
+      participantId,
+      query,
+    )
+  }
+
+  @Get('groups/:code/settlement-suggestion')
+  @HttpCode(HttpStatus.OK)
+  async settlementSuggestion(
+    @UserId() userId: string,
+    @Param('code') code: string,
+  ) {
+    return this.walkcalcService.settlementSuggestion(userId, code)
+  }
+
+  @Post('groups/:code/settlements/resolve')
+  @HttpCode(HttpStatus.OK)
+  async resolveSettlements(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Body() dto: ResolveWalkcalcSettlementsDto,
+  ) {
+    return this.walkcalcService.resolveSettlements(userId, code, dto)
   }
 
   @Get('groups/:code')
@@ -143,15 +190,6 @@ export class WalkcalcController {
   @HttpCode(HttpStatus.OK)
   async addRecord(@UserId() userId: string, @Body() dto: AddWalkcalcRecordDto) {
     return this.walkcalcService.addRecord(userId, dto)
-  }
-
-  @Post('records/resolve-debts')
-  @HttpCode(HttpStatus.OK)
-  async resolveDebts(
-    @UserId() userId: string,
-    @Body() dto: BulkResolveWalkcalcDebtsDto,
-  ) {
-    return this.walkcalcService.resolveDebts(userId, dto)
   }
 
   @Post('records/drop')

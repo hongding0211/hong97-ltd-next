@@ -12,5 +12,10 @@
   "recordNotFound": "记录不存在",
   "debtResolveRecordImmutable": "债务和解记录不能被修改",
   "invalidParticipant": "无效的参与者",
-  "invalidRecordSearch": "无效的记录搜索条件"
+  "invalidRecordSearch": "无效的记录搜索条件",
+  "invalidRecordType": "无效的记录类型",
+  "invalidMoneyAmount": "无效的金额",
+  "invalidProjectionState": "无效的余额状态",
+  "groupUnsettled": "群组全部结清后才能归档",
+  "settlementLimitExceeded": "未结清参与者过多，无法计算精确结清方案"
 }

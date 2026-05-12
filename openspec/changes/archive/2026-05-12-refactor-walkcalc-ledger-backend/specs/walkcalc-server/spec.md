@@ -1,30 +1,7 @@
-# walkcalc-server Specification
-
-## Purpose
-Define the backend-authoritative WalkCalc API contract for groups, records,
-participants, balances, and settlement using the current server authentication
-and user services.
-
-## Requirements
-### Requirement: Walkcalc APIs require current auth
-The system SHALL protect all walkcalc group, record, balance, settlement, and
-walkcalc user-helper APIs with the current server authentication mechanism.
-
-#### Scenario: Authenticated request is accepted
-- **WHEN** a request to a walkcalc endpoint includes a valid current access token or permanent API token
-- **THEN** the request is handled as the authenticated current user
-
-#### Scenario: Unauthenticated request is rejected
-- **WHEN** a request to a walkcalc endpoint omits valid current authentication
-- **THEN** the request is rejected as unauthorized
-
-#### Scenario: Legacy login endpoints are not added
-- **WHEN** the walkcalc server migration is complete
-- **THEN** the server does not expose migrated `/user/login`, `/user/refreshToken`, SSO, WeChat, or legacy token-wrapping endpoints for walkcalc
+## MODIFIED Requirements
 
 ### Requirement: Walkcalc user data comes from current user service
-The system SHALL resolve formal walkcalc participant data from the current auth
-user service and SHALL keep temporary users as group-local participants.
+The system SHALL resolve formal walkcalc participant data from the current auth user service and SHALL keep temporary users as group-local participants.
 
 #### Scenario: Current user profile is returned
 - **WHEN** an authenticated user requests their walkcalc profile helper
@@ -48,9 +25,7 @@ user service and SHALL keep temporary users as group-local participants.
 - **AND** profile name and avatar are resolved from the current user service when building responses
 
 ### Requirement: Users can manage walkcalc groups
-The system SHALL allow authenticated users to create, join, list, read, archive,
-unarchive, rename, invite users to, and dismiss walkcalc groups according to
-owner/member authorization and backend ledger constraints.
+The system SHALL allow authenticated users to create, join, list, read, archive, unarchive, rename, invite users to, and dismiss walkcalc groups according to owner/member authorization and backend ledger constraints.
 
 #### Scenario: Create group
 - **WHEN** an authenticated user creates a group with a valid name
@@ -127,9 +102,7 @@ owner/member authorization and backend ledger constraints.
 - **THEN** the request is rejected
 
 ### Requirement: Users can manage walkcalc records
-The system SHALL allow group owners and members to add, delete, update, read,
-search, and list expense and settlement records while maintaining
-backend-authoritative participant projections.
+The system SHALL allow group owners and members to add, delete, update, read, search, and list expense and settlement records while maintaining backend-authoritative participant projections.
 
 #### Scenario: Add expense record
 - **WHEN** a group owner or member adds an expense record with a positive amount, a payer, and at least one participant
@@ -209,9 +182,7 @@ backend-authoritative participant projections.
 - **THEN** the request is rejected
 
 ### Requirement: Users can inspect and resolve walkcalc balances
-The system SHALL provide backend-authoritative balance views, participant record
-counts, settlement suggestions, and settlement resolution operations for group
-members.
+The system SHALL provide backend-authoritative balance views, participant record counts, settlement suggestions, and settlement resolution operations for group members.
 
 #### Scenario: List balances
 - **WHEN** a group owner or member lists balances for a group
@@ -236,19 +207,3 @@ members.
 #### Scenario: Non-member balance access is rejected
 - **WHEN** an authenticated user who is not owner or member requests balances or settlement for a group
 - **THEN** the request is rejected
-
-### Requirement: Walkcalc migration excludes push delivery
-The system SHALL NOT migrate or invoke the legacy push notification service from
-walkcalc flows.
-
-#### Scenario: Join does not send push
-- **WHEN** a user joins a walkcalc group
-- **THEN** the group membership is updated without calling an APNs, Bark, or legacy push service
-
-#### Scenario: Invite does not send push
-- **WHEN** users are invited to a walkcalc group
-- **THEN** the group membership is updated without calling an APNs, Bark, or legacy push service
-
-#### Scenario: Record changes do not send push
-- **WHEN** a walkcalc record is added, deleted, or updated
-- **THEN** balances and records are updated without calling an APNs, Bark, or legacy push service

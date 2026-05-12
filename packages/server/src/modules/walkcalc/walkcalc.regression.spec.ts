@@ -55,20 +55,39 @@ describe('Walkcalc migration boundaries', () => {
     )
   })
 
-  it('exposes a backend bulk debt-resolution route', () => {
+  it('exposes backend-authoritative settlement routes', () => {
     const controllerPath = Reflect.getMetadata(
       PATH_METADATA,
       WalkcalcController,
     )
-    const method = WalkcalcController.prototype.resolveDebts
+    const suggestionMethod = WalkcalcController.prototype.settlementSuggestion
+    const resolveMethod = WalkcalcController.prototype.resolveSettlements
 
-    expect({
-      method: Reflect.getMetadata(METHOD_METADATA, method),
-      path: `${controllerPath}/${Reflect.getMetadata(PATH_METADATA, method)}`,
-    }).toEqual({
-      method: RequestMethod.POST,
-      path: 'walkcalc/records/resolve-debts',
-    })
+    expect([
+      {
+        method: Reflect.getMetadata(METHOD_METADATA, suggestionMethod),
+        path: `${controllerPath}/${Reflect.getMetadata(
+          PATH_METADATA,
+          suggestionMethod,
+        )}`,
+      },
+      {
+        method: Reflect.getMetadata(METHOD_METADATA, resolveMethod),
+        path: `${controllerPath}/${Reflect.getMetadata(
+          PATH_METADATA,
+          resolveMethod,
+        )}`,
+      },
+    ]).toEqual([
+      {
+        method: RequestMethod.GET,
+        path: 'walkcalc/groups/:code/settlement-suggestion',
+      },
+      {
+        method: RequestMethod.POST,
+        path: 'walkcalc/groups/:code/settlements/resolve',
+      },
+    ])
   })
 
   it('does not wire push providers into the walkcalc module or service', () => {

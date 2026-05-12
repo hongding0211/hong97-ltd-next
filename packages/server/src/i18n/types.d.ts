@@ -2,72 +2,77 @@
 
 /* eslint-disable */
 /* prettier-ignore */
-import type { Path } from "nestjs-i18n";
+import type { Path } from 'nestjs-i18n'
 /* prettier-ignore */
 export type I18nTranslations = {
-    "auth": {
-        "invalidRegisterType": string;
-        "emailOrPhoneRequired": string;
-        "emailExists": string;
-        "phoneExists": string;
-        "phoneRegistrationNotImplemented": string;
-        "oauthRegistrationNotImplemented": string;
-        "invalidLoginType": string;
-        "invalidCredentials": string;
-        "phoneLoginNotImplemented": string;
-        "oauthLoginNotImplemented": string;
-        "userNotFound": string;
-        "wrongPassword": string;
-        "wrongOldPassword": string;
-        "userHasNoLocalAuth": string;
-        "passwordCannotBeSameAsOriginalPassword": string;
-        "passwordTooShort": string;
-        "apiTokenNameRequired": string;
-    };
-    "blog": {
-        "blogNotFound": string;
-        "commentTooLong": string;
-        "commentNotAuthor": string;
-        "commentNotFound": string;
-    };
-    "common": {
-        "updateFailed": string;
-    };
-    "shortlink": {
-        "notFound": string;
-        "inactive": string;
-        "expired": string;
-        "unauthorized": string;
-        "shortCodeExists": string;
-        "invalidUrl": string;
-    };
-    "trash": {
-        "commentLimitReached": string;
-        "trashNotFound": string;
-        "commentNotFound": string;
-        "commentNotAuthor": string;
-    };
-    "ucp": {
-        "detailNotFound": string;
-        "configNotFound": string;
-        "noPermission": string;
-    };
-    "walkcalc": {
-        "userNotFound": string;
-        "groupNotFound": string;
-        "groupNotFoundOrNoAccess": string;
-        "groupOwnerRequired": string;
-        "userAlreadyInGroup": string;
-        "tempUserNameExists": string;
-        "forWhomRequired": string;
-        "zeroAmountRecord": string;
-        "recordLimitReached": string;
-        "groupCodeUnavailable": string;
-        "recordNotFound": string;
-        "debtResolveRecordImmutable": string;
-        "invalidParticipant": string;
-        "invalidRecordSearch": string;
-    };
-};
+  auth: {
+    invalidRegisterType: string
+    emailOrPhoneRequired: string
+    emailExists: string
+    phoneExists: string
+    phoneRegistrationNotImplemented: string
+    oauthRegistrationNotImplemented: string
+    invalidLoginType: string
+    invalidCredentials: string
+    phoneLoginNotImplemented: string
+    oauthLoginNotImplemented: string
+    userNotFound: string
+    wrongPassword: string
+    wrongOldPassword: string
+    userHasNoLocalAuth: string
+    passwordCannotBeSameAsOriginalPassword: string
+    passwordTooShort: string
+    apiTokenNameRequired: string
+  }
+  blog: {
+    blogNotFound: string
+    commentTooLong: string
+    commentNotAuthor: string
+    commentNotFound: string
+  }
+  common: {
+    updateFailed: string
+  }
+  shortlink: {
+    notFound: string
+    inactive: string
+    expired: string
+    unauthorized: string
+    shortCodeExists: string
+    invalidUrl: string
+  }
+  trash: {
+    commentLimitReached: string
+    trashNotFound: string
+    commentNotFound: string
+    commentNotAuthor: string
+  }
+  ucp: {
+    detailNotFound: string
+    configNotFound: string
+    noPermission: string
+  }
+  walkcalc: {
+    userNotFound: string
+    groupNotFound: string
+    groupNotFoundOrNoAccess: string
+    groupOwnerRequired: string
+    userAlreadyInGroup: string
+    tempUserNameExists: string
+    forWhomRequired: string
+    zeroAmountRecord: string
+    recordLimitReached: string
+    groupCodeUnavailable: string
+    recordNotFound: string
+    debtResolveRecordImmutable: string
+    invalidParticipant: string
+    invalidRecordSearch: string
+    invalidRecordType: string
+    invalidMoneyAmount: string
+    invalidProjectionState: string
+    groupUnsettled: string
+    settlementLimitExceeded: string
+  }
+}
 /* prettier-ignore */
-export type I18nPath = Path<I18nTranslations>;
+export type I18nPath = Path<I18nTranslations>

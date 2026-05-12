@@ -3,21 +3,17 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
-  IsBoolean,
+  IsIn,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   Matches,
   Max,
   Min,
-  ValidateNested,
 } from 'class-validator'
 
-export type MoneyMinor = string
-
-const MONEY_MINOR_PATTERN = /^-?(0|[1-9]\d*)$/
+const MONEY_AMOUNT_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/
 
 export class AddWalkcalcRecordDto {
   @IsString()
@@ -25,32 +21,39 @@ export class AddWalkcalcRecordDto {
   groupCode: string
 
   @IsString()
-  @IsNotEmpty()
-  who: string
+  @IsIn(['expense', 'settlement'])
+  type: 'expense' | 'settlement'
+
+  @IsString()
+  @Matches(MONEY_AMOUNT_PATTERN)
+  amount: string
 
   @IsOptional()
   @IsString()
-  @Matches(MONEY_MINOR_PATTERN)
-  paidMinor?: MoneyMinor
+  payerId?: string
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  paid?: number
-
   @IsArray()
   @ArrayNotEmpty()
   @ArrayMaxSize(200)
   @IsString({ each: true })
-  forWhom: string[]
+  participantIds?: string[]
 
   @IsOptional()
   @IsString()
-  type?: string
+  fromId?: string
 
   @IsOptional()
   @IsString()
-  text?: string
+  toId?: string
+
+  @IsOptional()
+  @IsString()
+  category?: string
+
+  @IsOptional()
+  @IsString()
+  note?: string
 
   @IsOptional()
   @IsString()
@@ -65,10 +68,6 @@ export class AddWalkcalcRecordDto {
   @IsInt()
   @Min(0)
   createdAt?: number
-
-  @IsOptional()
-  @IsBoolean()
-  isDebtResolve?: boolean
 }
 
 export class DropWalkcalcRecordDto {
@@ -81,44 +80,21 @@ export class DropWalkcalcRecordDto {
   recordId: string
 }
 
-export class BulkResolveWalkcalcDebtTransferDto {
-  @IsString()
-  @IsNotEmpty()
-  from: string
-
-  @IsString()
-  @IsNotEmpty()
-  to: string
-
-  @IsOptional()
-  @IsString()
-  @Matches(MONEY_MINOR_PATTERN)
-  amountMinor?: MoneyMinor
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.0000000001)
-  amount?: number
-}
-
-export class BulkResolveWalkcalcDebtsDto {
-  @IsString()
-  @IsNotEmpty()
-  groupCode: string
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMaxSize(200)
-  @ValidateNested({ each: true })
-  @Type(() => BulkResolveWalkcalcDebtTransferDto)
-  transfers: BulkResolveWalkcalcDebtTransferDto[]
-}
-
 export class UpdateWalkcalcRecordDto extends AddWalkcalcRecordDto {
   @IsString()
   @IsNotEmpty()
   recordId: string
+}
+
+export class ResolveWalkcalcSettlementsDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  transfers?: Array<{
+    fromId: string
+    toId: string
+    amount: string
+  }>
 }
 
 export class QueryWalkcalcRecordsDto {

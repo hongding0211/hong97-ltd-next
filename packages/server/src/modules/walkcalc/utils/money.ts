@@ -1,114 +1,106 @@
-export type MoneyMinor = string
+export type MoneyValue = string
 
-const MONEY_MINOR_PATTERN = /^-?(0|[1-9]\d*)$/
-const DISPLAY_MONEY_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d{1,2})?$/
-const MAX_ABS_MINOR = BigInt('999999999999999999')
+const MONEY_VALUE_PATTERN = /^-?(0|[1-9]\d*)$/
+const DECIMAL_MONEY_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d{1,2})?$/
+const MAX_ABS_CENTS = BigInt('999999999999999999')
 
-export function assertMoneyMinor(value: unknown): MoneyMinor {
-  if (typeof value !== 'string' || !MONEY_MINOR_PATTERN.test(value)) {
-    throw new Error('Invalid money amount')
+export function parseMoneyAmount(value: unknown): MoneyValue {
+  if (typeof value !== 'string') {
+    throw new Error('Money amount must be a decimal string')
   }
-  if (absMoneyMinor(toMoneyMinorBigInt(value)) > MAX_ABS_MINOR) {
-    throw new Error('Money amount out of range')
-  }
-  return normalizeMoneyMinor(value)
-}
 
-export function assertPositiveMoneyMinor(value: unknown): MoneyMinor {
-  const minor = assertMoneyMinor(value)
-  if (toMoneyMinorBigInt(minor) <= 0n) {
-    throw new Error('Money amount must be positive')
-  }
-  return minor
-}
-
-export function assertNonZeroMoneyMinor(value: unknown): MoneyMinor {
-  const minor = assertMoneyMinor(value)
-  if (toMoneyMinorBigInt(minor) === 0n) {
-    throw new Error('Money amount cannot be zero')
-  }
-  return minor
-}
-
-export function parseDisplayMoneyToMinor(value: string): MoneyMinor {
   const trimmed = value.trim()
-  if (!DISPLAY_MONEY_PATTERN.test(trimmed)) {
+  if (!DECIMAL_MONEY_PATTERN.test(trimmed)) {
     throw new Error('Invalid money amount')
   }
 
   const negative = trimmed.startsWith('-')
   const unsigned = negative ? trimmed.slice(1) : trimmed
   const [integerPart, fractionPart = ''] = unsigned.split('.')
-  const minor =
+  const cents =
     BigInt(integerPart) * 100n + BigInt(fractionPart.padEnd(2, '0') || '0')
-  const signedMinor = negative ? -minor : minor
+  const signedCents = negative ? -cents : cents
 
-  if (absMoneyMinor(signedMinor) > MAX_ABS_MINOR) {
+  return fromMoneyValueBigInt(signedCents)
+}
+
+export function assertPositiveMoneyAmount(value: unknown): MoneyValue {
+  const amount = parseMoneyAmount(value)
+  if (toMoneyValueBigInt(amount) <= 0n) {
+    throw new Error('Money amount must be positive')
+  }
+  return amount
+}
+
+export function assertMoneyValue(value: unknown): MoneyValue {
+  if (typeof value !== 'string' || !MONEY_VALUE_PATTERN.test(value)) {
+    throw new Error('Invalid money value')
+  }
+  const normalized = normalizeMoneyValue(value)
+  if (absMoneyValue(toMoneyValueBigInt(normalized)) > MAX_ABS_CENTS) {
     throw new Error('Money amount out of range')
   }
-
-  return signedMinor.toString()
+  return normalized
 }
 
-export function legacyNumberToMoneyMinor(value: unknown): MoneyMinor {
-  if (
-    typeof value !== 'number' ||
-    !Number.isFinite(value) ||
-    !Number.isInteger(value) ||
-    !Number.isSafeInteger(value)
-  ) {
-    throw new Error('Invalid legacy money amount')
+export function toMoneyValueBigInt(value: MoneyValue): bigint {
+  return BigInt(assertMoneyValueString(value))
+}
+
+export function fromMoneyValueBigInt(value: bigint): MoneyValue {
+  if (absMoneyValue(value) > MAX_ABS_CENTS) {
+    throw new Error('Money amount out of range')
   }
-  return assertMoneyMinor(String(value))
+  return normalizeMoneyValue(value.toString())
 }
 
-export function moneyMinorToLegacyNumber(value: unknown): number {
-  const minor = toMoneyMinorBigInt(assertMoneyMinor(value))
-  if (
-    minor > BigInt(Number.MAX_SAFE_INTEGER) ||
-    minor < BigInt(Number.MIN_SAFE_INTEGER)
-  ) {
-    return minor > 0n ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER
-  }
-  return Number(minor)
+export function formatMoneyAmount(value: unknown): string {
+  const cents = toMoneyValueBigInt(assertMoneyValue(value))
+  const negative = cents < 0n
+  const abs = negative ? -cents : cents
+  const integerPart = abs / 100n
+  const fractionPart = (abs % 100n).toString().padStart(2, '0')
+  return `${negative ? '-' : ''}${integerPart.toString()}.${fractionPart}`
 }
 
-export function toMoneyMinorBigInt(value: MoneyMinor): bigint {
-  return BigInt(assertMoneyMinorString(value))
-}
-
-export function fromMoneyMinorBigInt(value: bigint): MoneyMinor {
-  return assertMoneyMinor(value.toString())
-}
-
-export function addMoneyMinor(left: MoneyMinor, right: MoneyMinor): MoneyMinor {
-  return fromMoneyMinorBigInt(
-    toMoneyMinorBigInt(left) + toMoneyMinorBigInt(right),
+export function addMoneyValues(
+  left: MoneyValue,
+  right: MoneyValue,
+): MoneyValue {
+  return fromMoneyValueBigInt(
+    toMoneyValueBigInt(left) + toMoneyValueBigInt(right),
   )
 }
 
-export function negateMoneyMinor(value: MoneyMinor): MoneyMinor {
-  return fromMoneyMinorBigInt(-toMoneyMinorBigInt(value))
+export function negateMoneyValue(value: MoneyValue): MoneyValue {
+  return fromMoneyValueBigInt(-toMoneyValueBigInt(value))
 }
 
-export function compareMoneyMinor(left: MoneyMinor, right: MoneyMinor): number {
-  const leftValue = toMoneyMinorBigInt(left)
-  const rightValue = toMoneyMinorBigInt(right)
+export function compareMoneyValues(
+  left: MoneyValue,
+  right: MoneyValue,
+): number {
+  const leftValue = toMoneyValueBigInt(left)
+  const rightValue = toMoneyValueBigInt(right)
   if (leftValue === rightValue) {
     return 0
   }
   return leftValue > rightValue ? 1 : -1
 }
 
-export function splitMoneyMinor(
-  amount: MoneyMinor,
+export function isZeroMoneyValue(value: MoneyValue): boolean {
+  return toMoneyValueBigInt(value) === 0n
+}
+
+export function splitMoneyValue(
+  amount: MoneyValue,
   participantCount: number,
-): MoneyMinor[] {
+): MoneyValue[] {
   if (!Number.isInteger(participantCount) || participantCount < 1) {
     throw new Error('Participant count must be positive')
   }
 
-  const total = toMoneyMinorBigInt(amount)
+  const total = toMoneyValueBigInt(amount)
   const count = BigInt(participantCount)
   const base = total / count
   const remainder = total % count
@@ -116,38 +108,22 @@ export function splitMoneyMinor(
   const extraCount = Number(remainder < 0n ? -remainder : remainder)
 
   return Array.from({ length: participantCount }, (_, index) =>
-    fromMoneyMinorBigInt(base + (index < extraCount ? sign : 0n)),
+    fromMoneyValueBigInt(base + (index < extraCount ? sign : 0n)),
   )
 }
 
-export function formatMoneyMinor(value: MoneyMinor): string {
-  const minor = toMoneyMinorBigInt(value)
-  if (minor === 0n) {
-    return '0.0'
-  }
-
-  const negative = minor < 0n
-  const abs = negative ? -minor : minor
-  const integerPart = abs / 100n
-  const fractionPart = (abs % 100n).toString().padStart(2, '0')
-  const displayFraction =
-    fractionPart === '00' ? '0' : fractionPart.replace(/0$/, '')
-
-  return `${negative ? '-' : ''}${integerPart.toString()}.${displayFraction}`
-}
-
-function normalizeMoneyMinor(value: string): MoneyMinor {
+function normalizeMoneyValue(value: string): MoneyValue {
   const normalized = BigInt(value).toString()
   return normalized === '-0' ? '0' : normalized
 }
 
-function assertMoneyMinorString(value: string): string {
-  if (!MONEY_MINOR_PATTERN.test(value)) {
-    throw new Error('Invalid money amount')
+function assertMoneyValueString(value: string): string {
+  if (!MONEY_VALUE_PATTERN.test(value)) {
+    throw new Error('Invalid money value')
   }
-  return normalizeMoneyMinor(value)
+  return normalizeMoneyValue(value)
 }
 
-function absMoneyMinor(value: bigint): bigint {
+function absMoneyValue(value: bigint): bigint {
   return value < 0n ? -value : value
 }

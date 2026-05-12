@@ -1,80 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { Document } from 'mongoose'
 
-export interface WalkcalcMember {
-  userId: string
-  debt?: number
-  cost?: number
-  debtMinor: string
-  costMinor: string
-}
-
-export interface WalkcalcTempUser {
-  uuid: string
-  name: string
-  debt?: number
-  cost?: number
-  debtMinor: string
-  costMinor: string
-}
-
-export interface WalkcalcRecord {
-  recordId: string
-  who: string
-  paid?: number
-  paidMinor: string
-  forWhom: string[]
-  type?: string
-  text?: string
-  long?: string
-  lat?: string
-  isDebtResolve?: boolean
-  createdAt: number
-  modifiedAt: number
-  createdBy: string
-  modifiedBy?: string
-}
-
-const WalkcalcMemberSchema = {
-  _id: false,
-  userId: { type: String, required: true },
-  debt: { type: Number },
-  cost: { type: Number },
-  debtMinor: { type: String, required: true, default: '0' },
-  costMinor: { type: String, required: true, default: '0' },
-}
-
-const WalkcalcTempUserSchema = {
-  _id: false,
-  uuid: { type: String, required: true },
-  name: { type: String, required: true },
-  debt: { type: Number },
-  cost: { type: Number },
-  debtMinor: { type: String, required: true, default: '0' },
-  costMinor: { type: String, required: true, default: '0' },
-}
-
-const WalkcalcRecordSchema = {
-  _id: false,
-  recordId: { type: String, required: true },
-  who: { type: String, required: true },
-  paid: { type: Number },
-  paidMinor: { type: String, required: true },
-  forWhom: { type: [String], required: true, default: [] },
-  type: { type: String },
-  text: { type: String },
-  long: { type: String },
-  lat: { type: String },
-  isDebtResolve: { type: Boolean },
-  createdAt: { type: Number, required: true },
-  modifiedAt: { type: Number, required: true },
-  createdBy: { type: String, required: true },
-  modifiedBy: { type: String },
-}
+export type WalkcalcParticipantKind = 'user' | 'tempUser'
+export type WalkcalcRecordType = 'expense' | 'settlement'
 
 @Schema({ timestamps: true, collection: 'walkcalc_groups' })
 export class WalkcalcGroup {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   code: string
 
   @Prop({ required: true })
@@ -82,15 +14,6 @@ export class WalkcalcGroup {
 
   @Prop({ required: true })
   name: string
-
-  @Prop({ type: [WalkcalcMemberSchema], default: [] })
-  members: WalkcalcMember[]
-
-  @Prop({ type: [WalkcalcTempUserSchema], default: [] })
-  tempUsers: WalkcalcTempUser[]
-
-  @Prop({ type: [WalkcalcRecordSchema], default: [] })
-  records: WalkcalcRecord[]
 
   @Prop({ type: [String], default: [] })
   archivedUserIds: string[]
@@ -111,10 +34,158 @@ export class WalkcalcGroup {
   modifiedAt: number
 }
 
+@Schema({ timestamps: true, collection: 'walkcalc_participants' })
+export class WalkcalcParticipant {
+  @Prop({ required: true })
+  groupCode: string
+
+  @Prop({ required: true })
+  participantId: string
+
+  @Prop({ required: true, enum: ['user', 'tempUser'] })
+  kind: WalkcalcParticipantKind
+
+  @Prop()
+  userId?: string
+
+  @Prop()
+  tempName?: string
+
+  @Prop({ required: true, default: Date.now })
+  createdAtMs: number
+
+  @Prop({ required: true, default: Date.now })
+  modifiedAt: number
+}
+
+@Schema({ timestamps: true, collection: 'walkcalc_records' })
+export class WalkcalcRecord {
+  @Prop({ required: true })
+  groupCode: string
+
+  @Prop({ required: true })
+  recordId: string
+
+  @Prop({ required: true, enum: ['expense', 'settlement'] })
+  type: WalkcalcRecordType
+
+  @Prop({ required: true })
+  amountValue: string
+
+  @Prop()
+  payerId?: string
+
+  @Prop({ type: [String], default: [] })
+  participantIds: string[]
+
+  @Prop()
+  fromId?: string
+
+  @Prop()
+  toId?: string
+
+  @Prop({ type: [String], required: true, default: [] })
+  involvedParticipantIds: string[]
+
+  @Prop()
+  category?: string
+
+  @Prop()
+  note?: string
+
+  @Prop()
+  long?: string
+
+  @Prop()
+  lat?: string
+
+  @Prop({ required: true })
+  createdAt: number
+
+  @Prop({ required: true })
+  updatedAt: number
+
+  @Prop({ required: true })
+  createdBy: string
+
+  @Prop()
+  updatedBy?: string
+}
+
+@Schema({ timestamps: true, collection: 'walkcalc_participant_projections' })
+export class WalkcalcParticipantProjection {
+  @Prop({ required: true })
+  groupCode: string
+
+  @Prop({ required: true })
+  participantId: string
+
+  @Prop({ required: true, enum: ['user', 'tempUser'] })
+  kind: WalkcalcParticipantKind
+
+  @Prop()
+  userId?: string
+
+  @Prop({ required: true, default: '0' })
+  balanceValue: string
+
+  @Prop({ required: true, default: '0' })
+  expenseShareValue: string
+
+  @Prop({ required: true, default: '0' })
+  paidTotalValue: string
+
+  @Prop({ required: true, default: 0 })
+  recordCount: number
+
+  @Prop({ required: true, default: '0' })
+  settlementInValue: string
+
+  @Prop({ required: true, default: '0' })
+  settlementOutValue: string
+
+  @Prop({ required: true, default: Date.now })
+  modifiedAt: number
+}
+
 export type WalkcalcGroupDocument = WalkcalcGroup & Document
+export type WalkcalcParticipantDocument = WalkcalcParticipant & Document
+export type WalkcalcRecordDocument = WalkcalcRecord & Document
+export type WalkcalcParticipantProjectionDocument =
+  WalkcalcParticipantProjection & Document
 
 export const WalkcalcGroupSchema = SchemaFactory.createForClass(WalkcalcGroup)
+export const WalkcalcParticipantSchema =
+  SchemaFactory.createForClass(WalkcalcParticipant)
+export const WalkcalcRecordSchema = SchemaFactory.createForClass(WalkcalcRecord)
+export const WalkcalcParticipantProjectionSchema = SchemaFactory.createForClass(
+  WalkcalcParticipantProjection,
+)
 
+WalkcalcGroupSchema.index({ code: 1 }, { unique: true })
 WalkcalcGroupSchema.index({ ownerUserId: 1 })
-WalkcalcGroupSchema.index({ 'members.userId': 1 })
 WalkcalcGroupSchema.index({ modifiedAt: -1 })
+
+WalkcalcParticipantSchema.index(
+  { groupCode: 1, participantId: 1 },
+  { unique: true },
+)
+WalkcalcParticipantSchema.index({ userId: 1, groupCode: 1 })
+WalkcalcParticipantSchema.index({ groupCode: 1, kind: 1 })
+
+WalkcalcRecordSchema.index({ recordId: 1 }, { unique: true })
+WalkcalcRecordSchema.index({ groupCode: 1, createdAt: -1 })
+WalkcalcRecordSchema.index({
+  groupCode: 1,
+  involvedParticipantIds: 1,
+  createdAt: -1,
+})
+WalkcalcRecordSchema.index({ groupCode: 1, type: 1, createdAt: -1 })
+WalkcalcRecordSchema.index({ groupCode: 1, category: 1, createdAt: -1 })
+
+WalkcalcParticipantProjectionSchema.index(
+  { groupCode: 1, participantId: 1 },
+  { unique: true },
+)
+WalkcalcParticipantProjectionSchema.index({ userId: 1 })
+WalkcalcParticipantProjectionSchema.index({ groupCode: 1, balanceValue: 1 })
