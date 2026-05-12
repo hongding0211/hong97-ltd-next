@@ -163,6 +163,89 @@ describe('WalkcalcService normalized ledger', () => {
     ])
   })
 
+  it('filters my groups by archive state with independent pagination', async () => {
+    const ctx = createContext({
+      groups: [
+        groupDoc({ code: 'AB12', name: 'Active Trip', modifiedAt: 500 }),
+        groupDoc({
+          code: 'CD34',
+          name: 'Archived Hike',
+          modifiedAt: 400,
+          archivedUserIds: ['u1'],
+        }),
+        groupDoc({
+          code: 'EF56',
+          name: 'Archived Dinner',
+          modifiedAt: 300,
+          archivedUserIds: ['u1'],
+        }),
+      ],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('CD34', 'u1'),
+        userParticipant('EF56', 'u1'),
+      ],
+      projections: [
+        projection('AB12', 'u1', { balanceValue: '100' }),
+        projection('CD34', 'u1', { balanceValue: '0' }),
+        projection('EF56', 'u1', { balanceValue: '0' }),
+      ],
+    })
+
+    await expect(
+      ctx.service.myGroups('u1', { page: 1, pageSize: 1 }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [expect.objectContaining({ code: 'AB12' })],
+        total: 3,
+        page: 1,
+        pageSize: 1,
+      }),
+    )
+    await expect(
+      ctx.service.myGroups('u1', {
+        page: 1,
+        pageSize: 1,
+        archiveState: 'archived',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [expect.objectContaining({ code: 'CD34' })],
+        total: 2,
+        page: 1,
+        pageSize: 1,
+      }),
+    )
+    await expect(
+      ctx.service.myGroups('u1', {
+        page: 2,
+        pageSize: 1,
+        archiveState: 'archived',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [expect.objectContaining({ code: 'EF56' })],
+        total: 2,
+        page: 2,
+        pageSize: 1,
+      }),
+    )
+    await expect(
+      ctx.service.myGroups('u1', {
+        page: 1,
+        pageSize: 10,
+        archiveState: 'active',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        data: [expect.objectContaining({ code: 'AB12' })],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+      }),
+    )
+  })
+
   it('resolves formal participant profiles from UserService without storing display copies', async () => {
     const ctx = createSeededGroupContext()
 

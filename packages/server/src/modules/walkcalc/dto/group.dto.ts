@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -60,4 +61,8 @@ export class QueryWalkcalcGroupsDto {
   @IsOptional()
   @IsString()
   search?: string
+
+  @IsOptional()
+  @IsIn(['all', 'active', 'archived'])
+  archiveState?: 'all' | 'active' | 'archived' = 'all'
 }

@@ -371,7 +371,7 @@ Errors:
 
 ### List My Groups
 
-`GET /walkcalc/groups/my?page=1&pageSize=10&search=trip`
+`GET /walkcalc/groups/my?page=1&pageSize=10&search=trip&archiveState=all`
 
 Query:
 
@@ -380,6 +380,7 @@ Query:
 | `page` | number | no | default `1`, max page size applies through `pageSize` |
 | `pageSize` | number | no | default `10`, max `100` |
 | `search` | string | no | matches group `name` or `code`, backend escaped regex |
+| `archiveState` | `all` \| `active` \| `archived` | no | default `all`; `active` excludes groups archived by the current user, `archived` returns only groups archived by the current user |
 
 Response:
 
@@ -426,6 +427,7 @@ Response:
 Semantics:
 
 - 只返回当前用户作为 formal participant 加入的 groups。
+- `archiveState` 在后端按当前用户的 archive state 过滤，调用方可为主页正常列表和 archive 列表分别维护 page/pageSize。
 - 按 `modifiedAt` 倒序。
 - 每个 group summary 的当前用户余额来自 projection，不依赖客户端已加载 records。
 - `participantCount` 是 group 全量参与人数，包含 archived group 的所有参与人。

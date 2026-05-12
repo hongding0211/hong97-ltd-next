@@ -132,6 +132,27 @@ describe('WalkcalcController', () => {
     expect(service.groupBalances).toHaveBeenCalledWith('u1', 'AB12')
   })
 
+  it('passes archive state filters through the my groups route', async () => {
+    service.myGroups.mockResolvedValue({
+      data: [{ code: 'CD34', archivedUserIds: ['u1'] }],
+      total: 1,
+      page: 2,
+      pageSize: 5,
+    } as any)
+
+    await controller.myGroups('u1', {
+      page: 2,
+      pageSize: 5,
+      archiveState: 'archived',
+    })
+
+    expect(service.myGroups).toHaveBeenCalledWith('u1', {
+      page: 2,
+      pageSize: 5,
+      archiveState: 'archived',
+    })
+  })
+
   it('wires semantic record and settlement routes to the service', async () => {
     const expense = {
       groupCode: 'AB12',

@@ -317,8 +317,15 @@ export class WalkcalcService {
       .select({ groupCode: 1 })
       .exec()
     const groupCodes = memberships.map((membership) => membership.groupCode)
+    const baseFilter: Record<string, unknown> = { code: { $in: groupCodes } }
+    if (query.archiveState === 'archived') {
+      baseFilter.archivedUserIds = userId
+    }
+    if (query.archiveState === 'active') {
+      baseFilter.archivedUserIds = { $ne: userId }
+    }
     const filter = this.withGroupSearch(
-      this.activeGroupFilter({ code: { $in: groupCodes } }),
+      this.activeGroupFilter(baseFilter),
       query.search,
     )
 

@@ -110,6 +110,11 @@ records.
 - **THEN** the backend returns the user's total balance across all joined groups
 - **AND** archived groups and groups not included in the current page are included in that total
 
+#### Scenario: Group lists filter by current user's archive state
+- **WHEN** an authenticated user requests their group list with an archive-state filter
+- **THEN** the backend filters active or archived groups using the current user's archive membership
+- **AND** totals and pagination are calculated after that filter
+
 #### Scenario: Balances list includes full record counts
 - **WHEN** a group member opens the balances view
 - **THEN** the backend returns every group participant with their projection and full `recordCount`

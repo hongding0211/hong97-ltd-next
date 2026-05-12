@@ -92,6 +92,11 @@ owner/member authorization and backend ledger constraints.
 - **AND** the response includes the current user's backend-authoritative group balance and statistics
 - **AND** the response includes each group's full participant count and a bounded participant preview without full projection fields
 
+#### Scenario: Filter my groups by archive state
+- **WHEN** an authenticated user lists their groups with an archive-state filter
+- **THEN** the backend filters groups by whether the current user has archived each group
+- **AND** active and archived list pagination are computed independently from the filtered result set
+
 #### Scenario: Home summary includes all groups
 - **WHEN** an authenticated user requests their WalkCalc home summary
 - **THEN** the response includes total balance across all groups they participate in
