@@ -1,4 +1,6 @@
+import { from, lastValueFrom } from 'rxjs'
 import { GeneralException } from '../../exceptions/general-exceptions'
+import { StructuredResponseInterceptor } from '../../interceptors/response/structured-response'
 import * as groupCode from './utils/group-code'
 import { WalkcalcService } from './walkcalc.service'
 
@@ -10,6 +12,11 @@ interface FakeModelStore {
   docs: AnyDoc[]
   failNextSave?: Error
   failSaveWhen?: (doc: AnyDoc) => Error | undefined
+  failUpdateWhen?: (
+    filter: AnyDoc,
+    update: AnyDoc,
+    doc: AnyDoc,
+  ) => Error | undefined
   snapshot: () => AnyDoc[]
   restore: (snapshot: AnyDoc[]) => void
 }
@@ -266,6 +273,151 @@ describe('WalkcalcService normalized ledger', () => {
     expectProjection(ctx, 'u1', zeroProjectionValues)
     expectProjection(ctx, 'u2', zeroProjectionValues)
     expectProjection(ctx, 'tmp1', zeroProjectionValues)
+    expectBalanceSumZero(ctx)
+    await expectRebuildMatches(ctx)
+  })
+
+  it('updates an expense without replacing Mongo _id and keeps exact projections through drop', async () => {
+    const ctx = createContext({
+      groups: [groupDoc({ code: 'AB12', ownerUserId: 'A' })],
+      participants: [
+        userParticipant('AB12', 'A'),
+        userParticipant('AB12', 'B'),
+        userParticipant('AB12', 'C'),
+        tempParticipant('AB12', 'T', 'Temp'),
+      ],
+      projections: [
+        projection('AB12', 'A'),
+        projection('AB12', 'B'),
+        projection('AB12', 'C'),
+        projection('AB12', 'T', { kind: 'tempUser' }),
+      ],
+      users: {
+        A: { userId: 'A', profile: { name: 'A' } },
+        B: { userId: 'B', profile: { name: 'B' } },
+        C: { userId: 'C', profile: { name: 'C' } },
+      },
+    })
+
+    const first = await ctx.service.addRecord('A', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '100.00',
+      payerId: 'A',
+      participantIds: ['A', 'B', 'T'],
+      category: 'food',
+      createdAt: 1710000000000,
+    })
+    await ctx.service.addRecord('A', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '10.00',
+      payerId: 'B',
+      participantIds: ['A', 'B', 'C'],
+      category: 'food',
+      createdAt: 1710000001000,
+    })
+    const storedRecordId = ctx.recordStore.docs.find(
+      (record) => record.recordId === first.record.recordId,
+    )?._id
+
+    const updated = await ctx.service.updateRecord('A', {
+      groupCode: 'AB12',
+      recordId: first.record.recordId,
+      type: 'expense',
+      amount: '120.00',
+      payerId: 'B',
+      participantIds: ['B', 'T'],
+      category: 'traffic',
+      note: 'Updated',
+      createdAt: 1710000002000,
+    })
+
+    expect(ctx.recordStore.Model.replaceOne).not.toHaveBeenCalled()
+    expect(
+      ctx.recordStore.docs.find(
+        (record) => record.recordId === first.record.recordId,
+      )?._id,
+    ).toBe(storedRecordId)
+    expect(updated.record).toEqual(
+      expect.objectContaining({
+        recordId: first.record.recordId,
+        createdBy: 'A',
+        createdAt: 1710000000000,
+        updatedBy: 'A',
+      }),
+    )
+    await expect(ctx.service.groupBalances('A', 'AB12')).resolves.toEqual(
+      expect.objectContaining({
+        participants: expect.arrayContaining([
+          expect.objectContaining({
+            participantId: 'A',
+            balance: '-3.34',
+            expenseShare: '3.34',
+            paidTotal: '0.00',
+            recordCount: 1,
+          }),
+          expect.objectContaining({
+            participantId: 'B',
+            balance: '66.67',
+            expenseShare: '63.33',
+            paidTotal: '130.00',
+            recordCount: 2,
+          }),
+          expect.objectContaining({
+            participantId: 'C',
+            balance: '-3.33',
+            expenseShare: '3.33',
+            paidTotal: '0.00',
+            recordCount: 1,
+          }),
+          expect.objectContaining({
+            participantId: 'T',
+            balance: '-60.00',
+            expenseShare: '60.00',
+            paidTotal: '0.00',
+            recordCount: 1,
+          }),
+        ]),
+      }),
+    )
+
+    await ctx.service.dropRecord('A', 'AB12', first.record.recordId)
+
+    await expect(ctx.service.groupBalances('A', 'AB12')).resolves.toEqual(
+      expect.objectContaining({
+        participants: expect.arrayContaining([
+          expect.objectContaining({
+            participantId: 'A',
+            balance: '-3.34',
+            expenseShare: '3.34',
+            paidTotal: '0.00',
+            recordCount: 1,
+          }),
+          expect.objectContaining({
+            participantId: 'B',
+            balance: '6.67',
+            expenseShare: '3.33',
+            paidTotal: '10.00',
+            recordCount: 1,
+          }),
+          expect.objectContaining({
+            participantId: 'C',
+            balance: '-3.33',
+            expenseShare: '3.33',
+            paidTotal: '0.00',
+            recordCount: 1,
+          }),
+          expect.objectContaining({
+            participantId: 'T',
+            balance: '0.00',
+            expenseShare: '0.00',
+            paidTotal: '0.00',
+            recordCount: 0,
+          }),
+        ]),
+      }),
+    )
     expectBalanceSumZero(ctx)
     await expectRebuildMatches(ctx)
   })
@@ -598,6 +750,71 @@ describe('WalkcalcService normalized ledger', () => {
       expect.objectContaining({ message: 'walkcalc.settlementLimitExceeded' }),
     )
   })
+
+  it('rolls back fallback update changes when a post-record step fails', async () => {
+    const ctx = createSeededGroupContext()
+    const added = await ctx.service.addRecord('u1', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '100.00',
+      payerId: 'u1',
+      participantIds: ['u1', 'u2', 'tmp1'],
+      category: 'food',
+      createdAt: 300,
+    })
+    ctx.session.withTransaction.mockImplementation(async () => {
+      throw new Error(
+        'Transaction numbers are only allowed on a replica set member or mongos',
+      )
+    })
+    const beforeRecords = ctx.recordStore.docs.map(stripDocument)
+    const beforeProjections = projectionSnapshot(ctx)
+    ctx.groupStore.failSaveWhen = () => new Error('group save failed')
+
+    await expect(
+      ctx.service.updateRecord('u1', {
+        groupCode: 'AB12',
+        recordId: added.record.recordId,
+        type: 'expense',
+        amount: '120.00',
+        payerId: 'u2',
+        participantIds: ['u2', 'tmp1'],
+        category: 'traffic',
+      }),
+    ).rejects.toThrow('group save failed')
+
+    expect(ctx.recordStore.docs.map(stripDocument)).toEqual(beforeRecords)
+    expect(projectionSnapshot(ctx)).toEqual(beforeProjections)
+  })
+
+  it('maps duplicate participant ids to a structured business response', async () => {
+    const ctx = createSeededGroupContext()
+    const interceptor = new StructuredResponseInterceptor({
+      t: jest.fn((key: string) => key),
+    } as any)
+
+    await expect(
+      lastValueFrom(
+        interceptor.intercept({} as any, {
+          handle: () =>
+            from(
+              ctx.service.addRecord('u1', {
+                groupCode: 'AB12',
+                type: 'expense',
+                amount: '1.00',
+                payerId: 'u1',
+                participantIds: ['u1', 'u1'],
+              }),
+            ),
+        }),
+      ),
+    ).resolves.toEqual({
+      isSuccess: false,
+      msg: 'walkcalc.invalidParticipant',
+      errCode: undefined,
+      data: null,
+    })
+  })
 })
 
 const zeroProjectionValues = {
@@ -729,6 +946,7 @@ function createContext(seed: Partial<SeedData> = {}): TestContext {
 }
 
 function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
+  let nextObjectId = 1
   const store: FakeModelStore = {
     Model: undefined,
     docs: [],
@@ -745,7 +963,7 @@ function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
   }
 
   const Model: any = jest.fn(function MockModel(this: AnyDoc, doc: AnyDoc) {
-    Object.assign(this, deepClone(doc))
+    Object.assign(this, { _id: `mock-id-${nextObjectId++}` }, deepClone(doc))
     attachDocument(this, store, identity)
   })
   Model.find = jest.fn((filter: AnyDoc = {}) =>
@@ -772,10 +990,14 @@ function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
     createQuery(() => {
       const doc = store.docs.find((item) => matchesFilter(item, filter))
       if (!doc) {
-        return { modifiedCount: 0 }
+        return { matchedCount: 0, modifiedCount: 0 }
+      }
+      const error = store.failUpdateWhen?.(filter, update, doc)
+      if (error) {
+        throw error
       }
       applyUpdate(doc, update)
-      return { modifiedCount: 1 }
+      return { matchedCount: 1, modifiedCount: 1 }
     }),
   )
   Model.replaceOne = jest.fn((filter: AnyDoc = {}, replacement: AnyDoc = {}) =>
@@ -783,6 +1005,15 @@ function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
       const index = store.docs.findIndex((doc) => matchesFilter(doc, filter))
       if (index < 0) {
         return { modifiedCount: 0 }
+      }
+      if (
+        replacement._id !== undefined &&
+        store.docs[index]._id !== undefined &&
+        replacement._id !== store.docs[index]._id
+      ) {
+        throw new Error(
+          "Performing an update on the path '_id' would modify the immutable field '_id'",
+        )
       }
       store.docs[index] = attachDocument(
         deepClone(stripDocument(replacement)),
@@ -817,7 +1048,13 @@ function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
 
   store.Model = Model
   store.docs.push(
-    ...seed.map((doc) => attachDocument(deepClone(doc), store, identity)),
+    ...seed.map((doc) =>
+      attachDocument(
+        { _id: `mock-id-${nextObjectId++}`, ...deepClone(doc) },
+        store,
+        identity,
+      ),
+    ),
   )
   return store
 }
@@ -938,9 +1175,14 @@ function matchesCondition(value: unknown, condition: unknown): boolean {
 function applyUpdate(doc: AnyDoc, update: AnyDoc) {
   if (update.$set) {
     Object.assign(doc, update.$set)
-    return
+  } else {
+    Object.assign(doc, update)
   }
-  Object.assign(doc, update)
+  if (update.$unset) {
+    for (const field of Object.keys(update.$unset)) {
+      delete doc[field]
+    }
+  }
 }
 
 function valueAt(doc: AnyDoc, path: string): unknown {

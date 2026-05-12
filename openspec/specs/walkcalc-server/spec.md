@@ -4,7 +4,6 @@
 Define the backend-authoritative WalkCalc API contract for groups, records,
 participants, balances, and settlement using the current server authentication
 and user services.
-
 ## Requirements
 ### Requirement: Walkcalc APIs require current auth
 The system SHALL protect all walkcalc group, record, balance, settlement, and
@@ -129,7 +128,8 @@ owner/member authorization and backend ledger constraints.
 ### Requirement: Users can manage walkcalc records
 The system SHALL allow group owners and members to add, delete, update, read,
 search, and list expense and settlement records while maintaining
-backend-authoritative participant projections.
+backend-authoritative participant projections and structured validation
+responses.
 
 #### Scenario: Add expense record
 - **WHEN** a group owner or member adds an expense record with a positive amount, a payer, and at least one participant
@@ -152,6 +152,12 @@ backend-authoritative participant projections.
 - **WHEN** a group owner or member adds an expense record with an empty participant list
 - **THEN** the request is rejected without changing records or projections
 
+#### Scenario: Add record with invalid ledger participants is rejected
+- **WHEN** a group owner or member adds or updates a record with duplicate participants, empty participant ids, a missing payer, missing settlement parties, or identical settlement sender and receiver
+- **THEN** the request is rejected with `isSuccess` false in the structured response envelope
+- **AND** the request does not fail as an unhandled HTTP 500
+- **AND** records and projections are unchanged
+
 #### Scenario: Add non-positive record is rejected
 - **WHEN** a group owner or member adds an expense or settlement record with an amount less than or equal to zero
 - **THEN** the request is rejected without changing records or projections
@@ -173,16 +179,18 @@ backend-authoritative participant projections.
 #### Scenario: Update expense record
 - **WHEN** a group owner or member updates an existing expense record
 - **THEN** the system reverses the prior record's exact projection effects
-- **AND** replaces the record fields
+- **AND** updates the record fields while preserving the existing `recordId`, stored Mongo `_id`, `createdBy`, and `createdAt`
 - **AND** applies the updated record's exact projection effects
 - **AND** updates the record `updatedAt`, modifier identity, and group modified time
+- **AND** leaves record and projection state unchanged if any update step fails
 
 #### Scenario: Update settlement record
 - **WHEN** a group owner or member updates an existing settlement record
 - **THEN** the system reverses the prior settlement effects
-- **AND** replaces the settlement fields
+- **AND** updates the settlement fields while preserving the existing `recordId`, stored Mongo `_id`, `createdBy`, and `createdAt`
 - **AND** applies the updated settlement effects
 - **AND** updates the record `updatedAt`, modifier identity, and group modified time
+- **AND** leaves record and projection state unchanged if any update step fails
 
 #### Scenario: Read record
 - **WHEN** a group owner or member reads a record by record id

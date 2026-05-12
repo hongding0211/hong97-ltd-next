@@ -72,6 +72,11 @@ interface SettlementBalance {
   value: bigint
 }
 
+interface RecordPersistencePatch {
+  $set: Record<string, unknown>
+  $unset?: Record<string, ''>
+}
+
 const recordSearchFields = new Set<RecordSearchField>(['note', 'categoryName'])
 const recordCategoryNames: Record<string, string[]> = {
   food: ['meal', '餐饮'],
@@ -439,24 +444,34 @@ export class WalkcalcService {
         dto.recordId,
         session,
       )
+      const previousRecordSnapshot = this.snapshotRecord(previousRecord)
       const nextRecord = await this.buildRecordDocument(
         dto,
         userId,
-        previousRecord,
+        previousRecordSnapshot,
         session,
       )
 
-      await this.applyRecordProjectionEffects(previousRecord, -1, session)
-      await this.walkcalcRecordModel
-        .replaceOne(
-          { groupCode: dto.groupCode, recordId: dto.recordId },
-          this.documentToPlainObject(nextRecord),
+      if (session) {
+        await this.applyRecordProjectionEffects(
+          previousRecordSnapshot,
+          -1,
+          session,
         )
-        .session(session ?? null)
-        .exec()
-      await this.applyRecordProjectionEffects(nextRecord, 1, session)
-      group.modifiedAt = Date.now()
-      await group.save({ session })
+        await this.updatePersistedRecord(nextRecord, session)
+        await this.applyRecordProjectionEffects(nextRecord, 1, session)
+        group.modifiedAt = Date.now()
+        await group.save({ session })
+      } else {
+        await this.updateRecordWithCompensation(
+          previousRecordSnapshot,
+          nextRecord,
+          async () => {
+            group.modifiedAt = Date.now()
+            await group.save()
+          },
+        )
+      }
       return {
         record: this.mapRecordToDto(nextRecord),
         group: await this.mapGroupToDto(group, userId, session),
@@ -745,25 +760,29 @@ export class WalkcalcService {
   ): Promise<WalkcalcRecordDocument> {
     const now = Date.now()
     const amountValue = this.resolveAmountValue(dto.amount)
-    const createdAt = dto.createdAt ?? previousRecord?.createdAt ?? now
+    const createdAt = previousRecord?.createdAt ?? dto.createdAt ?? now
 
     if (dto.type === 'expense') {
       const payerId = this.requiredParticipantId(dto.payerId)
       const participantIds = this.requiredParticipantIds(dto.participantIds)
-      const involvedParticipantIds = involvedExpenseParticipants({
-        payerId,
-        participantIds,
-      })
+      const involvedParticipantIds = this.buildLedgerValue(() =>
+        involvedExpenseParticipants({
+          payerId,
+          participantIds,
+        }),
+      )
+      this.buildLedgerValue(() =>
+        buildExpenseLedgerDeltas({
+          amount: dto.amount,
+          payerId,
+          participantIds,
+        }),
+      )
       await this.assertParticipantsExist(
         dto.groupCode,
         involvedParticipantIds,
         session,
       )
-      buildExpenseLedgerDeltas({
-        amount: dto.amount,
-        payerId,
-        participantIds,
-      })
       return new this.walkcalcRecordModel({
         groupCode: dto.groupCode,
         recordId: previousRecord?.recordId ?? uuidv4(),
@@ -786,16 +805,20 @@ export class WalkcalcService {
     if (dto.type === 'settlement') {
       const fromId = this.requiredParticipantId(dto.fromId)
       const toId = this.requiredParticipantId(dto.toId)
-      const involvedParticipantIds = involvedSettlementParticipants({
-        fromId,
-        toId,
-      })
+      const involvedParticipantIds = this.buildLedgerValue(() =>
+        involvedSettlementParticipants({
+          fromId,
+          toId,
+        }),
+      )
+      this.buildLedgerValue(() =>
+        buildSettlementLedgerDeltas({ amount: dto.amount, fromId, toId }),
+      )
       await this.assertParticipantsExist(
         dto.groupCode,
         involvedParticipantIds,
         session,
       )
-      buildSettlementLedgerDeltas({ amount: dto.amount, fromId, toId })
       return new this.walkcalcRecordModel({
         groupCode: dto.groupCode,
         recordId: previousRecord?.recordId ?? uuidv4(),
@@ -816,6 +839,21 @@ export class WalkcalcService {
     }
 
     throw new GeneralException('walkcalc.invalidRecordType')
+  }
+
+  private snapshotRecord(record: WalkcalcRecord): WalkcalcRecord {
+    return this.documentToPlainObject(record) as unknown as WalkcalcRecord
+  }
+
+  private buildLedgerValue<T>(build: () => T): T {
+    try {
+      return build()
+    } catch (err) {
+      if (err instanceof GeneralException) {
+        throw err
+      }
+      throw new GeneralException('walkcalc.invalidParticipant')
+    }
   }
 
   private resolveAmountValue(amount: string): MoneyValue {
@@ -878,17 +916,126 @@ export class WalkcalcService {
   private buildDeltasForRecord(record: WalkcalcRecord): LedgerDelta[] {
     const amount = formatMoneyAmount(record.amountValue)
     if (record.type === 'expense') {
-      return buildExpenseLedgerDeltas({
-        amount,
-        payerId: this.requiredParticipantId(record.payerId),
-        participantIds: this.requiredParticipantIds(record.participantIds),
-      })
+      return this.buildLedgerValue(() =>
+        buildExpenseLedgerDeltas({
+          amount,
+          payerId: this.requiredParticipantId(record.payerId),
+          participantIds: this.requiredParticipantIds(record.participantIds),
+        }),
+      )
     }
-    return buildSettlementLedgerDeltas({
-      amount,
-      fromId: this.requiredParticipantId(record.fromId),
-      toId: this.requiredParticipantId(record.toId),
-    })
+    return this.buildLedgerValue(() =>
+      buildSettlementLedgerDeltas({
+        amount,
+        fromId: this.requiredParticipantId(record.fromId),
+        toId: this.requiredParticipantId(record.toId),
+      }),
+    )
+  }
+
+  private async updateRecordWithCompensation(
+    previousRecord: WalkcalcRecord,
+    nextRecord: WalkcalcRecord,
+    finalize?: () => Promise<void>,
+  ) {
+    const undoDeltas: LedgerDelta[] = []
+    let recordUpdated = false
+
+    try {
+      for (const delta of reverseLedgerDeltas(
+        this.buildDeltasForRecord(previousRecord),
+      )) {
+        await this.applyProjectionDelta(previousRecord.groupCode, delta)
+        undoDeltas.push(reverseLedgerDeltas([delta])[0])
+      }
+
+      await this.updatePersistedRecord(nextRecord)
+      recordUpdated = true
+
+      for (const delta of this.buildDeltasForRecord(nextRecord)) {
+        await this.applyProjectionDelta(nextRecord.groupCode, delta)
+        undoDeltas.push(reverseLedgerDeltas([delta])[0])
+      }
+      await finalize?.()
+    } catch (err) {
+      for (const delta of [...undoDeltas].reverse()) {
+        await this.applyProjectionDelta(previousRecord.groupCode, delta)
+      }
+      if (recordUpdated) {
+        await this.updatePersistedRecord(previousRecord)
+      }
+      throw err
+    }
+  }
+
+  private async updatePersistedRecord(
+    record: WalkcalcRecord,
+    session?: ClientSession,
+  ) {
+    const result = await this.walkcalcRecordModel
+      .updateOne(
+        { groupCode: record.groupCode, recordId: record.recordId },
+        this.buildRecordPersistencePatch(record),
+      )
+      .session(session ?? null)
+      .exec()
+    const matchedCount =
+      (result as { matchedCount?: number; modifiedCount?: number })
+        .matchedCount ??
+      (result as { modifiedCount?: number }).modifiedCount ??
+      0
+    if (matchedCount < 1) {
+      throw new GeneralException('walkcalc.recordNotFound')
+    }
+  }
+
+  private buildRecordPersistencePatch(
+    record: WalkcalcRecord,
+  ): RecordPersistencePatch {
+    const $set: Record<string, unknown> = {
+      groupCode: record.groupCode,
+      recordId: record.recordId,
+      type: record.type,
+      amountValue: record.amountValue,
+      involvedParticipantIds: record.involvedParticipantIds,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      createdBy: record.createdBy,
+    }
+    const $unset: Record<string, ''> = {}
+
+    this.assignOptionalRecordField($set, $unset, 'category', record.category)
+    this.assignOptionalRecordField($set, $unset, 'note', record.note)
+    this.assignOptionalRecordField($set, $unset, 'long', record.long)
+    this.assignOptionalRecordField($set, $unset, 'lat', record.lat)
+    this.assignOptionalRecordField($set, $unset, 'updatedBy', record.updatedBy)
+
+    if (record.type === 'expense') {
+      $set.payerId = record.payerId
+      $set.participantIds = record.participantIds
+      $unset.fromId = ''
+      $unset.toId = ''
+    } else {
+      $set.fromId = record.fromId
+      $set.toId = record.toId
+      $unset.payerId = ''
+      $unset.participantIds = ''
+    }
+
+    return Object.keys($unset).length ? { $set, $unset } : { $set }
+  }
+
+  private assignOptionalRecordField(
+    $set: Record<string, unknown>,
+    $unset: Record<string, ''>,
+    field: keyof WalkcalcRecord,
+    value: unknown,
+  ) {
+    if (value === undefined) {
+      $unset[field] = ''
+      return
+    }
+    $set[field] = value
   }
 
   private async applyProjectionDelta(
