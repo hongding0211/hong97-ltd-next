@@ -24,3 +24,6 @@ node_modules
 /packages/fe/.env
 
 cache.json
+
+# Local credentials
+secrets/

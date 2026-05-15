@@ -66,7 +66,6 @@ import { UserModule } from './modules/user/user.module'
         watch: true,
       },
       resolvers: [new HeaderResolver(['x-locale'])],
-      typesOutputPath: path.join(__dirname, '../../src/i18n/types.d.ts'),
     }),
     /** Global Modules */
     UserModule,
