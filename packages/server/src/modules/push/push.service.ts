@@ -233,7 +233,10 @@ export class PushService {
         this.pushDeviceModel.updateOne(deviceQuery, {
           $set: {
             lastSuccessAt: new Date(),
-            failureReason: undefined,
+          },
+          $unset: {
+            lastFailureAt: '',
+            failureReason: '',
           },
         }),
       )

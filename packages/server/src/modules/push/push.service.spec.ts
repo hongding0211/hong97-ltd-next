@@ -59,6 +59,9 @@ describe('PushService', () => {
           )
           if (device) {
             Object.assign(device, update.$set)
+            for (const key of Object.keys(update.$unset || {})) {
+              delete device[key]
+            }
           }
           return { modifiedCount: device ? 1 : 0 }
         }),
@@ -246,6 +249,36 @@ describe('PushService', () => {
     expect(devices[1].enabled).toBe(false)
   })
 
+  it('clears previous delivery failure state after a successful send', async () => {
+    await service.upsertDeviceRegistration({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      platform: 'ios',
+      providerToken: 'token-1',
+      environment: 'sandbox',
+      locale: 'en',
+    })
+    Object.assign(devices[0], {
+      lastFailureAt: new Date('2026-05-15T00:00:00.000Z'),
+      failureReason: 'InvalidProviderToken',
+    })
+
+    await service.sendNotification({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      type: 'comment.created',
+      payload: {
+        actorName: 'Hong',
+        postId: 'post-1',
+        commentId: 'comment-1',
+      },
+    })
+
+    expect(devices[0].lastSuccessAt).toBeInstanceOf(Date)
+    expect(devices[0]).not.toHaveProperty('lastFailureAt')
+    expect(devices[0]).not.toHaveProperty('failureReason')
+  })
+
   it('rejects unknown types and missing payload fields before provider calls', async () => {
     await expect(
       service.sendNotification({
@@ -309,6 +342,7 @@ describe('PushModule', () => {
     const exportsMetadata = Reflect.getMetadata('exports', PushModule)
 
     expect(metadata || []).toEqual([PushController])
+    expect(exportsMetadata).toContain(PushNotificationCatalog)
     expect(exportsMetadata).toContain(PushService)
   })
 })

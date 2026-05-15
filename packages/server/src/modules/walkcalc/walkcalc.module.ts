@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
+import { PushModule } from '../push/push.module'
 import {
   WalkcalcGroup,
   WalkcalcGroupSchema,
@@ -10,11 +11,13 @@ import {
   WalkcalcRecord,
   WalkcalcRecordSchema,
 } from './schema/walkcalc-group.schema'
+import { WalkcalcPushService } from './walkcalc-push.service'
 import { WalkcalcController } from './walkcalc.controller'
 import { WalkcalcService } from './walkcalc.service'
 
 @Module({
   imports: [
+    PushModule,
     MongooseModule.forFeature([
       { name: WalkcalcGroup.name, schema: WalkcalcGroupSchema },
       { name: WalkcalcParticipant.name, schema: WalkcalcParticipantSchema },
@@ -26,7 +29,7 @@ import { WalkcalcService } from './walkcalc.service'
     ]),
   ],
   controllers: [WalkcalcController],
-  providers: [WalkcalcService],
+  providers: [WalkcalcService, WalkcalcPushService],
   exports: [WalkcalcService],
 })
 export class WalkcalcModule {}
