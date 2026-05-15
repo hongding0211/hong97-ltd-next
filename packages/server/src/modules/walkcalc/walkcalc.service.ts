@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { InjectConnection, InjectModel } from '@nestjs/mongoose'
 import { ClientSession, Connection, Model } from 'mongoose'
 import { GeneralException } from 'src/exceptions/general-exceptions'
@@ -54,6 +54,7 @@ import {
   fromMoneyValueBigInt,
   toMoneyValueBigInt,
 } from './utils/money'
+import { WalkcalcPushService } from './walkcalc-push.service'
 
 type RecordSearchField = 'note' | 'categoryName'
 type RecordSearchOperator = 'or' | 'and'
@@ -99,6 +100,7 @@ const groupSummaryParticipantPreviewLimit = 5
 
 @Injectable()
 export class WalkcalcService {
+  private readonly logger = new Logger(WalkcalcService.name)
   private readonly maxGroupCodeAttempts = 20
 
   constructor(
@@ -112,6 +114,7 @@ export class WalkcalcService {
     private walkcalcProjectionModel: Model<WalkcalcParticipantProjectionDocument>,
     @InjectConnection() private connection: Connection,
     private userService: UserService,
+    @Optional() private walkcalcPushService?: WalkcalcPushService,
   ) {}
 
   async currentUser(userId: string): Promise<WalkcalcPublicUserDto> {
@@ -201,7 +204,7 @@ export class WalkcalcService {
 
   async joinGroup(userId: string, code: string): Promise<{ code: string }> {
     await this.getPublicUserOrThrow(userId)
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadActiveGroup(code, session)
       const existing = await this.walkcalcParticipantModel
         .exists({ groupCode: code, kind: 'user', userId })
@@ -222,13 +225,26 @@ export class WalkcalcService {
       )
       group.modifiedAt = Date.now()
       await group.save({ session })
-      return { code }
+      return {
+        result: { code },
+        group,
+        memberUserIds: await this.loadFormalMemberIds(code, session),
+      }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyMemberJoined({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+      }),
+    )
+    return mutation.result
   }
 
   async dismissGroup(userId: string, code: string): Promise<{ code: string }> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadOwnedGroup(code, userId, session)
+      const memberUserIds = await this.loadFormalMemberIds(code, session)
       await this.resolveOutstandingBalancesForGroup(code, userId, session)
       const now = Date.now()
       group.isDeleted = true
@@ -236,12 +252,20 @@ export class WalkcalcService {
       group.deletedBy = userId
       group.modifiedAt = now
       await group.save({ session })
-      return { code }
+      return { result: { code }, group, memberUserIds }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyGroupDismissed({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+      }),
+    )
+    return mutation.result
   }
 
   async addTempUser(userId: string, code: string, name: string) {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadOwnedGroup(code, userId, session)
       const exists = await this.walkcalcParticipantModel
         .exists({ groupCode: code, kind: 'tempUser', tempName: name })
@@ -263,11 +287,23 @@ export class WalkcalcService {
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
-        participantId: participant.participantId,
-        kind: participant.kind,
-        tempName: participant.tempName,
+        result: {
+          participantId: participant.participantId,
+          kind: participant.kind,
+          tempName: participant.tempName,
+        },
+        group,
+        memberUserIds: await this.loadFormalMemberIds(code, session),
       }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyTempUserCreated({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+      }),
+    )
+    return mutation.result
   }
 
   async inviteUsers(
@@ -275,7 +311,7 @@ export class WalkcalcService {
     code: string,
     userIds: string[],
   ): Promise<{ code: string; userIds: string[] }> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(code, userId, session)
       const users = await this.userService.findPublicUsersByIds(userIds)
       const existingParticipants = await this.walkcalcParticipantModel
@@ -311,8 +347,24 @@ export class WalkcalcService {
         await group.save({ session })
       }
 
-      return { code, userIds: invitedIds }
+      return {
+        result: { code, userIds: invitedIds },
+        group,
+        invitedUserIds: invitedIds,
+        memberUserIds: await this.loadFormalMemberIds(code, session),
+      }
     })
+    if (mutation.invitedUserIds.length) {
+      await this.dispatchWalkcalcPush((push) =>
+        push.notifyGroupInvited({
+          actorUserId: userId,
+          group: mutation.group,
+          memberUserIds: mutation.memberUserIds,
+          invitedUserIds: mutation.invitedUserIds,
+        }),
+      )
+    }
+    return mutation.result
   }
 
   async myGroups(
@@ -400,6 +452,14 @@ export class WalkcalcService {
     group.name = name
     group.modifiedAt = Date.now()
     await group.save()
+    const memberUserIds = await this.loadFormalMemberIds(code)
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyGroupRenamed({
+        actorUserId: userId,
+        group,
+        memberUserIds,
+      }),
+    )
     return { code, name }
   }
 
@@ -407,7 +467,7 @@ export class WalkcalcService {
     userId: string,
     dto: AddWalkcalcRecordDto,
   ): Promise<WalkcalcRecordMutationDto> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(
         dto.groupCode,
         userId,
@@ -418,10 +478,24 @@ export class WalkcalcService {
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
-        record: this.mapRecordToDto(record),
-        group: await this.mapGroupToDto(group, userId, session),
+        result: {
+          record: this.mapRecordToDto(record),
+          group: await this.mapGroupToDto(group, userId, session),
+        },
+        group,
+        record,
+        memberUserIds: await this.loadFormalMemberIds(dto.groupCode, session),
       }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyRecordCreated({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+        records: [mutation.record],
+      }),
+    )
+    return mutation.result
   }
 
   async dropRecord(
@@ -429,9 +503,10 @@ export class WalkcalcService {
     groupCode: string,
     recordId: string,
   ): Promise<WalkcalcDropRecordMutationDto> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
       const record = await this.loadRecordForGroup(groupCode, recordId, session)
+      const recordSnapshot = this.snapshotRecord(record)
       await this.applyRecordProjectionEffects(record, -1, session)
       await this.walkcalcRecordModel
         .deleteOne({ groupCode, recordId })
@@ -440,18 +515,32 @@ export class WalkcalcService {
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
-        groupCode,
-        recordId,
-        group: await this.mapGroupToDto(group, userId, session),
+        result: {
+          groupCode,
+          recordId,
+          group: await this.mapGroupToDto(group, userId, session),
+        },
+        group,
+        record: recordSnapshot,
+        memberUserIds: await this.loadFormalMemberIds(groupCode, session),
       }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyRecordDeleted({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+        records: [mutation.record],
+      }),
+    )
+    return mutation.result
   }
 
   async updateRecord(
     userId: string,
     dto: UpdateWalkcalcRecordDto,
   ): Promise<WalkcalcRecordMutationDto> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(
         dto.groupCode,
         userId,
@@ -491,10 +580,25 @@ export class WalkcalcService {
         )
       }
       return {
-        record: this.mapRecordToDto(nextRecord),
-        group: await this.mapGroupToDto(group, userId, session),
+        result: {
+          record: this.mapRecordToDto(nextRecord),
+          group: await this.mapGroupToDto(group, userId, session),
+        },
+        group,
+        previousRecord: previousRecordSnapshot,
+        nextRecord,
+        memberUserIds: await this.loadFormalMemberIds(dto.groupCode, session),
       }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyRecordUpdated({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+        records: [mutation.previousRecord, mutation.nextRecord],
+      }),
+    )
+    return mutation.result
   }
 
   async getRecord(
@@ -569,7 +673,7 @@ export class WalkcalcService {
     groupCode: string,
     _dto: ResolveWalkcalcSettlementsDto,
   ): Promise<WalkcalcRecordsMutationDto> {
-    return this.runInOptionalTransaction(async (session) => {
+    const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
       const suggestion = await this.buildSettlementSuggestion(
         groupCode,
@@ -584,10 +688,24 @@ export class WalkcalcService {
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
-        records: records.map((record) => this.mapRecordToDto(record)),
-        group: await this.mapGroupToDto(group, userId, session),
+        result: {
+          records: records.map((record) => this.mapRecordToDto(record)),
+          group: await this.mapGroupToDto(group, userId, session),
+        },
+        group,
+        records,
+        memberUserIds: await this.loadFormalMemberIds(groupCode, session),
       }
     })
+    await this.dispatchWalkcalcPush((push) =>
+      push.notifyDebtsResolved({
+        actorUserId: userId,
+        group: mutation.group,
+        memberUserIds: mutation.memberUserIds,
+        records: mutation.records,
+      }),
+    )
+    return mutation.result
   }
 
   async rebuildProjectionsForGroup(groupCode: string): Promise<void> {
@@ -613,6 +731,21 @@ export class WalkcalcService {
       return await this.userService.findUserById(userId)
     } catch {
       throw new GeneralException('walkcalc.userNotFound')
+    }
+  }
+
+  private async dispatchWalkcalcPush(
+    send: (pushService: WalkcalcPushService) => Promise<void>,
+  ) {
+    if (!this.walkcalcPushService) {
+      return
+    }
+    try {
+      await send(this.walkcalcPushService)
+    } catch (error) {
+      this.logger.warn(
+        `Walkcalc push dispatch failed: ${(error as Error).message}`,
+      )
     }
   }
 
@@ -726,6 +859,23 @@ export class WalkcalcService {
       throw new GeneralException('walkcalc.groupOwnerRequired')
     }
     return group
+  }
+
+  private async loadFormalMemberIds(
+    groupCode: string,
+    session?: ClientSession,
+  ) {
+    const participants = await this.walkcalcParticipantModel
+      .find({ groupCode, kind: 'user' })
+      .session(session ?? null)
+      .exec()
+    return [
+      ...new Set(
+        participants
+          .map((participant) => participant.userId)
+          .filter((userId): userId is string => !!userId),
+      ),
+    ]
   }
 
   private async loadRecordForGroup(

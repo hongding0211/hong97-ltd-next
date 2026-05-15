@@ -103,6 +103,12 @@ export class PushNotificationCatalog {
     return this.entries.get(type)
   }
 
+  registerEntries(entries: NotificationCatalogEntry[]) {
+    for (const entry of entries) {
+      this.entries.set(entry.type, entry)
+    }
+  }
+
   validatePayload(
     entry: NotificationCatalogEntry,
     payload: Record<string, unknown>,

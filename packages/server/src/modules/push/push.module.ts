@@ -20,6 +20,6 @@ import { PushDevice, PushDeviceSchema } from './schema/push-device.schema'
     ApnsPushProvider,
     PushService,
   ],
-  exports: [PushService],
+  exports: [PushNotificationCatalog, PushService],
 })
 export class PushModule {}

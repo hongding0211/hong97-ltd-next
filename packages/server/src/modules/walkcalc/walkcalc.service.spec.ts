@@ -28,6 +28,7 @@ interface TestContext {
   recordStore: FakeModelStore
   projectionStore: FakeModelStore
   userService: any
+  walkcalcPushService: any
   session: {
     withTransaction: jest.Mock
     endSession: jest.Mock
@@ -397,6 +398,67 @@ describe('WalkcalcService normalized ledger', () => {
     await expectRebuildMatches(ctx)
   })
 
+  it('dispatches walkcalc push after successful record mutations', async () => {
+    const ctx = createSeededGroupContext()
+
+    const added = await ctx.service.addRecord('u1', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '100.00',
+      payerId: 'u1',
+      participantIds: ['u1', 'u2', 'tmp1'],
+      category: 'food',
+      note: 'Dinner',
+      occurredAt: 300,
+    })
+    expect(ctx.walkcalcPushService.notifyRecordCreated).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      memberUserIds: ['u1', 'u2'],
+      records: [expect.objectContaining({ recordId: added.record.recordId })],
+    })
+
+    await ctx.service.updateRecord('u1', {
+      groupCode: 'AB12',
+      recordId: added.record.recordId,
+      type: 'expense',
+      amount: '90.00',
+      payerId: 'u2',
+      participantIds: ['u2', 'tmp1'],
+      category: 'traffic',
+      note: 'Taxi',
+      occurredAt: 400,
+    })
+    expect(ctx.walkcalcPushService.notifyRecordUpdated).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      memberUserIds: ['u1', 'u2'],
+      records: [
+        expect.objectContaining({
+          recordId: added.record.recordId,
+          payerId: 'u1',
+        }),
+        expect.objectContaining({
+          recordId: added.record.recordId,
+          payerId: 'u2',
+        }),
+      ],
+    })
+
+    await ctx.service.dropRecord('u1', 'AB12', added.record.recordId)
+    expect(ctx.walkcalcPushService.notifyRecordDeleted).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      memberUserIds: ['u1', 'u2'],
+      records: [
+        expect.objectContaining({
+          recordId: added.record.recordId,
+          payerId: 'u2',
+        }),
+      ],
+    })
+  })
+
   it('updates an expense without replacing Mongo _id and keeps exact projections through drop', async () => {
     const ctx = createContext({
       groups: [groupDoc({ code: 'AB12', ownerUserId: 'A' })],
@@ -671,6 +733,15 @@ describe('WalkcalcService normalized ledger', () => {
       recordCount: 2,
     })
     expect(ctx.recordStore.docs).toHaveLength(3)
+    expect(ctx.walkcalcPushService.notifyDebtsResolved).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      memberUserIds: ['u1', 'u2'],
+      records: [
+        expect.objectContaining({ fromId: 'u2', toId: 'u1' }),
+        expect.objectContaining({ fromId: 'tmp1', toId: 'u1' }),
+      ],
+    })
     await expectRebuildMatches(ctx)
   })
 
@@ -859,6 +930,70 @@ describe('WalkcalcService normalized ledger', () => {
     await expect(ctx.service.homeSummary('u1')).resolves.toEqual({
       totalBalance: '0.00',
     })
+  })
+
+  it('dispatches walkcalc push after successful group mutations only', async () => {
+    const ctx = createSeededGroupContext()
+
+    await ctx.service.inviteUsers('u1', 'AB12', ['u3'])
+    expect(ctx.walkcalcPushService.notifyGroupInvited).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      invitedUserIds: ['u3'],
+      memberUserIds: ['u1', 'u2', 'u3'],
+    })
+
+    const joinCtx = createSeededGroupContext()
+    await joinCtx.service.joinGroup('u3', 'AB12')
+    expect(joinCtx.walkcalcPushService.notifyMemberJoined).toHaveBeenCalledWith(
+      {
+        actorUserId: 'u3',
+        group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+        memberUserIds: ['u1', 'u2', 'u3'],
+      },
+    )
+
+    await ctx.service.addTempUser('u1', 'AB12', 'Guest 2')
+    expect(ctx.walkcalcPushService.notifyTempUserCreated).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
+      memberUserIds: ['u1', 'u2', 'u3'],
+    })
+
+    await ctx.service.renameGroup('u1', 'AB12', 'Next Trip')
+    expect(ctx.walkcalcPushService.notifyGroupRenamed).toHaveBeenCalledWith({
+      actorUserId: 'u1',
+      group: expect.objectContaining({ code: 'AB12', name: 'Next Trip' }),
+      memberUserIds: ['u1', 'u2', 'u3'],
+    })
+
+    await ctx.service.archiveGroup('u1', 'AB12', true)
+    expect(ctx.walkcalcPushService.notifyGroupRenamed).toHaveBeenCalledTimes(1)
+    expect(ctx.walkcalcPushService.notifyGroupDismissed).not.toHaveBeenCalled()
+
+    await expect(ctx.service.joinGroup('u1', 'AB12')).rejects.toBeInstanceOf(
+      GeneralException,
+    )
+    expect(ctx.walkcalcPushService.notifyMemberJoined).not.toHaveBeenCalled()
+  })
+
+  it('keeps group mutations successful when push dispatch fails', async () => {
+    const ctx = createSeededGroupContext()
+    ctx.walkcalcPushService.notifyGroupInvited.mockRejectedValueOnce(
+      new Error('push down'),
+    )
+
+    await expect(
+      ctx.service.inviteUsers('u1', 'AB12', ['u3']),
+    ).resolves.toEqual({
+      code: 'AB12',
+      userIds: ['u3'],
+    })
+    expect(ctx.participantStore.docs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ groupCode: 'AB12', userId: 'u3' }),
+      ]),
+    )
   })
 
   it('keeps failed mutations atomic across validation, authorization, persistence, and limit errors', async () => {
@@ -1133,6 +1268,17 @@ function createContext(seed: Partial<SeedData> = {}): TestContext {
   const connection = {
     startSession: jest.fn(async () => session),
   }
+  const walkcalcPushService = {
+    notifyGroupInvited: jest.fn(async () => undefined),
+    notifyMemberJoined: jest.fn(async () => undefined),
+    notifyTempUserCreated: jest.fn(async () => undefined),
+    notifyGroupRenamed: jest.fn(async () => undefined),
+    notifyGroupDismissed: jest.fn(async () => undefined),
+    notifyRecordCreated: jest.fn(async () => undefined),
+    notifyRecordUpdated: jest.fn(async () => undefined),
+    notifyRecordDeleted: jest.fn(async () => undefined),
+    notifyDebtsResolved: jest.fn(async () => undefined),
+  }
 
   return {
     service: new WalkcalcService(
@@ -1142,12 +1288,14 @@ function createContext(seed: Partial<SeedData> = {}): TestContext {
       projectionStore.Model,
       connection as any,
       userService as any,
+      walkcalcPushService as any,
     ),
     groupStore,
     participantStore,
     recordStore,
     projectionStore,
     userService,
+    walkcalcPushService,
     session,
   }
 }

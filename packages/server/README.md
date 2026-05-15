@@ -64,7 +64,7 @@ real APNs key material in deployment secrets only; the values below are fake
 examples.
 
 ```bash
-PUSH_APPS_JSON='[{"appId":"hong97-ios","platform":"ios","provider":"apns","topic":"com.example.hong97","environment":"sandbox","credentialRef":"hong97","supportedLocales":["en","cn"],"defaultLocale":"cn"}]'
+PUSH_APPS_JSON='[{"appId":"walkcalc-ios","platform":"ios","provider":"apns","topic":"ltd.hong97.walkingcalc","environment":"sandbox","credentialRef":"hong97","supportedLocales":["en","cn"],"defaultLocale":"cn"}]'
 PUSH_APNS_HONG97_TEAM_ID=TEAMID1234
 PUSH_APNS_HONG97_KEY_ID=KEYID1234
 PUSH_APNS_HONG97_PRIVATE_KEY_PATH=/run/secrets/apns-hong97.p8
