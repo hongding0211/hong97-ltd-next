@@ -3,6 +3,7 @@ import authConfig from './auth/auth.config'
 import barkConfig from './bark/bark.config'
 import databaseConfig from './database/database.config'
 import ossConfig from './oss/oss.config'
+import pushConfig from './push/push.config'
 import rateLimitConfig from './rate-limit/rateLimit.config'
 
 export default {
@@ -10,6 +11,7 @@ export default {
   auth: authConfig,
   app: appConfig,
   oss: ossConfig,
+  push: pushConfig,
   rateLimit: rateLimitConfig,
   bark: barkConfig,
 }
