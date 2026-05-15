@@ -23,6 +23,7 @@ export default registerAs('auth', () => ({
     callbackUrl: process.env.GITHUB_OAUTH_CALLBACK_URL || '',
   },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  allowedRedirectSchemes: process.env.AUTH_ALLOWED_REDIRECT_SCHEMES,
   ignore: [
     '/auth/login',
     '/auth/register',

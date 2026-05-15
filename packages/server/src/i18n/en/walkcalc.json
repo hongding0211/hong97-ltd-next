@@ -1,0 +1,21 @@
+{
+  "userNotFound": "User not found",
+  "groupNotFound": "Group not found",
+  "groupNotFoundOrNoAccess": "Group not found or you do not have access",
+  "groupOwnerRequired": "You do not own this group",
+  "userAlreadyInGroup": "User is already in this group",
+  "tempUserNameExists": "Temporary user name already exists",
+  "forWhomRequired": "At least one participant is required",
+  "zeroAmountRecord": "Record amount cannot be zero",
+  "recordLimitReached": "Group record limit reached",
+  "groupCodeUnavailable": "Could not generate an available group code",
+  "recordNotFound": "Record not found",
+  "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
+  "invalidParticipant": "Invalid participant",
+  "invalidRecordSearch": "Invalid record search",
+  "invalidRecordType": "Invalid record type",
+  "invalidMoneyAmount": "Invalid money amount",
+  "invalidProjectionState": "Invalid balance state",
+  "groupUnsettled": "Group must be fully settled before archiving",
+  "settlementLimitExceeded": "Too many unsettled participants to calculate an exact settlement"
+}

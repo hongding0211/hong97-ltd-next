@@ -43,6 +43,34 @@ const initialState: LoginStoreState = {
   avatar: '',
 }
 
+const accessTokenRedirectProtocols = (
+  process.env.NEXT_PUBLIC_AUTH_ALLOWED_REDIRECT_SCHEMES ?? ''
+)
+  .split(',')
+  .map((scheme) => scheme.trim())
+  .filter(Boolean)
+  .map((scheme) => (scheme.endsWith(':') ? scheme : `${scheme}:`))
+
+const shouldPassTokenToRedirect = (redirect: string) => {
+  try {
+    const url = new URL(redirect)
+    const isInternalCallback =
+      url.origin === window.location.origin && url.pathname === '/auth/callback'
+
+    return (
+      accessTokenRedirectProtocols.includes(url.protocol) || isInternalCallback
+    )
+  } catch {
+    return false
+  }
+}
+
+const withAccessTokenHash = (redirect: string, accessToken: string) => {
+  const url = new URL(redirect)
+  url.hash = accessToken
+  return url.toString()
+}
+
 export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
   (set, get) => {
     const validate = (isRegister: boolean) => {
@@ -107,7 +135,9 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
             const { redirect } = get()
             if (redirect) {
               /** If a redirect url is provided, redirect to it */
-              window.location.href = redirect
+              window.location.href = shouldPassTokenToRedirect(redirect)
+                ? withAccessTokenHash(redirect, loginRes.data.accessToken)
+                : redirect
             } else {
               /** Otherwise, append the access token to the current url */
               const url = new URL(window.location.href)

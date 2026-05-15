@@ -99,11 +99,11 @@ export const Profile: React.FC<IProfileProps> = (props) => {
   const imgFile = useRef<File | null>(null)
   const croppedImgFile = useRef<File | null>(null)
 
-  const { locale } = useRouter()
+  const router = useRouter()
+  const { locale } = router
+  const hideNavBar = router.query.hideNavbar === '1'
 
   const { t } = useTranslation('profile')
-
-  const router = useRouter()
 
   const uid = useId()
 
@@ -330,7 +330,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
       </Head>
-      <AppLayout>
+      <AppLayout hideNavBar={hideNavBar}>
         {/* 桌面端 */}
         <div className="max-w-[600px] mx-auto justify-between hidden md:flex mt-[40px]">
           <div className="flex flex-col items-center">

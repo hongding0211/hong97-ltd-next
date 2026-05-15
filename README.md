@@ -62,7 +62,7 @@ Start both frontend and backend in development mode:
 # Frontend (runs on http://localhost:3000)
 pnpm dev:fe
 
-# Backend (runs on http://localhost:3001)
+# Backend (runs on http://localhost:3500)
 pnpm dev:server
 
 # Backend with debug mode

@@ -21,6 +21,7 @@ import { ShortLinkModule } from './modules/shortlink/shortlink.module'
 import { TrashModule } from './modules/trash/trash.module'
 import { UCPModule } from './modules/ucp/ucp.module'
 import { UserModule } from './modules/user/user.module'
+import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { UserModule } from './modules/user/user.module'
     ShortLinkModule,
     UCPModule,
     TrashModule,
+    WalkcalcModule,
   ],
   controllers: [AppController],
   providers: [
