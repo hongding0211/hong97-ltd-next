@@ -78,6 +78,11 @@ export class PushService {
       setFields.deviceId = input.deviceId
     }
 
+    const setOnInsert: Partial<PushDevice> = {}
+    if (!input.deviceId) {
+      setOnInsert.deviceId = randomUUID()
+    }
+
     return this.execQuery(
       this.pushDeviceModel.findOneAndUpdate(
         {
@@ -88,9 +93,7 @@ export class PushService {
         },
         {
           $set: setFields,
-          $setOnInsert: {
-            deviceId: input.deviceId || randomUUID(),
-          },
+          $setOnInsert: setOnInsert,
         },
         {
           new: true,

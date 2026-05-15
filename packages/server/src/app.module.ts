@@ -67,7 +67,6 @@ import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
         watch: true,
       },
       resolvers: [new HeaderResolver(['x-locale'])],
-      typesOutputPath: path.join(__dirname, '../../src/i18n/types.d.ts'),
     }),
     /** Global Modules */
     UserModule,
