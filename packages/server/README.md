@@ -57,6 +57,20 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## Push Notification Environment
+
+Mobile app push configuration is loaded from runtime environment variables. Keep
+real APNs key material in deployment secrets only; the values below are fake
+examples.
+
+```bash
+PUSH_APPS_JSON='[{"appId":"hong97-ios","platform":"ios","provider":"apns","topic":"com.example.hong97","environment":"sandbox","credentialRef":"hong97","supportedLocales":["en","cn"],"defaultLocale":"cn"}]'
+PUSH_APNS_HONG97_TEAM_ID=TEAMID1234
+PUSH_APNS_HONG97_KEY_ID=KEYID1234
+PUSH_APNS_HONG97_PRIVATE_KEY_PATH=/run/secrets/apns-hong97.p8
+# or PUSH_APNS_HONG97_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\nFAKE\n-----END PRIVATE KEY-----'
+```
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
