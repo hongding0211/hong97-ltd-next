@@ -23,7 +23,8 @@ interface CachedProviderToken {
 const TOKEN_TTL_MS = 50 * 60 * 1000
 
 function base64Url(input: string | Buffer) {
-  return Buffer.from(input)
+  const buffer = typeof input === 'string' ? Buffer.from(input) : input
+  return buffer
     .toString('base64')
     .replace(/=/g, '')
     .replace(/\+/g, '-')
