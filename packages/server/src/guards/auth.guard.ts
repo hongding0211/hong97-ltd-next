@@ -63,6 +63,14 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractToken(request: any): string | undefined {
+    // Explicit bearer credentials must win over browser cookies. Native clients
+    // can share a cookie jar with embedded web views, so cookie-first auth can
+    // bind a request to the wrong user when both credentials are present.
+    const [type, token] = request.headers.authorization?.split(' ') ?? []
+    if (type === 'Bearer' && token) {
+      return token
+    }
+
     // 优先从 cookie 读取
     const accessCookieName =
       this.configService.get<string>('auth.cookies.accessTokenName') ||
@@ -71,9 +79,7 @@ export class AuthGuard implements CanActivate {
       return request.cookies[accessCookieName]
     }
 
-    // 回退到 Authorization header
-    const [type, token] = request.headers.authorization?.split(' ') ?? []
-    return type === 'Bearer' ? token : undefined
+    return undefined
   }
 
   private matchPathWithGlob(path: string, patterns: string[]): boolean {

@@ -291,6 +291,72 @@ describe('AuthService token flow', () => {
     expect(redirectUrl).toBe('walkingcalc://auth/callback#access-1')
   })
 
+  it('adds the access token hash to the internal native callback redirect after GitHub login', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'github-access-token' },
+    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 123,
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          html_url: 'https://github.com/octocat',
+          email: null,
+        },
+      })
+      .mockResolvedValueOnce({ data: [] })
+
+    const authUrl = new URL(
+      service.getGithubAuthorizationRedirect(
+        'http://localhost:3000/auth/callback',
+      ),
+    )
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe('http://localhost:3000/auth/callback#access-1')
+  })
+
+  it('preserves loopback callback redirects that use 127.0.0.1 in local development', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { access_token: 'github-access-token' },
+    })
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          id: 123,
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          html_url: 'https://github.com/octocat',
+          email: null,
+        },
+      })
+      .mockResolvedValueOnce({ data: [] })
+
+    const authUrl = new URL(
+      service.getGithubAuthorizationRedirect(
+        'http://127.0.0.1:3000/auth/callback',
+      ),
+    )
+    const redirectUrl = await service.handleGithubCallback(
+      {
+        code: 'github-code',
+        state: authUrl.searchParams.get('state') || '',
+      },
+      res,
+    )
+
+    expect(redirectUrl).toBe('http://127.0.0.1:3000/auth/callback#access-1')
+  })
+
   it('creates a local user and issues session cookies after GitHub callback', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { access_token: 'github-access-token' },
@@ -635,6 +701,32 @@ describe('AuthGuard token extraction', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-access', {
       secret: 'test-secret',
     })
+  })
+
+  it('uses bearer access tokens before cookies when both are present', async () => {
+    const jwtService = {
+      verifyAsync: jest.fn(async (token: string) => ({ sub: `${token}-user` })),
+    }
+    const guard = new AuthGuard(
+      jwtService as any,
+      configService as any,
+      { validateApiToken: jest.fn(async () => undefined) } as any,
+    )
+    const request = {
+      path: '/auth/info',
+      cookies: { accessToken: 'cookie-access' },
+      headers: { authorization: 'Bearer bearer-access' },
+    }
+
+    await expect(
+      guard.canActivate({
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as any),
+    ).resolves.toBe(true)
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('bearer-access', {
+      secret: 'test-secret',
+    })
+    expect(request).toHaveProperty('user', { id: 'bearer-access-user' })
   })
 
   it('authenticates protected requests with a bearer API token', async () => {

@@ -226,7 +226,7 @@ export class AuthService {
       const githubProfile = await this.fetchGithubProfile(githubAccessToken)
       const user = await this.upsertGithubUser(githubProfile)
       const session = await this.issueLoginSession(user, res)
-      return this.withAccessTokenForAppRedirect(
+      return this.withAccessTokenForTokenRedirect(
         this.resolveFrontendRedirect(state.redirect),
         session.accessToken,
       )
@@ -354,9 +354,8 @@ export class AuthService {
 
     try {
       const targetUrl = new URL(redirect, frontendUrl)
-      const allowedOrigin = new URL(frontendUrl).origin
       if (
-        targetUrl.origin !== allowedOrigin &&
+        !this.isAllowedFrontendRedirect(targetUrl) &&
         !this.isAllowedAppRedirect(targetUrl)
       ) {
         return frontendUrl
@@ -365,6 +364,51 @@ export class AuthService {
     } catch {
       return frontendUrl
     }
+  }
+
+  private isAllowedFrontendRedirect(url: URL): boolean {
+    const frontendUrl = new URL(this.getFrontendUrl())
+    const allowedOrigins = new Set([
+      frontendUrl.origin,
+      ...this.getLoopbackOriginAliases(frontendUrl),
+      ...this.getConfiguredRedirectOrigins(),
+    ])
+
+    return allowedOrigins.has(url.origin)
+  }
+
+  private getLoopbackOriginAliases(url: URL): string[] {
+    if (url.protocol !== 'http:') {
+      return []
+    }
+    if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+      return []
+    }
+
+    const aliasHost = url.hostname === 'localhost' ? '127.0.0.1' : 'localhost'
+    const alias = new URL(url.toString())
+    alias.hostname = aliasHost
+    return [alias.origin]
+  }
+
+  private getConfiguredRedirectOrigins(): string[] {
+    const configuredOrigins =
+      this.configService.get<string>('auth.allowedRedirectOrigins') ||
+      process.env.AUTH_ALLOWED_REDIRECT_ORIGINS
+
+    return configuredOrigins
+      ? configuredOrigins
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean)
+          .flatMap((origin) => {
+            try {
+              return [new URL(origin).origin]
+            } catch {
+              return []
+            }
+          })
+      : []
   }
 
   private isAllowedAppRedirect(url: URL): boolean {
@@ -383,9 +427,19 @@ export class AuthService {
     return allowedSchemes.includes(url.protocol)
   }
 
-  private withAccessTokenForAppRedirect(redirect: string, accessToken: string) {
+  private shouldPassAccessTokenToRedirect(url: URL): boolean {
+    const isInternalCallback =
+      this.isAllowedFrontendRedirect(url) && url.pathname === '/auth/callback'
+
+    return this.isAllowedAppRedirect(url) || isInternalCallback
+  }
+
+  private withAccessTokenForTokenRedirect(
+    redirect: string,
+    accessToken: string,
+  ) {
     const redirectUrl = new URL(redirect)
-    if (!this.isAllowedAppRedirect(redirectUrl)) {
+    if (!this.shouldPassAccessTokenToRedirect(redirectUrl)) {
       return redirect
     }
     redirectUrl.hash = accessToken

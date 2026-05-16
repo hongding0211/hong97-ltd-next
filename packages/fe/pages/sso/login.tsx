@@ -44,6 +44,20 @@ import Logo from '../../components/common/Logo'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
 import { InputWithLabel } from '../../components/common/input-with-label'
 
+const readRedirectQuery = (redirect: string | string[] | undefined) => {
+  if (typeof redirect === 'string') {
+    return redirect
+  }
+  if (Array.isArray(redirect)) {
+    return redirect[0] ?? ''
+  }
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return new URLSearchParams(window.location.search).get('redirect') ?? ''
+}
+
 const Uploader: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
@@ -165,6 +179,7 @@ const Uploader: React.FC = () => {
 function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [firstRender, setFirstRender] = useState(true)
+  const [githubLoading, setGithubLoading] = useState(false)
 
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
@@ -228,8 +243,8 @@ function Login() {
   }, [router.query.github_error])
 
   const handleGithubLogin = useCallback(() => {
-    const redirect =
-      typeof router.query.redirect === 'string' ? router.query.redirect : ''
+    setGithubLoading(true)
+    const redirect = readRedirectQuery(router.query.redirect)
     const url = new URL('/api/auth/github', window.location.origin)
     if (redirect) {
       url.searchParams.set('redirect', redirect)
@@ -329,11 +344,15 @@ function Login() {
             variant="outline"
             className="h-8 w-full gap-1 text-xs font-medium"
             onClick={handleGithubLogin}
-            disabled={loading || showRedirecting}
+            disabled={loading || showRedirecting || githubLoading}
             aria-label={t('githubLogin')}
             title={t('githubLogin')}
           >
-            <Github className="!h-3 !w-3" />
+            {githubLoading ? (
+              <Loader2 className="!h-3 !w-3 animate-spin" />
+            ) : (
+              <Github className="!h-3 !w-3" />
+            )}
             {t('githubLogin')}
           </Button>
         </div>
@@ -349,6 +368,7 @@ function Login() {
     changeTab,
     handleKeyDown,
     loading,
+    githubLoading,
     showRedirecting,
     showPassword,
     name,
@@ -427,11 +447,12 @@ function Login() {
   }, [])
 
   useEffect(() => {
-    const { query } = router
-    const { redirect } = query
-    init({ redirect: (redirect as string | undefined) ?? '' })
+    if (!router.isReady) {
+      return
+    }
+    init({ redirect: readRedirectQuery(router.query.redirect) })
     return cleanUp
-  }, [router, cleanUp, init])
+  }, [router.isReady, router.query.redirect, cleanUp, init])
 
   return (
     <>
