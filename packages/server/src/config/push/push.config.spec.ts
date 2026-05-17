@@ -107,7 +107,7 @@ describe('push config', () => {
         appId: 'walkcalc-ios',
         platform: 'ios',
         provider: 'apns',
-        topic: 'ltd.hong97.walkingcalc',
+        topic: 'ltd.hong97.walkcalc',
         environment: 'production',
         credentialRef: 'hong97',
         defaultLocale: 'cn',
