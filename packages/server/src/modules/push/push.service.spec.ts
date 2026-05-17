@@ -20,6 +20,15 @@ describe('PushService', () => {
   let service: PushService
   let apnsProvider: any
 
+  function matchesQuery(item: any, query: Record<string, any>) {
+    return Object.entries(query).every(([key, value]) => {
+      if (value && typeof value === 'object' && '$ne' in value) {
+        return item[key] !== value.$ne
+      }
+      return item[key] === value
+    })
+  }
+
   beforeEach(() => {
     devices = []
     model = {
@@ -45,18 +54,12 @@ describe('PushService', () => {
       })),
       find: jest.fn((query) => ({
         exec: jest.fn(async () =>
-          devices.filter((device) =>
-            Object.entries(query).every(
-              ([key, value]) => device[key] === value,
-            ),
-          ),
+          devices.filter((device) => matchesQuery(device, query)),
         ),
       })),
       updateOne: jest.fn((query, update) => ({
         exec: jest.fn(async () => {
-          const device = devices.find((item) =>
-            Object.entries(query).every(([key, value]) => item[key] === value),
-          )
+          const device = devices.find((item) => matchesQuery(item, query))
           if (device) {
             Object.assign(device, update.$set)
             for (const key of Object.keys(update.$unset || {})) {
@@ -64,6 +67,18 @@ describe('PushService', () => {
             }
           }
           return { modifiedCount: device ? 1 : 0 }
+        }),
+      })),
+      updateMany: jest.fn((query, update) => ({
+        exec: jest.fn(async () => {
+          const matched = devices.filter((item) => matchesQuery(item, query))
+          for (const device of matched) {
+            Object.assign(device, update.$set)
+            for (const key of Object.keys(update.$unset || {})) {
+              delete device[key]
+            }
+          }
+          return { modifiedCount: matched.length }
         }),
       })),
     }
@@ -156,6 +171,78 @@ describe('PushService', () => {
       },
     ])
     expect(apnsProvider.send).not.toHaveBeenCalled()
+  })
+
+  it('disables stale registrations when a device registers a replacement token', async () => {
+    await service.upsertDeviceRegistration({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      platform: 'ios',
+      providerToken: 'old-token',
+      environment: 'sandbox',
+      locale: 'en',
+      deviceId: 'install-1',
+      bundleId: 'com.example.hong97',
+    })
+    await service.upsertDeviceRegistration({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      platform: 'ios',
+      providerToken: 'new-token',
+      environment: 'sandbox',
+      locale: 'en',
+      deviceId: 'install-1',
+      bundleId: 'com.example.hong97',
+    })
+
+    expect(devices).toHaveLength(2)
+    expect(
+      devices.find((device) => device.providerToken === 'old-token'),
+    ).toMatchObject({
+      enabled: false,
+      failureReason: 'ReplacedByNewToken',
+    })
+    expect(
+      devices.find((device) => device.providerToken === 'new-token'),
+    ).toMatchObject({
+      enabled: true,
+      failureReason: undefined,
+    })
+  })
+
+  it('disables stale bundle registrations for the same logical app', async () => {
+    await service.upsertDeviceRegistration({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      platform: 'ios',
+      providerToken: 'old-bundle-token',
+      environment: 'sandbox',
+      locale: 'en',
+      deviceId: 'install-old',
+      bundleId: 'com.example.old',
+    })
+    await service.upsertDeviceRegistration({
+      appId: 'hong97-ios',
+      recipientId: 'user-1',
+      platform: 'ios',
+      providerToken: 'current-token',
+      environment: 'sandbox',
+      locale: 'en',
+      deviceId: 'install-current',
+      bundleId: 'com.example.hong97',
+    })
+
+    expect(
+      devices.find((device) => device.providerToken === 'old-bundle-token'),
+    ).toMatchObject({
+      enabled: false,
+      failureReason: 'ReplacedByBundleId',
+    })
+    expect(
+      devices.find((device) => device.providerToken === 'current-token'),
+    ).toMatchObject({
+      enabled: true,
+    })
   })
 
   it('disables a device by current recipient and device id', async () => {

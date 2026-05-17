@@ -83,7 +83,7 @@ export class PushService {
       setOnInsert.deviceId = randomUUID()
     }
 
-    return this.execQuery(
+    const device = await this.execQuery(
       this.pushDeviceModel.findOneAndUpdate(
         {
           appId: app.appId,
@@ -102,6 +102,65 @@ export class PushService {
         },
       ),
     )
+
+    await this.disableSupersededDevices(app, input, providerToken)
+
+    return device
+  }
+
+  private async disableSupersededDevices(
+    app: PushAppConfig,
+    input: UpsertPushDeviceInput,
+    providerToken: string,
+  ) {
+    const baseQuery = {
+      appId: app.appId,
+      platform: app.platform,
+      recipientId: input.recipientId,
+      environment: app.environment,
+      enabled: true,
+      providerToken: { $ne: providerToken },
+    }
+    const staleUpdate = {
+      $set: {
+        enabled: false,
+        lastFailureAt: new Date(),
+      },
+    }
+
+    if (input.deviceId) {
+      await this.execQuery(
+        this.pushDeviceModel.updateMany(
+          {
+            ...baseQuery,
+            deviceId: input.deviceId,
+          },
+          {
+            $set: {
+              ...staleUpdate.$set,
+              failureReason: 'ReplacedByNewToken',
+            },
+          },
+        ),
+      )
+    }
+
+    if (input.bundleId) {
+      await this.execQuery(
+        this.pushDeviceModel.updateMany(
+          {
+            ...baseQuery,
+            bundleId: { $ne: input.bundleId },
+          },
+          {
+            $set: {
+              ...staleUpdate.$set,
+              failureReason: 'ReplacedByBundleId',
+            },
+          },
+        ),
+      )
+    }
   }
 
   async disableDeviceRegistration(input: DisablePushDeviceInput) {
