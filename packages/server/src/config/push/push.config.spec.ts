@@ -10,6 +10,8 @@ describe('push config', () => {
     delete process.env.PUSH_APNS_HONG97_KEY_ID
     delete process.env.PUSH_APNS_HONG97_PRIVATE_KEY
     delete process.env.PUSH_APNS_HONG97_PRIVATE_KEY_PATH
+    delete process.env.PUSH_APNS_HONG97_CERT_PATH
+    delete process.env.PUSH_APNS_HONG97_CERT_KEY_PATH
   })
 
   afterAll(() => {
@@ -57,6 +59,7 @@ describe('push config', () => {
       apnsCredentials: {
         hong97: {
           credentialRef: 'hong97',
+          authType: 'token',
           teamId: 'TEAMID1234',
           keyId: 'KEYID1234',
           privateKeyPath: '/run/secrets/fake-apns-key.p8',
@@ -96,5 +99,30 @@ describe('push config', () => {
     process.env.PUSH_APNS_HONG97_KEY_ID = 'KEYID1234'
 
     expect(() => loadPushConfig()).toThrow(/private key/)
+  })
+
+  it('loads APNs certificate credentials from env', () => {
+    process.env.PUSH_APPS_JSON = JSON.stringify([
+      {
+        appId: 'walkcalc-ios',
+        platform: 'ios',
+        provider: 'apns',
+        topic: 'ltd.hong97.walkingcalc',
+        environment: 'production',
+        credentialRef: 'hong97',
+        defaultLocale: 'cn',
+      },
+    ])
+    process.env.PUSH_APNS_HONG97_CERT_PATH =
+      '/run/secrets/walkcalc-apns-prod.crt.pem'
+    process.env.PUSH_APNS_HONG97_CERT_KEY_PATH =
+      '/run/secrets/walkcalc-apns-prod.key'
+
+    expect(loadPushConfig().apnsCredentials.hong97).toEqual({
+      credentialRef: 'hong97',
+      authType: 'certificate',
+      certificatePath: '/run/secrets/walkcalc-apns-prod.crt.pem',
+      certificateKeyPath: '/run/secrets/walkcalc-apns-prod.key',
+    })
   })
 })

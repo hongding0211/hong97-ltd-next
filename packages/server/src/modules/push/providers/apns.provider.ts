@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type {
   ApnsCredentialConfig,
+  ApnsTokenCredentialConfig,
   PushConfig,
 } from '../../../config/push/push.config'
 import type { PushDeviceDocument } from '../schema/push-device.schema'
@@ -32,7 +33,7 @@ function base64Url(input: string | Buffer) {
 }
 
 export function createApnsProviderToken(
-  credential: ApnsCredentialConfig,
+  credential: ApnsTokenCredentialConfig,
   issuedAt = Math.floor(Date.now() / 1000),
 ) {
   const header = base64Url(
@@ -61,7 +62,7 @@ export function createApnsProviderToken(
   return `${signingInput}.${base64Url(signature)}`
 }
 
-export function resolvePrivateKey(credential: ApnsCredentialConfig) {
+export function resolvePrivateKey(credential: ApnsTokenCredentialConfig) {
   if (credential.privateKey) {
     return credential.privateKey.replace(/\\n/g, '\n')
   }
@@ -158,6 +159,7 @@ export class ApnsPushProvider implements PushProviderAdapter {
       path: `/3/device/${device.providerToken}`,
       headers: this.buildHeaders(message, credential),
       body: buildApnsPayload(message),
+      tls: this.buildTlsOptions(credential),
     })
     const reason =
       typeof response.body?.reason === 'string'
@@ -178,13 +180,16 @@ export class ApnsPushProvider implements PushProviderAdapter {
 
   private buildHeaders(message: PushMessage, credential: ApnsCredentialConfig) {
     const headers: Record<string, string> = {
-      authorization: `bearer ${this.getProviderToken(credential)}`,
       'apns-topic': message.app.topic,
       'apns-push-type':
         message.apns?.pushType ||
         (message.mode === 'silent' ? 'background' : 'alert'),
       'apns-priority':
         message.apns?.priority || (message.mode === 'silent' ? '5' : '10'),
+    }
+
+    if (credential.authType === 'token') {
+      headers.authorization = `bearer ${this.getProviderToken(credential)}`
     }
 
     if (message.apns?.collapseId) {
@@ -194,7 +199,18 @@ export class ApnsPushProvider implements PushProviderAdapter {
     return headers
   }
 
-  private getProviderToken(credential: ApnsCredentialConfig) {
+  private buildTlsOptions(credential: ApnsCredentialConfig) {
+    if (credential.authType !== 'certificate') {
+      return undefined
+    }
+
+    return {
+      cert: readFileSync(credential.certificatePath),
+      key: readFileSync(credential.certificateKeyPath),
+    }
+  }
+
+  private getProviderToken(credential: ApnsTokenCredentialConfig) {
     const cached = this.tokenCache.get(credential.credentialRef)
     if (cached && cached.expiresAt > Date.now()) {
       return cached.value

@@ -4,13 +4,25 @@ export type PushProviderName = 'apns'
 export type PushPlatform = 'ios'
 export type PushEnvironment = 'sandbox' | 'production'
 
-export interface ApnsCredentialConfig {
+export interface ApnsTokenCredentialConfig {
   credentialRef: string
+  authType: 'token'
   teamId: string
   keyId: string
   privateKey?: string
   privateKeyPath?: string
 }
+
+export interface ApnsCertificateCredentialConfig {
+  credentialRef: string
+  authType: 'certificate'
+  certificatePath: string
+  certificateKeyPath: string
+}
+
+export type ApnsCredentialConfig =
+  | ApnsTokenCredentialConfig
+  | ApnsCertificateCredentialConfig
 
 export interface PushAppConfig {
   appId: string
@@ -136,6 +148,28 @@ function loadApnsCredential(credentialRef: string): ApnsCredentialConfig {
   const keyId = process.env[envKey(credentialRef, 'KEY_ID')]
   const privateKey = process.env[envKey(credentialRef, 'PRIVATE_KEY')]
   const privateKeyPath = process.env[envKey(credentialRef, 'PRIVATE_KEY_PATH')]
+  const certificatePath = process.env[envKey(credentialRef, 'CERT_PATH')]
+  const certificateKeyPath = process.env[envKey(credentialRef, 'CERT_KEY_PATH')]
+
+  if (certificatePath || certificateKeyPath) {
+    if (!certificatePath) {
+      throw new Error(
+        `Missing APNs certificate path for credential ${credentialRef}`,
+      )
+    }
+    if (!certificateKeyPath) {
+      throw new Error(
+        `Missing APNs certificate key path for credential ${credentialRef}`,
+      )
+    }
+
+    return {
+      credentialRef,
+      authType: 'certificate',
+      certificatePath,
+      certificateKeyPath,
+    }
+  }
 
   if (!teamId) {
     throw new Error(`Missing APNs team ID for credential ${credentialRef}`)
@@ -151,6 +185,7 @@ function loadApnsCredential(credentialRef: string): ApnsCredentialConfig {
 
   return {
     credentialRef,
+    authType: 'token',
     teamId,
     keyId,
     privateKey,

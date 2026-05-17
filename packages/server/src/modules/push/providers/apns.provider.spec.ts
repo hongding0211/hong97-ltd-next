@@ -21,6 +21,7 @@ describe('APNs provider helpers', () => {
     const token = createApnsProviderToken(
       {
         credentialRef: 'hong97',
+        authType: 'token',
         teamId: 'TEAMID1234',
         keyId: 'KEYID1234',
         privateKey: privateKey(),
@@ -114,6 +115,7 @@ describe('ApnsPushProvider', () => {
                 apnsCredentials: {
                   hong97: {
                     credentialRef: 'hong97',
+                    authType: 'token',
                     teamId: 'TEAMID1234',
                     keyId: 'KEYID1234',
                     privateKey: privateKey(),
@@ -164,6 +166,58 @@ describe('ApnsPushProvider', () => {
     )
   })
 
+  it('sends certificate-authenticated APNs requests without bearer auth', async () => {
+    const httpClient = {
+      post: jest.fn(async () => ({
+        status: 200,
+        headers: {},
+      })),
+    }
+    const provider = new ApnsPushProvider(
+      {
+        get: jest.fn(() => ({
+          apps: [app],
+          apnsCredentials: {
+            hong97: {
+              credentialRef: 'hong97',
+              authType: 'certificate',
+              certificatePath: __filename,
+              certificateKeyPath: __filename,
+            },
+          },
+        })),
+      } as any,
+      httpClient as any,
+    )
+
+    await provider.send(
+      {
+        appId: 'hong97-ios',
+        recipientId: 'user-1',
+        deviceId: 'install-1',
+        providerToken: 'token-1',
+      } as any,
+      {
+        app,
+        type: 'comment.created',
+        mode: 'alert',
+        alert: { title: 'New comment', body: 'Hong commented' },
+      },
+    )
+
+    expect(httpClient.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          authorization: expect.any(String),
+        }),
+        tls: {
+          cert: expect.any(Buffer),
+          key: expect.any(Buffer),
+        },
+      }),
+    )
+  })
+
   it('maps provider invalid-token responses', async () => {
     const httpClient = {
       post: jest.fn(async () => ({
@@ -179,6 +233,7 @@ describe('ApnsPushProvider', () => {
           apnsCredentials: {
             hong97: {
               credentialRef: 'hong97',
+              authType: 'token',
               teamId: 'TEAMID1234',
               keyId: 'KEYID1234',
               privateKey: privateKey(),
