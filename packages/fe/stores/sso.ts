@@ -65,9 +65,17 @@ const shouldPassTokenToRedirect = (redirect: string) => {
   }
 }
 
-const withAccessTokenHash = (redirect: string, accessToken: string) => {
+const withAuthTokenHash = (
+  redirect: string,
+  tokens: { accessToken: string; refreshToken?: string },
+) => {
   const url = new URL(redirect)
-  url.hash = accessToken
+  url.hash = new URLSearchParams(
+    Object.entries(tokens).filter(([, value]) => Boolean(value)) as [
+      string,
+      string,
+    ][],
+  ).toString()
   return url.toString()
 }
 
@@ -136,7 +144,10 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
             if (redirect) {
               /** If a redirect url is provided, redirect to it */
               window.location.href = shouldPassTokenToRedirect(redirect)
-                ? withAccessTokenHash(redirect, loginRes.data.accessToken)
+                ? withAuthTokenHash(redirect, {
+                    accessToken: loginRes.data.accessToken,
+                    refreshToken: loginRes.data.refreshToken,
+                  })
                 : redirect
             } else {
               /** Otherwise, append the access token to the current url */

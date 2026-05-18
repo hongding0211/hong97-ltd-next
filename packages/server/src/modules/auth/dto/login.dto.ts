@@ -50,6 +50,7 @@ export class LoginDto {
 
 export class LoginResponseDto {
   accessToken!: string
+  refreshToken!: string
   accessTokenExpiresIn!: string
   refreshTokenExpiresIn!: string
   user!: UserResponseDto
