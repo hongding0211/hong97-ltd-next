@@ -26,7 +26,10 @@ import {
   PhoneLoginDto,
 } from './dto/login.dto'
 import { ModifyPasswordDto } from './dto/modify-password.dto'
-import { RefreshTokenDto } from './dto/refresh-token-dto'
+import {
+  RefreshTokenDto,
+  RefreshTokenRequestDto,
+} from './dto/refresh-token-dto'
 import {
   LocalRegisterDto,
   OAuthRegisterDto,
@@ -226,9 +229,9 @@ export class AuthService {
       const githubProfile = await this.fetchGithubProfile(githubAccessToken)
       const user = await this.upsertGithubUser(githubProfile)
       const session = await this.issueLoginSession(user, res)
-      return this.withAccessTokenForTokenRedirect(
+      return this.withTokensForTokenRedirect(
         this.resolveFrontendRedirect(state.redirect),
-        session.accessToken,
+        session,
       )
     } catch {
       return this.getOAuthFailureRedirect('github')
@@ -427,22 +430,25 @@ export class AuthService {
     return allowedSchemes.includes(url.protocol)
   }
 
-  private shouldPassAccessTokenToRedirect(url: URL): boolean {
+  private shouldPassTokensToRedirect(url: URL): boolean {
     const isInternalCallback =
       this.isAllowedFrontendRedirect(url) && url.pathname === '/auth/callback'
 
     return this.isAllowedAppRedirect(url) || isInternalCallback
   }
 
-  private withAccessTokenForTokenRedirect(
+  private withTokensForTokenRedirect(
     redirect: string,
-    accessToken: string,
+    session: { accessToken: string; refreshToken: string },
   ) {
     const redirectUrl = new URL(redirect)
-    if (!this.shouldPassAccessTokenToRedirect(redirectUrl)) {
+    if (!this.shouldPassTokensToRedirect(redirectUrl)) {
       return redirect
     }
-    redirectUrl.hash = accessToken
+    redirectUrl.hash = new URLSearchParams({
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+    }).toString()
     return redirectUrl.toString()
   }
 
@@ -604,8 +610,16 @@ export class AuthService {
     }
   }
 
-  private extractRefreshToken(req?: Request): string | undefined {
-    return req?.cookies?.[this.getRefreshCookieName()]
+  private extractRefreshToken(
+    req?: Request,
+    refreshTokenDto?: RefreshTokenRequestDto,
+  ): string | undefined {
+    const headerToken = req?.headers?.['x-refresh-token']
+    return (
+      refreshTokenDto?.refreshToken ||
+      (Array.isArray(headerToken) ? headerToken[0] : headerToken) ||
+      req?.cookies?.[this.getRefreshCookieName()]
+    )
   }
 
   private async validateRefreshSession(
@@ -650,6 +664,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
       accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
       refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
       user: this.userService.mapUserToResponse(user),
@@ -810,9 +825,13 @@ export class AuthService {
     }
   }
 
-  async refreshToken(req?: Request, res?: Response): Promise<RefreshTokenDto> {
+  async refreshToken(
+    req?: Request,
+    res?: Response,
+    refreshTokenDto?: RefreshTokenRequestDto,
+  ): Promise<RefreshTokenDto> {
     const session = await this.validateRefreshSession(
-      this.extractRefreshToken(req),
+      this.extractRefreshToken(req, refreshTokenDto),
     )
     const user = await this.userModel.findOne({ userId: session.userId })
     if (!user) {
@@ -830,6 +849,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
       accessTokenExpiresIn: this.getAccessTokenExpiresIn(),
       refreshTokenExpiresIn: this.getRefreshTokenExpiresIn(),
     }

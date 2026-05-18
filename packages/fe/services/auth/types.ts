@@ -7,7 +7,10 @@ import {
 import { HasLocalAuthResponseDto } from '@server/modules/auth/dto/hasLocalAuth.dto'
 import { LoginDto, LoginResponseDto } from '@server/modules/auth/dto/login.dto'
 import { ModifyPasswordDto } from '@server/modules/auth/dto/modify-password.dto'
-import { RefreshTokenDto } from '@server/modules/auth/dto/refresh-token-dto'
+import {
+  RefreshTokenDto,
+  RefreshTokenRequestDto,
+} from '@server/modules/auth/dto/refresh-token-dto'
 import { RegisterDto } from '@server/modules/auth/dto/register.dto'
 import { UpdateProfileDto } from '@server/modules/auth/dto/update-profile.dto'
 import { UserResponseDto } from '@server/modules/user/dto/user.response.dto'
@@ -27,7 +30,11 @@ export type AuthAPIS = {
     typeof ModifyPasswordDto,
     typeof UserResponseDto
   >
-  PostRefreshToken: API<undefined, undefined, typeof RefreshTokenDto>
+  PostRefreshToken: API<
+    undefined,
+    typeof RefreshTokenRequestDto,
+    typeof RefreshTokenDto
+  >
   GetHasLocalAuth: API<undefined, undefined, typeof HasLocalAuthResponseDto>
   GetIsAdmin: API<undefined, undefined, IsAdminResponseDto>
   PostLogout: API<undefined, undefined, null>

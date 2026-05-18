@@ -19,6 +19,7 @@ import { AuthService } from './auth.service'
 import { CreateApiTokenDto, DeleteApiTokenParamsDto } from './dto/api-token.dto'
 import { LoginDto } from './dto/login.dto'
 import { ModifyPasswordDto } from './dto/modify-password.dto'
+import { RefreshTokenRequestDto } from './dto/refresh-token-dto'
 import { RegisterDto } from './dto/register.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 
@@ -72,10 +73,11 @@ export class AuthController {
   @Post('refreshToken')
   @HttpCode(HttpStatus.OK)
   async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenRequestDto | undefined,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.authService.refreshToken(req, res)
+    return this.authService.refreshToken(req, res, refreshTokenDto)
   }
 
   @Patch('profile')

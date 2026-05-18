@@ -5,6 +5,7 @@ type RefreshTokenResponse = {
   isSuccess?: boolean
   data?: {
     accessToken?: string
+    refreshToken?: string
   }
 }
 
@@ -62,7 +63,11 @@ export default function AuthCallback() {
         }
 
         const callbackUrl = new URL(window.location.href)
-        callbackUrl.hash = accessToken
+        const hashParams = new URLSearchParams({ accessToken })
+        if (payload.data?.refreshToken) {
+          hashParams.set('refreshToken', payload.data.refreshToken)
+        }
+        callbackUrl.hash = hashParams.toString()
         const nextUrl = callbackUrl.toString()
         notifyNative(nextUrl)
         window.location.replace(nextUrl)

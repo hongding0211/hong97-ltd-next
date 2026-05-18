@@ -175,6 +175,7 @@ describe('AuthService token flow', () => {
 
     expect(result).toEqual({
       accessToken: 'access-1',
+      refreshToken: expect.any(String),
       accessTokenExpiresIn: '15m',
       refreshTokenExpiresIn: '30d',
       user: {
@@ -183,7 +184,6 @@ describe('AuthService token flow', () => {
       },
     })
     expect(result).not.toHaveProperty('token')
-    expect(result).not.toHaveProperty('refreshToken')
     expect(res.cookie).toHaveBeenCalledWith(
       'accessToken',
       'access-1',
@@ -288,10 +288,12 @@ describe('AuthService token flow', () => {
       res,
     )
 
-    expect(redirectUrl).toBe('walkingcalc://auth/callback#access-1')
+    expect(redirectUrl).toMatch(
+      /^walkingcalc:\/\/auth\/callback#accessToken=access-1&refreshToken=/,
+    )
   })
 
-  it('adds the access token hash to the internal native callback redirect after GitHub login', async () => {
+  it('adds token hashes to the internal native callback redirect after GitHub login', async () => {
     mockedAxios.post.mockResolvedValueOnce({
       data: { access_token: 'github-access-token' },
     })
@@ -321,7 +323,9 @@ describe('AuthService token flow', () => {
       res,
     )
 
-    expect(redirectUrl).toBe('http://localhost:3000/auth/callback#access-1')
+    expect(redirectUrl).toMatch(
+      /^http:\/\/localhost:3000\/auth\/callback#accessToken=access-1&refreshToken=/,
+    )
   })
 
   it('preserves loopback callback redirects that use 127.0.0.1 in local development', async () => {
@@ -354,7 +358,9 @@ describe('AuthService token flow', () => {
       res,
     )
 
-    expect(redirectUrl).toBe('http://127.0.0.1:3000/auth/callback#access-1')
+    expect(redirectUrl).toMatch(
+      /^http:\/\/127\.0\.0\.1:3000\/auth\/callback#accessToken=access-1&refreshToken=/,
+    )
   })
 
   it('creates a local user and issues session cookies after GitHub callback', async () => {
@@ -536,6 +542,7 @@ describe('AuthService token flow', () => {
 
     expect(result).toEqual({
       accessToken: 'access-2',
+      refreshToken: expect.not.stringMatching(firstRefreshToken),
       accessTokenExpiresIn: '15m',
       refreshTokenExpiresIn: '30d',
     })
@@ -551,6 +558,24 @@ describe('AuthService token flow', () => {
       expect.not.stringMatching(firstRefreshToken),
       expect.objectContaining({ httpOnly: true, path: '/' }),
     )
+  })
+
+  it('refreshes from a native refresh token body without requiring cookies', async () => {
+    await login()
+    const firstRefreshToken = getCookieValue('refreshToken')
+    res.cookie.mockClear()
+    res.clearCookie.mockClear()
+
+    const result = await service.refreshToken({ cookies: {} } as any, res, {
+      refreshToken: firstRefreshToken,
+    })
+
+    expect(result).toEqual({
+      accessToken: 'access-2',
+      refreshToken: expect.not.stringMatching(firstRefreshToken),
+      accessTokenExpiresIn: '15m',
+      refreshTokenExpiresIn: '30d',
+    })
   })
 
   it('rejects missing refresh tokens', async () => {
