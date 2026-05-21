@@ -26,7 +26,7 @@ export default function WalkCalcPrivacy() {
         />
       </Head>
       <AppLayout className="!px-0 !pt-0 sm:!px-5 sm:!pt-5">
-        <main className="box-border flex w-full max-w-full flex-col overflow-hidden px-4 pb-16 pt-7 sm:mx-auto sm:max-w-3xl sm:px-8 sm:pb-20 sm:pt-24">
+        <main className="box-border flex w-full max-w-full flex-col overflow-hidden px-4 pb-8 pt-7 sm:mx-auto sm:max-w-3xl sm:px-8 sm:pb-20 sm:pt-24">
           <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400 sm:mb-3 sm:text-sm">
             {t('eyebrow')}
           </p>
@@ -62,7 +62,7 @@ export default function WalkCalcPrivacy() {
             ))}
           </div>
 
-          <footer className="mt-14 border-t border-neutral-200 pt-6 text-sm text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+          <footer className="mt-12 text-sm leading-6 text-neutral-500 dark:text-neutral-500">
             {t('footer')}
           </footer>
         </main>
