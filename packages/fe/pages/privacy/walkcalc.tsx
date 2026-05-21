@@ -20,23 +20,27 @@ export default function WalkCalcPrivacy() {
       <Head>
         <title>{t('metaTitle')}</title>
         <meta name="description" content={t('intro')} />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
       </Head>
-      <AppLayout>
-        <main className="mx-auto flex w-full max-w-3xl flex-col px-5 pb-20 pt-16 sm:px-8 sm:pt-24">
-          <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
+      <AppLayout className="!px-0 !pt-0 sm:!px-5 sm:!pt-5">
+        <main className="box-border flex w-full max-w-full flex-col overflow-hidden px-4 pb-16 pt-7 sm:mx-auto sm:max-w-3xl sm:px-8 sm:pb-20 sm:pt-24">
+          <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400 sm:mb-3 sm:text-sm">
             {t('eyebrow')}
           </p>
-          <h1 className="text-4xl font-bold leading-tight text-neutral-950 dark:text-neutral-50 sm:text-5xl">
+          <h1 className="text-[2.35rem] font-bold leading-tight text-neutral-950 dark:text-neutral-50 sm:text-5xl">
             {t('title')}
           </h1>
-          <p className="mt-5 text-base leading-7 text-neutral-600 dark:text-neutral-300 sm:text-lg">
+          <p className="mt-4 text-base leading-7 text-neutral-600 dark:text-neutral-300 sm:mt-5 sm:text-lg">
             {t('intro')}
           </p>
           <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">
             {t('effectiveDate')}
           </p>
 
-          <div className="mt-12 space-y-10">
+          <div className="mt-9 space-y-8 sm:mt-12 sm:space-y-10">
             {sections.map((section) => (
               <section key={section.title}>
                 <h2 className="text-xl font-semibold text-neutral-950 dark:text-neutral-50">
