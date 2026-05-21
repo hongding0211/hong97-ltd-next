@@ -1,6 +1,7 @@
 import { RequestMethod, UnauthorizedException } from '@nestjs/common'
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants'
 import { AuthGuard } from '../../guards/auth.guard'
+import { WalkcalcPushService } from './walkcalc-push.service'
 import { WalkcalcController } from './walkcalc.controller'
 import { WalkcalcModule } from './walkcalc.module'
 import { WalkcalcService } from './walkcalc.service'
@@ -90,10 +91,10 @@ describe('Walkcalc migration boundaries', () => {
     ])
   })
 
-  it('does not wire push providers into the walkcalc module or service', () => {
+  it('does not wire legacy push providers into the walkcalc module or service', () => {
     const providers = Reflect.getMetadata('providers', WalkcalcModule) ?? []
 
-    expect(providers).toEqual([WalkcalcService])
+    expect(providers).toEqual([WalkcalcService, WalkcalcPushService])
     expect(WalkcalcService.toString()).not.toContain('BarkService')
     expect(WalkcalcService.toString()).not.toContain('APN')
     expect(WalkcalcService.toString()).not.toContain('apn')

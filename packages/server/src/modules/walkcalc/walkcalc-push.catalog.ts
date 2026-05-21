@@ -1,6 +1,6 @@
 import type { NotificationCatalogEntry } from '../push/catalog'
 
-const WALKCALC_GROUP_DATA_KEYS = [
+const WALKCALC_GROUP_BASE_KEYS = [
   'groupCode',
   'groupName',
   'actorUserId',
@@ -8,31 +8,50 @@ const WALKCALC_GROUP_DATA_KEYS = [
   'updateKind',
 ]
 
-const WALKCALC_RECORD_DATA_KEYS = [
-  ...WALKCALC_GROUP_DATA_KEYS,
+const WALKCALC_GROUP_REQUIRED_KEYS = [
+  ...WALKCALC_GROUP_BASE_KEYS,
+  'titleEn',
+  'bodyEn',
+  'titleCn',
+  'bodyCn',
+]
+
+const WALKCALC_RECORD_REQUIRED_KEYS = [
+  ...WALKCALC_GROUP_REQUIRED_KEYS,
   'recordId',
   'affectedUserIds',
+]
+
+const WALKCALC_RECORD_DATA_KEYS = [
+  ...WALKCALC_GROUP_BASE_KEYS,
+  'recordId',
+  'affectedUserIds',
+  'amount',
+  'displayNote',
+  'payerId',
+  'fromId',
+  'toId',
 ]
 
 export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.group.invited',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_GROUP_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_GROUP_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'Walkcalc invitation',
-          body: '{actorName} invited you to {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: 'Walkcalc 邀请',
-          body: '{actorName} 邀请你加入 {groupName}',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
-    dataKeys: WALKCALC_GROUP_DATA_KEYS,
+    dataKeys: WALKCALC_GROUP_BASE_KEYS,
     sound: 'default',
     apns: {
       pushType: 'alert',
@@ -44,21 +63,21 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.group.member-joined',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_GROUP_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_GROUP_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'New group member',
-          body: '{actorName} joined {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '新成员加入',
-          body: '{actorName} 加入了 {groupName}',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
-    dataKeys: WALKCALC_GROUP_DATA_KEYS,
+    dataKeys: WALKCALC_GROUP_BASE_KEYS,
     sound: 'default',
     apns: {
       pushType: 'alert',
@@ -70,21 +89,21 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.group.dismissed',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_GROUP_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_GROUP_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'Group dismissed',
-          body: '{actorName} dismissed {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '群组已解散',
-          body: '{actorName} 解散了 {groupName}',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
-    dataKeys: WALKCALC_GROUP_DATA_KEYS,
+    dataKeys: WALKCALC_GROUP_BASE_KEYS,
     sound: 'default',
     apns: {
       pushType: 'alert',
@@ -96,17 +115,17 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.record.created',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_RECORD_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_RECORD_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'New Walkcalc record',
-          body: '{actorName} added a record in {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '新账单',
-          body: '{actorName} 在 {groupName} 添加了一笔账单',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
@@ -123,17 +142,17 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.record.updated',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_RECORD_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_RECORD_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'Walkcalc record updated',
-          body: '{actorName} updated a record in {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '账单已更新',
-          body: '{actorName} 更新了 {groupName} 的一笔账单',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
@@ -150,17 +169,17 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.record.deleted',
     mode: 'alert',
-    requiredPayloadKeys: WALKCALC_RECORD_DATA_KEYS,
+    requiredPayloadKeys: WALKCALC_RECORD_REQUIRED_KEYS,
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'Walkcalc record deleted',
-          body: '{actorName} deleted a record in {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '账单已删除',
-          body: '{actorName} 删除了 {groupName} 的一笔账单',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },
@@ -184,17 +203,21 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
       'actorName',
       'updateKind',
       'affectedUserIds',
+      'titleEn',
+      'bodyEn',
+      'titleCn',
+      'bodyCn',
     ],
     localization: {
       strategy: 'serverResolved',
       templates: {
         en: {
-          title: 'Walkcalc debts resolved',
-          body: '{actorName} resolved debts in {groupName}',
+          title: '{titleEn}',
+          body: '{bodyEn}',
         },
         cn: {
-          title: '债务已结算',
-          body: '{actorName} 结算了 {groupName} 的债务',
+          title: '{titleCn}',
+          body: '{bodyCn}',
         },
       },
     },

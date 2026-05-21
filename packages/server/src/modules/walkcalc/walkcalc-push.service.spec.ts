@@ -30,7 +30,16 @@ describe('WalkcalcPushService', () => {
       {
         findUserById: jest.fn(async (userId: string) => ({
           userId,
-          profile: { name: userId === 'u1' ? 'Hong' : userId },
+          profile: {
+            name:
+              userId === 'u1'
+                ? 'Hong'
+                : userId === 'u2'
+                  ? 'Alice'
+                  : userId === 'u3'
+                    ? 'Bob'
+                    : userId,
+          },
         })),
       } as any,
       { get: jest.fn(() => 'walkcalc-ios') } as unknown as ConfigService,
@@ -50,6 +59,10 @@ describe('WalkcalcPushService', () => {
         actorUserId: 'u1',
         actorName: 'Hong',
         updateKind: 'record-created',
+        titleEn: 'Trip',
+        bodyEn: 'Alice paid ¥50.00 for you (Dinner)',
+        titleCn: 'Trip',
+        bodyCn: 'Alice 替你支付了 ¥50.00（Dinner）',
       }),
     ).toThrow(/recordId, affectedUserIds/)
 
@@ -72,6 +85,10 @@ describe('WalkcalcPushService', () => {
         actorUserId: 'u1',
         actorName: 'Hong',
         updateKind: 'record-created',
+        titleEn: 'Trip',
+        bodyEn: 'Alice paid ¥50.00 for you (Dinner)',
+        titleCn: 'Trip',
+        bodyCn: 'Alice 替你支付了 ¥50.00（Dinner）',
         recordId: 'record-1',
         affectedUserIds: ['u2'],
       },
@@ -80,8 +97,8 @@ describe('WalkcalcPushService', () => {
     expect(message).toMatchObject({
       mode: 'alert',
       alert: {
-        title: '新账单',
-        body: 'Hong 在 Trip 添加了一笔账单',
+        title: 'Trip',
+        body: 'Alice 替你支付了 ¥50.00（Dinner）',
       },
       data: {
         groupCode: 'AB12',
@@ -105,15 +122,21 @@ describe('WalkcalcPushService', () => {
       records: [
         {
           recordId: 'old-record',
+          type: 'expense',
+          amountValue: '10000',
           payerId: 'u1',
           participantIds: ['u2', 'temp-1'],
           involvedParticipantIds: ['u1', 'u2', 'temp-1'],
+          note: 'Dinner',
         },
         {
           recordId: 'new-record',
+          type: 'expense',
+          amountValue: '9000',
           payerId: 'u2',
           participantIds: ['u2', 'u3', 'temp-1'],
           involvedParticipantIds: ['u2', 'u3', 'temp-1'],
+          note: 'Taxi',
         },
       ],
     })
@@ -140,6 +163,90 @@ describe('WalkcalcPushService', () => {
     )
     expect(pushService.sendNotification).not.toHaveBeenCalledWith(
       expect.objectContaining({ recipientId: 'temp-1' }),
+    )
+  })
+
+  it('builds recipient-specific visible copy for expense records', async () => {
+    await service.notifyRecordCreated({
+      actorUserId: 'u1',
+      group,
+      memberUserIds,
+      records: [
+        {
+          recordId: 'record-1',
+          type: 'expense',
+          amountValue: '12000',
+          payerId: 'u2',
+          participantIds: ['u2', 'u3'],
+          involvedParticipantIds: ['u2', 'u3'],
+          note: 'Dinner',
+        },
+      ],
+    })
+
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u2',
+        payload: expect.objectContaining({
+          titleCn: 'Trip',
+          bodyCn: '你支付了 ¥120.00 给 Bob（Dinner）',
+          titleEn: 'Trip',
+          bodyEn: 'You paid ¥120.00 for Bob (Dinner)',
+        }),
+      }),
+    )
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u3',
+        payload: expect.objectContaining({
+          titleCn: 'Trip',
+          bodyCn: 'Alice 替你支付了 ¥60.00（Dinner）',
+          titleEn: 'Trip',
+          bodyEn: 'Alice paid ¥60.00 for you (Dinner)',
+        }),
+      }),
+    )
+  })
+
+  it('builds recipient-specific visible copy for settlement records', async () => {
+    await service.notifyRecordCreated({
+      actorUserId: 'u1',
+      group,
+      memberUserIds,
+      records: [
+        {
+          recordId: 'record-1',
+          type: 'settlement',
+          amountValue: '8000',
+          fromId: 'u2',
+          toId: 'u3',
+          participantIds: [],
+          involvedParticipantIds: ['u2', 'u3'],
+        },
+      ],
+    })
+
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u2',
+        payload: expect.objectContaining({
+          titleCn: 'Trip',
+          bodyCn: '你转给 Bob ¥80.00',
+          titleEn: 'Trip',
+          bodyEn: 'You transferred ¥80.00 to Bob',
+        }),
+      }),
+    )
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u3',
+        payload: expect.objectContaining({
+          titleCn: 'Trip',
+          bodyCn: 'Alice 转给你 ¥80.00',
+          titleEn: 'Trip',
+          bodyEn: 'Alice transferred ¥80.00 to you',
+        }),
+      }),
     )
   })
 
