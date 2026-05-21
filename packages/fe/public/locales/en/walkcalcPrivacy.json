@@ -1,0 +1,59 @@
+{
+  "metaTitle": "WalkCalc Privacy Policy",
+  "eyebrow": "WalkCalc",
+  "title": "Privacy Policy",
+  "intro": "WalkCalc helps people manage shared expenses. This policy explains what information is collected, how it is used, and the choices available to you.",
+  "effectiveDate": "Effective date: May 21, 2026",
+  "sections": [
+    {
+      "title": "Information We Collect",
+      "body": "WalkCalc collects the information needed to provide account access and shared expense features.",
+      "items": [
+        "Account information, such as your name, email address, user ID, profile details, and optional avatar.",
+        "App content you create or join, such as groups, participant names, expense records, amounts, categories, notes, balances, and settlement records.",
+        "Device and notification information, such as an app-specific device ID, platform, device model, system version, app version, and push notification token when notifications are enabled.",
+        "Optional location coordinates if you allow location access and choose to attach your current location to a new record.",
+        "Optional camera access when you scan a group QR code. WalkCalc does not store photos from QR scanning."
+      ]
+    },
+    {
+      "title": "How We Use Information",
+      "items": [
+        "To create and secure your account.",
+        "To sync groups, participants, expense records, balances, and settlement suggestions across devices.",
+        "To send app-related notifications when enabled.",
+        "To maintain, troubleshoot, and improve WalkCalc.",
+        "To prevent abuse, protect users, and comply with applicable legal obligations."
+      ]
+    },
+    {
+      "title": "Sharing",
+      "body": "WalkCalc does not sell your personal information and does not use it for third-party advertising or tracking. Information may be shared with the people in a group you join, because expense records and balances are collaborative app content. We may also use service providers that help host, secure, and operate the app, and we may disclose information when required by law."
+    },
+    {
+      "title": "Tracking and Advertising",
+      "body": "WalkCalc does not use the App Tracking Transparency identifier, does not track you across apps or websites owned by other companies, and does not display third-party advertising."
+    },
+    {
+      "title": "Retention",
+      "body": "We keep account and expense information for as long as needed to provide WalkCalc, maintain records you choose to keep, resolve disputes, protect the service, and meet legal requirements. You may delete or modify app content where the app provides those controls."
+    },
+    {
+      "title": "Security",
+      "body": "We use reasonable technical and organizational measures designed to protect WalkCalc data. No method of transmission or storage is completely secure, so we cannot guarantee absolute security."
+    },
+    {
+      "title": "Your Choices",
+      "items": [
+        "You can update profile information from the app's profile page.",
+        "You can choose whether to grant camera, location, and notification permissions in iOS Settings.",
+        "You can contact us to request help with access, correction, or deletion of your information."
+      ]
+    },
+    {
+      "title": "Contact",
+      "body": "If you have privacy questions about WalkCalc, contact us at keith.dh@hotmail.com."
+    }
+  ],
+  "footer": "This policy may be updated as WalkCalc changes. The latest version will be posted on this page."
+}
