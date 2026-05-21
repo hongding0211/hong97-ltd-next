@@ -1,6 +1,6 @@
 {
   "name": "hong97-ltd-next",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "private": true,
   "scripts": {
     "dev:fe": "pnpm --filter hong97-ltd-next-fe dev",
