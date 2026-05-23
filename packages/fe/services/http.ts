@@ -1,8 +1,9 @@
 import { isClient } from '@utils/run-on-server'
-import axios, { AxiosError, AxiosInstance } from 'axios'
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios'
 import { GetServerSidePropsContext } from 'next'
 import { i18n } from 'next-i18next'
 import { toast } from '../utils/toast'
+import { AUTH_REFRESH_EXCLUDED_PATHS } from './http.config'
 import { APIs, HttpResponse } from './types'
 import { BASE_URL, PATHS } from './urls'
 
@@ -13,14 +14,80 @@ export interface HttpOptions {
   enableOnlyWithAuthInServerSide?: boolean
 }
 
+type RetryableRequestConfig = AxiosRequestConfig & {
+  _skipAuthRefresh?: boolean
+  _retryAfterAuthRefresh?: boolean
+}
+
 class Http {
   private axiosInstance: AxiosInstance
+  private refreshTokenPromise?: Promise<void>
 
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: BASE_URL,
       withCredentials: true,
     })
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      async (err: AxiosError<any>) => {
+        if (!this.shouldRefreshToken(err)) {
+          return Promise.reject(err)
+        }
+
+        const originalRequest = err.config as RetryableRequestConfig
+        originalRequest._retryAfterAuthRefresh = true
+
+        try {
+          await this.refreshToken()
+          return this.axiosInstance.request(originalRequest)
+        } catch {
+          return Promise.reject(err)
+        }
+      },
+    )
+  }
+
+  private shouldRefreshToken(err: AxiosError<any>): boolean {
+    if (!isClient) {
+      return false
+    }
+
+    const request = err.config as RetryableRequestConfig | undefined
+    if (
+      !request ||
+      request._skipAuthRefresh ||
+      request._retryAfterAuthRefresh
+    ) {
+      return false
+    }
+
+    const url = request.url || ''
+    if (AUTH_REFRESH_EXCLUDED_PATHS.some((authUrl) => url.includes(authUrl))) {
+      return false
+    }
+
+    if (err.response?.status === 401) {
+      return true
+    }
+
+    return false
+  }
+
+  private async refreshToken(): Promise<void> {
+    if (!this.refreshTokenPromise) {
+      this.refreshTokenPromise = this.axiosInstance
+        .post(PATHS.PostRefreshToken, undefined, {
+          headers: this.getCustomHeaders(),
+          _skipAuthRefresh: true,
+        } as RetryableRequestConfig)
+        .then(() => undefined)
+        .finally(() => {
+          this.refreshTokenPromise = undefined
+        })
+    }
+
+    return this.refreshTokenPromise
   }
 
   private handler<K extends keyof APIs>(
