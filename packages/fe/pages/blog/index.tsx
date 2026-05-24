@@ -10,6 +10,7 @@ import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { IBlogConfig } from '../../types/blog'
@@ -92,22 +93,18 @@ export default function Blog(props: BlogProps) {
     setSearchTerm(e.target.value)
   }
 
-  const handleClickLink = (blog: IBlogConfig) => {
-    if (blog.hasPublished === false) {
-      // new version, using dynamic render
-      window.open(`${window.location.href}/edit?id=${blog.key}`, '_blank')
-    } else if (blog.hasPublished === true) {
-      window.open(`${window.location.href}/id/${blog.key}`, '_blank')
-    } else {
-      window.open(
-        `${window.location.href}/markdowns/${blog.key}?key=${blog.key}`,
-        '_blank',
-      )
-    }
-  }
+  const getBlogHref = (blog: IBlogConfig) => {
+    const blogKey = encodeURIComponent(blog.key)
 
-  const handleAdd = () => {
-    window.open(`${window.location.href}/edit`, '_blank')
+    if (blog.hasPublished === false) {
+      return `/blog/edit?id=${blogKey}`
+    }
+
+    if (blog.hasPublished === true) {
+      return `/blog/id/${blogKey}`
+    }
+
+    return `/blog/markdowns/${blogKey}?key=${blogKey}`
   }
 
   return (
@@ -149,13 +146,13 @@ export default function Blog(props: BlogProps) {
               />
             </div>
             {user?.isAdmin && (
-              <div
+              <Link
+                href="/blog/edit"
                 className="rounded-full flex items-center gap-x-1.5 bg-neutral-100 dark:bg-neutral-800 p-2 px-3 cursor-pointer"
-                onClick={handleAdd}
               >
                 <Pencil className="w-2.5 h-2.5" />
                 <span className="text-xs">{tBlog('newBlog')}</span>
-              </div>
+              </Link>
             )}
           </div>
           <div className="mx-2 mt-2 sm:mt-8">
@@ -175,9 +172,9 @@ export default function Blog(props: BlogProps) {
                 <div className="flex flex-col gap-y-3 sm:gap-y-4">
                   {groupedBlogsByYear?.[year].map?.((blog, _idx) => (
                     <div key={blog.key} className="flex flex-col">
-                      <a
+                      <Link
+                        href={getBlogHref(blog)}
                         className="flex items-center gap-x-1 cursor-pointer no-underline"
-                        onClick={() => handleClickLink(blog)}
                       >
                         <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
                           {blog.title}
@@ -192,7 +189,7 @@ export default function Blog(props: BlogProps) {
                             Non-Public
                           </Badge>
                         )}
-                      </a>
+                      </Link>
                       <span className="text-xs mt-[0.05rem] sm:mt-0 font-medium opacity-60">
                         {time.format(blog.time, 'dateWithoutYear')}
                         {blog.keywords?.length ? ', ' : ''}

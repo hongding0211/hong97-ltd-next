@@ -52,6 +52,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const [generatedTocItems, setGeneratedTocItems] = useState<BlogTocItem[]>([])
   const [showSidebarTitle, setShowSidebarTitle] = useState(false)
   const [isMobileTocOpen, setIsMobileTocOpen] = useState(false)
+  const [isCoverVisualVisible, setIsCoverVisualVisible] = useState(true)
   const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false)
   const effectiveTocItems = tocItems.length ? tocItems : generatedTocItems
   const firstEffectiveTocId = effectiveTocItems[0]?.id
@@ -86,6 +87,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   }, [meta])
 
   const loading = useRef(false)
+  const coverVisualRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const commentSectionRef = useRef<HTMLDivElement>(null)
@@ -367,7 +369,64 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   }
 
   const hasToc = effectiveTocItems.length > 0
-  const showMobileToc = hasToc && !isCommentSectionVisible
+  const showMobileToc =
+    hasToc && !isCoverVisualVisible && !isCommentSectionVisible
+
+  useEffect(() => {
+    const coverVisual = coverVisualRef.current
+
+    if (!coverVisual) {
+      setIsCoverVisualVisible(false)
+      return
+    }
+
+    const updateCoverVisibility = () => {
+      const rect = coverVisual.getBoundingClientRect()
+      const nextVisible = rect.bottom > 0 && rect.top < window.innerHeight
+
+      setIsCoverVisualVisible((current) =>
+        current === nextVisible ? current : nextVisible,
+      )
+
+      if (nextVisible) {
+        setIsMobileTocOpen(false)
+      }
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      updateCoverVisibility()
+      window.addEventListener('scroll', updateCoverVisibility, {
+        passive: true,
+      })
+      window.addEventListener('resize', updateCoverVisibility)
+
+      return () => {
+        window.removeEventListener('scroll', updateCoverVisibility)
+        window.removeEventListener('resize', updateCoverVisibility)
+      }
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const nextVisible = entry.isIntersecting
+
+        setIsCoverVisualVisible((current) =>
+          current === nextVisible ? current : nextVisible,
+        )
+
+        if (nextVisible) {
+          setIsMobileTocOpen(false)
+        }
+      },
+      { threshold: 0 },
+    )
+
+    observer.observe(coverVisual)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     const commentSection = commentSectionRef.current
@@ -420,6 +479,10 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       </Head>
       <AppLayout authRequired={meta.authRequired} simplifiedFooter>
         <div className="relative w-dvw mx-[-1.25rem] mt-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
+          <div
+            ref={coverVisualRef}
+            className="pointer-events-none absolute inset-0"
+          />
           {meta?.coverImg ? (
             <>
               <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
