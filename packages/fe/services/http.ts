@@ -146,6 +146,22 @@ class Http {
     }
   }
 
+  private getRequestBaseUrl(opts?: HttpOptions) {
+    if (isClient || !BASE_URL?.startsWith('/')) {
+      return BASE_URL
+    }
+
+    const headers = opts?.serverSideCtx?.req?.headers
+    const hostHeader = headers?.['x-forwarded-host'] || headers?.host
+    const protocolHeader = headers?.['x-forwarded-proto']
+    const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader
+    const protocol = Array.isArray(protocolHeader)
+      ? protocolHeader[0]
+      : protocolHeader || 'http'
+
+    return host ? `${protocol}://${host}${BASE_URL}` : BASE_URL
+  }
+
   private skipHandler(opts?: HttpOptions): boolean {
     if (
       !isClient &&
@@ -186,6 +202,7 @@ class Http {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.get(url, {
+        baseURL: this.getRequestBaseUrl(opts),
         params,
         headers: this.getCustomHeaders(opts),
       }),
@@ -205,6 +222,7 @@ class Http {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.post(url, body, {
+        baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
       }),
       opts,
@@ -223,6 +241,7 @@ class Http {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.put(url, body, {
+        baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
       }),
       opts,
@@ -240,6 +259,7 @@ class Http {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.delete(url, {
+        baseURL: this.getRequestBaseUrl(opts),
         params,
         headers: this.getCustomHeaders(opts),
       }),
@@ -259,6 +279,7 @@ class Http {
     const url = this.buildUrl(name, params)
     return this.handler<K>(
       this.axiosInstance.patch(url, body, {
+        baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
       }),
       opts,

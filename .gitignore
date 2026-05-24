@@ -25,6 +25,9 @@ node_modules
 
 cache.json
 
+# Local frontend playground pages
+/packages/fe/pages/playground/
+
 # Local credentials
 secrets/
 AGENTS.md

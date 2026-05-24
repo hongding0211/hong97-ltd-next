@@ -5,6 +5,7 @@ import { ImagesV2 } from '@components/common/images-v2'
 import { useUser } from '@hooks/useUser'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
+import { BlogTocItem, addHeadingAnchors } from '@utils/blog-toc'
 import { Meh } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -23,9 +24,10 @@ export default function Page(props: {
   meta: BlogAPIS['GetBlogMeta']['responseData']
   locale: string
   source: any
+  tocItems?: BlogTocItem[]
   fail?: boolean
 }) {
-  const { meta, locale, source, fail } = props
+  const { meta, locale, source, tocItems = [], fail } = props
 
   const { t } = useTranslation('blog')
 
@@ -50,7 +52,12 @@ export default function Page(props: {
   }
 
   return (
-    <BlogContainer meta={meta} locale={locale} isAdmin={isAdmin}>
+    <BlogContainer
+      meta={meta}
+      locale={locale}
+      isAdmin={isAdmin}
+      tocItems={tocItems}
+    >
       <MDXRemote {...source} components={components} />
     </BlogContainer>
   )
@@ -96,7 +103,11 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     return fallRes
   }
 
-  const source = await serialize(content?.data?.content, {
+  const { content: anchoredContent, tocItems } = addHeadingAnchors(
+    content.data.content,
+  )
+
+  const source = await serialize(anchoredContent, {
     mdxOptions: {
       rehypePlugins: [rehypeHighlight],
     },
@@ -108,6 +119,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       meta: meta?.data,
       locale,
       source,
+      tocItems,
     },
   }
 }

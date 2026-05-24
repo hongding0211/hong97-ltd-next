@@ -6,6 +6,11 @@ import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
+import {
+  type BlogTocItem,
+  normalizeBlogTocItems,
+  slugifyBlogHeading,
+} from '@utils/blog-toc'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { Eye, EyeClosed, Heart, Pencil, Share2 } from 'lucide-react'
@@ -14,6 +19,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import AppLayout from '../app-layout/AppLayout'
+import { BlogToc } from './BlogToc'
 import { CommentAction, Comments } from './common/comment/comments'
 import { CommentEdit } from './common/comment/edit'
 import MdxLayout from './mdx-layout'
@@ -23,12 +29,23 @@ interface IBlogContainer {
   meta: BlogAPIS['GetBlogMeta']['responseData']
   locale: string
   isAdmin?: boolean
+  tocItems?: BlogTocItem[]
 }
 
 export const BlogContainer: React.FC<IBlogContainer> = (props) => {
-  const { children, meta: initMeta, isAdmin: initIsAdmin } = props
+  const {
+    children,
+    meta: initMeta,
+    isAdmin: initIsAdmin,
+    tocItems = [],
+  } = props
 
   const [meta, setMeta] = useState(initMeta)
+  const [generatedTocItems, setGeneratedTocItems] = useState<BlogTocItem[]>([])
+  const [showSidebarTitle, setShowSidebarTitle] = useState(false)
+  const effectiveTocItems = tocItems.length ? tocItems : generatedTocItems
+  const firstEffectiveTocId = effectiveTocItems[0]?.id
+  const [activeTocId, setActiveTocId] = useState(firstEffectiveTocId)
 
   const [viewCnt, setViewCnt] = useState(meta.viewCount)
   const [likeCnt, setLikeCnt] = useState(meta.likeCount)
@@ -59,6 +76,10 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   }, [meta])
 
   const loading = useRef(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const scrollSpyLockRef = useRef<string | null>(null)
+  const scrollSpyUnlockTimerRef = useRef<number | undefined>(undefined)
 
   const { isLogin } = useLogin()
 
@@ -212,6 +233,130 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
     fetchComments()
   }, [fetchComments])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fallback TOC must regenerate when the rendered MDX content changes.
+  useEffect(() => {
+    if (tocItems.length || !contentRef.current) {
+      setGeneratedTocItems([])
+      return
+    }
+
+    const usedSlugs = new Map<string, number>()
+    const headings = Array.from(
+      contentRef.current.querySelectorAll('h1, h2, h3, h4'),
+    ) as HTMLHeadingElement[]
+
+    const nextTocItems = headings.map((heading, index) => {
+      const title = heading.textContent?.trim() || `Section ${index + 1}`
+      const baseSlug = slugifyBlogHeading(title) || `heading-${index + 1}`
+      const usedCount = usedSlugs.get(baseSlug) || 0
+      const id =
+        heading.id || (usedCount ? `${baseSlug}-${usedCount + 1}` : baseSlug)
+
+      usedSlugs.set(baseSlug, usedCount + 1)
+      heading.id = id
+
+      return {
+        id,
+        title,
+        level: Number(heading.tagName.slice(1)) as 1 | 2 | 3 | 4,
+      }
+    })
+
+    setGeneratedTocItems(normalizeBlogTocItems(nextTocItems))
+  }, [children, meta.blogId, tocItems.length])
+
+  useEffect(() => {
+    setActiveTocId(firstEffectiveTocId)
+  }, [firstEffectiveTocId])
+
+  useEffect(() => {
+    if (!firstEffectiveTocId) {
+      return
+    }
+
+    const headings = effectiveTocItems
+      .map((item) => document.getElementById(item.id))
+      .filter((heading): heading is HTMLElement => !!heading)
+
+    const updateActiveHeading = () => {
+      const offset = 180
+      const fallbackId = headings[0]?.id || firstEffectiveTocId
+      const titleBottom = titleRef.current?.getBoundingClientRect().bottom ?? 0
+      let nextActiveId = fallbackId
+
+      if (scrollSpyLockRef.current) {
+        const lockedHeading = document.getElementById(scrollSpyLockRef.current)
+        const lockedTop = lockedHeading?.getBoundingClientRect().top
+
+        if (lockedTop === undefined || Math.abs(lockedTop - 150) > 8) {
+          return
+        }
+
+        scrollSpyLockRef.current = null
+      }
+
+      for (const heading of headings) {
+        if (heading.getBoundingClientRect().top <= offset) {
+          nextActiveId = heading.id
+        } else {
+          break
+        }
+      }
+
+      setActiveTocId((currentId) =>
+        currentId === nextActiveId ? currentId : nextActiveId,
+      )
+      setShowSidebarTitle((current) => {
+        const next = titleBottom <= 130
+        return current === next ? current : next
+      })
+    }
+
+    updateActiveHeading()
+    window.addEventListener('scroll', updateActiveHeading, { passive: true })
+    window.addEventListener('resize', updateActiveHeading)
+
+    return () => {
+      window.removeEventListener('scroll', updateActiveHeading)
+      window.removeEventListener('resize', updateActiveHeading)
+      window.clearTimeout(scrollSpyUnlockTimerRef.current)
+    }
+  }, [effectiveTocItems, firstEffectiveTocId])
+
+  const scrollToHeading = (id: string) => {
+    const heading = document.getElementById(id)
+
+    if (!heading) {
+      return
+    }
+
+    const offset = 150
+    const top = heading.getBoundingClientRect().top + window.scrollY - offset
+
+    scrollSpyLockRef.current = id
+    window.clearTimeout(scrollSpyUnlockTimerRef.current)
+    scrollSpyUnlockTimerRef.current = window.setTimeout(() => {
+      scrollSpyLockRef.current = null
+    }, 900)
+
+    window.scrollTo({
+      top,
+      behavior: 'smooth',
+    })
+  }
+
+  const scrollToTitle = () => {
+    window.clearTimeout(scrollSpyUnlockTimerRef.current)
+    scrollSpyLockRef.current = null
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  const hasToc = effectiveTocItems.length > 0
+
   return (
     <>
       <Head>
@@ -259,9 +404,35 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             </div>
           )}
         </div>
-        <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center">
+        <div
+          className={cn(
+            'm-auto mt-[-1.5rem]',
+            hasToc
+              ? 'grid max-w-[1216px] grid-cols-1 gap-8 md:grid-cols-[140px_minmax(0,760px)_140px] md:gap-6 lg:grid-cols-[180px_minmax(0,760px)_180px] lg:gap-12'
+              : 'flex max-w-[1000px] justify-center',
+          )}
+        >
+          {hasToc && (
+            <aside className="hidden pt-[7rem] md:block">
+              <div className="sticky top-[8.5rem] lg:-translate-x-2">
+                <BlogToc
+                  items={effectiveTocItems}
+                  activeId={activeTocId}
+                  blogTitle={meta.blogTitle}
+                  showBlogTitle={showSidebarTitle}
+                  onTitleSelect={scrollToTitle}
+                  onSelect={(id) => {
+                    setActiveTocId(id)
+                    scrollToHeading(id)
+                  }}
+                />
+              </div>
+            </aside>
+          )}
           <MdxLayout>
-            <h1 className="!mb-2 !text-4xl">{meta.blogTitle}</h1>
+            <h1 ref={titleRef} className="!mb-2 !text-4xl">
+              {meta.blogTitle}
+            </h1>
             <figcaption className="m-0 !mt-1 text-sm flex flex-wrap items-center gap-x-1 gap-y-1">
               <span className="shrink-0 whitespace-nowrap">
                 {time.format(meta.time, 'datetimeShort')}
@@ -303,7 +474,9 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                 </>
               )}
             </figcaption>
-            <div className="pt-2">{children}</div>
+            <div className="pt-2" ref={contentRef}>
+              {children}
+            </div>
             {meta.lastUpdateAt &&
               meta.time &&
               Math.abs(meta.lastUpdateAt - meta.time) > 15000 && (
@@ -335,6 +508,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               <Comments comments={comments} onAction={handleCommentAction} />
             </div>
           </MdxLayout>
+          {hasToc && <div className="hidden md:block" />}
         </div>
       </AppLayout>
     </>
