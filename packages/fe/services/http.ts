@@ -17,7 +17,19 @@ export interface HttpOptions {
 type RetryableRequestConfig = AxiosRequestConfig & {
   _skipAuthRefresh?: boolean
   _retryAfterAuthRefresh?: boolean
+  _serverSideCtx?: GetServerSidePropsContext
 }
+
+type ServerAuthState = {
+  refreshTokenPromise?: Promise<void>
+}
+
+type ServerSideContextWithAuth = GetServerSidePropsContext & {
+  __hong97AuthState?: ServerAuthState
+}
+
+const ACCESS_TOKEN_COOKIE_NAME = 'accessToken'
+const REFRESH_TOKEN_COOKIE_NAME = 'refreshToken'
 
 class Http {
   private axiosInstance: AxiosInstance
@@ -39,7 +51,26 @@ class Http {
         originalRequest._retryAfterAuthRefresh = true
 
         try {
-          await this.refreshToken()
+          if (
+            !isClient &&
+            this.serverCookieChangedSinceRequest(originalRequest)
+          ) {
+            this.setRequestCookieHeader(
+              originalRequest,
+              this.getServerCookieHeader(originalRequest._serverSideCtx),
+            )
+            return this.axiosInstance.request(originalRequest)
+          }
+
+          await this.refreshToken({
+            serverSideCtx: originalRequest._serverSideCtx,
+          })
+          if (!isClient) {
+            this.setRequestCookieHeader(
+              originalRequest,
+              this.getServerCookieHeader(originalRequest._serverSideCtx),
+            )
+          }
           return this.axiosInstance.request(originalRequest)
         } catch {
           return Promise.reject(err)
@@ -49,10 +80,6 @@ class Http {
   }
 
   private shouldRefreshToken(err: AxiosError<any>): boolean {
-    if (!isClient) {
-      return false
-    }
-
     const request = err.config as RetryableRequestConfig | undefined
     if (
       !request ||
@@ -67,27 +94,58 @@ class Http {
       return false
     }
 
-    if (err.response?.status === 401) {
+    if (err.response?.status !== 401) {
+      return false
+    }
+
+    if (isClient) {
       return true
     }
 
-    return false
+    return this.hasServerAuthCookie(request._serverSideCtx)
   }
 
-  private async refreshToken(): Promise<void> {
-    if (!this.refreshTokenPromise) {
-      this.refreshTokenPromise = this.axiosInstance
+  private async refreshToken(opts?: HttpOptions): Promise<void> {
+    if (isClient) {
+      if (!this.refreshTokenPromise) {
+        this.refreshTokenPromise = this.axiosInstance
+          .post(PATHS.PostRefreshToken, undefined, {
+            headers: this.getCustomHeaders(),
+            _skipAuthRefresh: true,
+          } as RetryableRequestConfig)
+          .then(() => undefined)
+          .finally(() => {
+            this.refreshTokenPromise = undefined
+          })
+      }
+
+      return this.refreshTokenPromise
+    }
+
+    const ctx = opts?.serverSideCtx
+    if (!ctx) {
+      return Promise.reject(new Error('Missing SSR context for auth refresh'))
+    }
+
+    const authState = this.getServerAuthState(ctx)
+    if (!authState.refreshTokenPromise) {
+      authState.refreshTokenPromise = this.axiosInstance
         .post(PATHS.PostRefreshToken, undefined, {
-          headers: this.getCustomHeaders(),
+          baseURL: this.getRequestBaseUrl(opts),
+          headers: this.getCustomHeaders(opts),
           _skipAuthRefresh: true,
+          _serverSideCtx: ctx,
         } as RetryableRequestConfig)
+        .then((response) => {
+          this.applyServerSetCookies(ctx, response.headers?.['set-cookie'])
+        })
         .then(() => undefined)
         .finally(() => {
-          this.refreshTokenPromise = undefined
+          authState.refreshTokenPromise = undefined
         })
     }
 
-    return this.refreshTokenPromise
+    return authState.refreshTokenPromise
   }
 
   private handler<K extends keyof APIs>(
@@ -146,6 +204,160 @@ class Http {
     }
   }
 
+  private getServerAuthState(ctx: GetServerSidePropsContext): ServerAuthState {
+    const context = ctx as ServerSideContextWithAuth
+    if (!context.__hong97AuthState) {
+      context.__hong97AuthState = {}
+    }
+
+    return context.__hong97AuthState
+  }
+
+  private getServerCookieHeader(
+    ctx?: GetServerSidePropsContext,
+  ): string | undefined {
+    const cookieHeader = ctx?.req?.headers?.cookie
+    return Array.isArray(cookieHeader) ? cookieHeader.join('; ') : cookieHeader
+  }
+
+  private getRequestCookieHeader(
+    request?: RetryableRequestConfig,
+  ): string | undefined {
+    const headers = request?.headers as any
+    if (!headers) {
+      return undefined
+    }
+
+    return (
+      headers.cookie ||
+      headers.Cookie ||
+      (typeof headers.get === 'function'
+        ? headers.get('cookie') || headers.get('Cookie')
+        : undefined)
+    )
+  }
+
+  private setRequestCookieHeader(
+    request: RetryableRequestConfig,
+    cookieHeader?: string,
+  ): void {
+    if (!cookieHeader) {
+      return
+    }
+
+    request.headers = {
+      ...(request.headers as any),
+      cookie: cookieHeader,
+    }
+  }
+
+  private serverCookieChangedSinceRequest(
+    request: RetryableRequestConfig,
+  ): boolean {
+    const currentCookieHeader = this.getServerCookieHeader(
+      request._serverSideCtx,
+    )
+    const requestCookieHeader = this.getRequestCookieHeader(request)
+
+    return Boolean(
+      currentCookieHeader &&
+        requestCookieHeader &&
+        currentCookieHeader !== requestCookieHeader,
+    )
+  }
+
+  private parseCookieHeader(cookieHeader?: string): Record<string, string> {
+    if (!cookieHeader) {
+      return {}
+    }
+
+    return cookieHeader
+      .split(';')
+      .reduce<Record<string, string>>((cookies, part) => {
+        const cookie = part.trim()
+        const separatorIndex = cookie.indexOf('=')
+        if (separatorIndex <= 0) {
+          return cookies
+        }
+
+        cookies[cookie.slice(0, separatorIndex)] = cookie.slice(
+          separatorIndex + 1,
+        )
+        return cookies
+      }, {})
+  }
+
+  private serializeCookieHeader(cookies: Record<string, string>): string {
+    return Object.entries(cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ')
+  }
+
+  private normalizeHeaderValue(
+    header: string | string[] | number | undefined,
+  ): string[] {
+    if (!header) {
+      return []
+    }
+
+    return Array.isArray(header) ? header.map(String) : [String(header)]
+  }
+
+  private isExpiredSetCookie(setCookie: string): boolean {
+    return /;\s*(max-age=0|expires=thu,\s*01 jan 1970)/i.test(setCookie)
+  }
+
+  private applyServerSetCookies(
+    ctx: GetServerSidePropsContext,
+    setCookieHeader?: string | string[],
+  ): void {
+    const setCookies = this.normalizeHeaderValue(setCookieHeader)
+    if (!setCookies.length) {
+      return
+    }
+
+    const existingSetCookies = this.normalizeHeaderValue(
+      ctx.res.getHeader('Set-Cookie'),
+    )
+    ctx.res.setHeader('Set-Cookie', [...existingSetCookies, ...setCookies])
+
+    const cookies = this.parseCookieHeader(this.getServerCookieHeader(ctx))
+    setCookies.forEach((setCookie) => {
+      const cookiePair = setCookie.split(';')[0]
+      const separatorIndex = cookiePair.indexOf('=')
+      if (separatorIndex <= 0) {
+        return
+      }
+
+      const name = cookiePair.slice(0, separatorIndex)
+      const value = cookiePair.slice(separatorIndex + 1)
+      if (this.isExpiredSetCookie(setCookie)) {
+        delete cookies[name]
+      } else {
+        cookies[name] = value
+      }
+    })
+
+    const nextCookieHeader = this.serializeCookieHeader(cookies)
+    ctx.req.headers.cookie = nextCookieHeader
+    ;(ctx.req as any).cookies = cookies
+  }
+
+  private hasServerAuthCookie(ctx?: GetServerSidePropsContext): boolean {
+    if (!ctx) {
+      return false
+    }
+
+    const cookies = {
+      ...this.parseCookieHeader(this.getServerCookieHeader(ctx)),
+      ...(ctx.req.cookies || {}),
+    }
+
+    return Boolean(
+      cookies[ACCESS_TOKEN_COOKIE_NAME] || cookies[REFRESH_TOKEN_COOKIE_NAME],
+    )
+  }
+
   private getRequestBaseUrl(opts?: HttpOptions) {
     if (isClient || !BASE_URL?.startsWith('/')) {
       return BASE_URL
@@ -166,7 +378,7 @@ class Http {
     if (
       !isClient &&
       opts?.enableOnlyWithAuthInServerSide &&
-      !opts?.serverSideCtx?.req?.cookies?.accessToken
+      !this.hasServerAuthCookie(opts.serverSideCtx)
     ) {
       return true
     }
@@ -205,7 +417,8 @@ class Http {
         baseURL: this.getRequestBaseUrl(opts),
         params,
         headers: this.getCustomHeaders(opts),
-      }),
+        _serverSideCtx: opts?.serverSideCtx,
+      } as RetryableRequestConfig),
       opts,
     )
   }
@@ -224,7 +437,8 @@ class Http {
       this.axiosInstance.post(url, body, {
         baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
-      }),
+        _serverSideCtx: opts?.serverSideCtx,
+      } as RetryableRequestConfig),
       opts,
     )
   }
@@ -243,7 +457,8 @@ class Http {
       this.axiosInstance.put(url, body, {
         baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
-      }),
+        _serverSideCtx: opts?.serverSideCtx,
+      } as RetryableRequestConfig),
       opts,
     )
   }
@@ -262,7 +477,8 @@ class Http {
         baseURL: this.getRequestBaseUrl(opts),
         params,
         headers: this.getCustomHeaders(opts),
-      }),
+        _serverSideCtx: opts?.serverSideCtx,
+      } as RetryableRequestConfig),
       opts,
     )
   }
@@ -281,7 +497,8 @@ class Http {
       this.axiosInstance.patch(url, body, {
         baseURL: this.getRequestBaseUrl(opts),
         headers: this.getCustomHeaders(opts),
-      }),
+        _serverSideCtx: opts?.serverSideCtx,
+      } as RetryableRequestConfig),
       opts,
     )
   }
