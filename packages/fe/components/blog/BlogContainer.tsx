@@ -13,7 +13,15 @@ import {
 } from '@utils/blog-toc'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
-import { Eye, EyeClosed, Heart, Pencil, Share2 } from 'lucide-react'
+import {
+  Eye,
+  EyeClosed,
+  Heart,
+  Pencil,
+  Share2,
+  TableOfContents,
+  X,
+} from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -43,6 +51,8 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const [meta, setMeta] = useState(initMeta)
   const [generatedTocItems, setGeneratedTocItems] = useState<BlogTocItem[]>([])
   const [showSidebarTitle, setShowSidebarTitle] = useState(false)
+  const [isMobileTocOpen, setIsMobileTocOpen] = useState(false)
+  const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false)
   const effectiveTocItems = tocItems.length ? tocItems : generatedTocItems
   const firstEffectiveTocId = effectiveTocItems[0]?.id
   const [activeTocId, setActiveTocId] = useState(firstEffectiveTocId)
@@ -78,6 +88,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const loading = useRef(false)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const commentSectionRef = useRef<HTMLDivElement>(null)
   const scrollSpyLockRef = useRef<string | null>(null)
   const scrollSpyUnlockTimerRef = useRef<number | undefined>(undefined)
 
@@ -356,6 +367,47 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   }
 
   const hasToc = effectiveTocItems.length > 0
+  const showMobileToc = hasToc && !isCommentSectionVisible
+
+  useEffect(() => {
+    const commentSection = commentSectionRef.current
+
+    if (!commentSection) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const nextVisible = entry.isIntersecting
+
+        setIsCommentSectionVisible(nextVisible)
+
+        if (nextVisible) {
+          setIsMobileTocOpen(false)
+        }
+      },
+      { threshold: 0.01 },
+    )
+
+    observer.observe(commentSection)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileTocOpen) {
+      return
+    }
+
+    const originalBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow
+    }
+  }, [isMobileTocOpen])
 
   return (
     <>
@@ -503,13 +555,146 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                 <span className="text-sm">{viewCnt}</span>
               </div>
             </div>
-            <div className="flex flex-col mt-12">
+            <div ref={commentSectionRef} className="flex flex-col mt-12">
               <CommentEdit blogId={meta.blogId} onSubmit={fetchComments} />
               <Comments comments={comments} onAction={handleCommentAction} />
             </div>
           </MdxLayout>
           {hasToc && <div className="hidden md:block" />}
         </div>
+        {showMobileToc && (
+          <div
+            aria-hidden={!isMobileTocOpen}
+            className={cn(
+              'fixed inset-0 z-40 md:hidden transition-opacity duration-200 ease-out',
+              isMobileTocOpen
+                ? 'pointer-events-auto opacity-100'
+                : 'pointer-events-none opacity-0',
+            )}
+            onClick={() => setIsMobileTocOpen(false)}
+          >
+            <div
+              className={cn(
+                'fixed inset-x-0 bottom-0 overflow-visible',
+                'transition-opacity duration-200 ease-out',
+              )}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div
+                aria-hidden
+                className={cn(
+                  'pointer-events-none absolute inset-x-0 -top-24 bottom-0',
+                  'bg-white/85 backdrop-blur-xl backdrop-saturate-50 dark:bg-neutral-950/85',
+                  '[mask-image:linear-gradient(to_bottom,transparent_0,black_96px,black_100%)]',
+                )}
+              />
+              <div
+                className={cn(
+                  'relative flex w-full flex-col items-start overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+5rem)] pt-5',
+                  'transition-all duration-300 ease-out',
+                  isMobileTocOpen
+                    ? 'translate-y-0 opacity-100'
+                    : 'translate-y-2 opacity-0',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileTocOpen(false)
+                    scrollToTitle()
+                  }}
+                  className={cn(
+                    'mb-4 max-w-full truncate text-left text-xs font-medium uppercase leading-5 text-neutral-500 dark:text-neutral-400',
+                    'transition-all duration-300 ease-out',
+                    isMobileTocOpen
+                      ? 'translate-y-0 opacity-100'
+                      : 'translate-y-1 opacity-0',
+                  )}
+                  style={{ transitionDelay: isMobileTocOpen ? '40ms' : '0ms' }}
+                >
+                  {meta.blogTitle}
+                </button>
+                <ol className="w-full space-y-1.5">
+                  {effectiveTocItems.map((item, index) => {
+                    const active =
+                      (activeTocId || effectiveTocItems[0]?.id) === item.id
+
+                    return (
+                      <li
+                        key={item.id}
+                        className={cn(
+                          'transition-all duration-300 ease-out',
+                          isMobileTocOpen
+                            ? 'translate-y-0 opacity-100'
+                            : 'translate-y-1 opacity-0',
+                        )}
+                        style={{
+                          transitionDelay: isMobileTocOpen
+                            ? `${70 + index * 18}ms`
+                            : `${Math.max(
+                                0,
+                                (effectiveTocItems.length - index - 1) * 8,
+                              )}ms`,
+                        }}
+                      >
+                        <a
+                          href={`#${item.id}`}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            setActiveTocId(item.id)
+                            setIsMobileTocOpen(false)
+                            scrollToHeading(item.id)
+                          }}
+                          className={cn(
+                            'block truncate py-1 text-left text-[15px] leading-6 text-neutral-500 transition-colors dark:text-neutral-400',
+                            item.level === 2 && 'pl-4',
+                            active &&
+                              'font-medium text-neutral-900 dark:text-neutral-50',
+                          )}
+                        >
+                          {item.title}
+                        </a>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
+            </div>
+          </div>
+        )}
+        {showMobileToc && (
+          <button
+            type="button"
+            aria-label={isMobileTocOpen ? '关闭文章目录' : '打开文章目录'}
+            aria-expanded={isMobileTocOpen}
+            onClick={() => setIsMobileTocOpen((open) => !open)}
+            className={cn(
+              'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-50 md:hidden',
+              'flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300/90',
+              'bg-white/70 text-neutral-800 backdrop-blur',
+              'transition active:scale-95 dark:border-neutral-700/90 dark:bg-neutral-950/70 dark:text-neutral-100',
+            )}
+          >
+            <TableOfContents
+              className={cn(
+                'absolute h-[18px] w-[18px] transition-all duration-200 ease-out',
+                isMobileTocOpen
+                  ? 'rotate-90 scale-75 opacity-0'
+                  : 'rotate-0 scale-100 opacity-100',
+              )}
+              strokeWidth={1.8}
+            />
+            <X
+              className={cn(
+                'absolute h-[18px] w-[18px] transition-all duration-200 ease-out',
+                isMobileTocOpen
+                  ? 'rotate-0 scale-100 opacity-100'
+                  : '-rotate-90 scale-75 opacity-0',
+              )}
+              strokeWidth={1.8}
+            />
+          </button>
+        )}
       </AppLayout>
     </>
   )
