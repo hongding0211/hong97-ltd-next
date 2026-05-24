@@ -559,34 +559,38 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   key={k}
                 >{` #${k}`}</span>
               ))}
-              {showShareIcon && (
-                <div
-                  onClick={handleShare}
-                  className="shrink-0 rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                >
-                  <Share2 className="w-3 h-3" />
+              {(showShareIcon || showEdit) && (
+                <div className="flex shrink-0 items-center gap-x-1">
+                  {showShareIcon && (
+                    <div
+                      onClick={handleShare}
+                      className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                    >
+                      <Share2 className="w-3 h-3" />
+                    </div>
+                  )}
+                  {showEdit && (
+                    <>
+                      <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
+                        <Link
+                          href={`/blog/edit?id=${meta.blogId}`}
+                          className="w-full h-full absolute top-0 left-0"
+                        />
+                        <Pencil className="w-3 h-3" />
+                      </div>
+                      <div
+                        onClick={handleToggleHidden}
+                        className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                      >
+                        {meta?.hidden2Public ? (
+                          <EyeClosed className="w-3 h-3" />
+                        ) : (
+                          <Eye className="w-3 h-3" />
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-              {showEdit && (
-                <>
-                  <div className="shrink-0 rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
-                    <Link
-                      href={`/blog/edit?id=${meta.blogId}`}
-                      className="w-full h-full absolute top-0 left-0"
-                    />
-                    <Pencil className="w-3 h-3" />
-                  </div>
-                  <div
-                    onClick={handleToggleHidden}
-                    className="shrink-0 rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                  >
-                    {meta?.hidden2Public ? (
-                      <EyeClosed className="w-3 h-3" />
-                    ) : (
-                      <Eye className="w-3 h-3" />
-                    )}
-                  </div>
-                </>
               )}
             </figcaption>
             <div className="pt-2" ref={contentRef}>
