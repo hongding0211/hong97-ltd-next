@@ -578,6 +578,32 @@ describe('AuthService token flow', () => {
     })
   })
 
+  it('uses a current refresh cookie when a native body token is stale', async () => {
+    await login()
+    const firstRefreshToken = getCookieValue('refreshToken')
+
+    const firstRefresh = await service.refreshToken(
+      { cookies: { refreshToken: firstRefreshToken } } as any,
+      res,
+    )
+    res.cookie.mockClear()
+    res.clearCookie.mockClear()
+
+    const result = await service.refreshToken(
+      { cookies: { refreshToken: firstRefresh.refreshToken } } as any,
+      res,
+      { refreshToken: firstRefreshToken },
+    )
+
+    expect(result).toEqual({
+      accessToken: 'access-3',
+      refreshToken: expect.not.stringMatching(firstRefresh.refreshToken),
+      accessTokenExpiresIn: '15m',
+      refreshTokenExpiresIn: '30d',
+    })
+    expect(activeSession.revokedAt).toBeNull()
+  })
+
   it('rejects missing refresh tokens', async () => {
     await expect(
       service.refreshToken({ cookies: {} } as any, res),

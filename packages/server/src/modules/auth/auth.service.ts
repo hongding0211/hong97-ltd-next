@@ -614,16 +614,29 @@ export class AuthService {
     req?: Request,
     refreshTokenDto?: RefreshTokenRequestDto,
   ): string | undefined {
+    return this.extractRefreshTokenCandidates(req, refreshTokenDto)[0]
+  }
+
+  private extractRefreshTokenCandidates(
+    req?: Request,
+    refreshTokenDto?: RefreshTokenRequestDto,
+  ): string[] {
     const headerToken = req?.headers?.['x-refresh-token']
-    return (
-      refreshTokenDto?.refreshToken ||
-      (Array.isArray(headerToken) ? headerToken[0] : headerToken) ||
-      req?.cookies?.[this.getRefreshCookieName()]
-    )
+    return [
+      refreshTokenDto?.refreshToken,
+      Array.isArray(headerToken) ? headerToken[0] : headerToken,
+      req?.cookies?.[this.getRefreshCookieName()],
+    ].reduce<string[]>((tokens, token) => {
+      if (token && !tokens.includes(token)) {
+        tokens.push(token)
+      }
+      return tokens
+    }, [])
   }
 
   private async validateRefreshSession(
     refreshToken?: string,
+    opts: { revokeOnMismatch?: boolean } = {},
   ): Promise<RefreshSessionDocument> {
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token provided')
@@ -642,11 +655,35 @@ export class AuthService {
         this.hashRefreshToken(refreshToken),
       )
     ) {
-      await this.revokeRefreshSession(session)
+      if (opts.revokeOnMismatch ?? true) {
+        await this.revokeRefreshSession(session)
+      }
       throw new UnauthorizedException('Invalid refresh token')
     }
 
     return session
+  }
+
+  private async validateRefreshSessionFromCandidates(
+    refreshTokens: string[],
+  ): Promise<RefreshSessionDocument> {
+    if (refreshTokens.length <= 1) {
+      return this.validateRefreshSession(refreshTokens[0])
+    }
+
+    for (const refreshToken of refreshTokens) {
+      try {
+        return await this.validateRefreshSession(refreshToken, {
+          revokeOnMismatch: false,
+        })
+      } catch {
+        // A native client can carry a stale body token while its cookie jar has
+        // the rotated token. Try every presented credential before treating the
+        // request as refresh-token reuse.
+      }
+    }
+
+    return this.validateRefreshSession(refreshTokens[0])
   }
 
   private async issueLoginSession(user: UserDocument, res?: Response) {
@@ -830,8 +867,8 @@ export class AuthService {
     res?: Response,
     refreshTokenDto?: RefreshTokenRequestDto,
   ): Promise<RefreshTokenDto> {
-    const session = await this.validateRefreshSession(
-      this.extractRefreshToken(req, refreshTokenDto),
+    const session = await this.validateRefreshSessionFromCandidates(
+      this.extractRefreshTokenCandidates(req, refreshTokenDto),
     )
     const user = await this.userModel.findOne({ userId: session.userId })
     if (!user) {
