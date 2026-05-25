@@ -58,6 +58,20 @@ const readRedirectQuery = (redirect: string | string[] | undefined) => {
   return new URLSearchParams(window.location.search).get('redirect') ?? ''
 }
 
+const readSourceQuery = (source: string | string[] | undefined) => {
+  if (typeof source === 'string') {
+    return source
+  }
+  if (Array.isArray(source)) {
+    return source[0] ?? ''
+  }
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return new URLSearchParams(window.location.search).get('source') ?? ''
+}
+
 const Uploader: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
@@ -241,6 +255,10 @@ function Login() {
       ? router.query.github_error
       : ''
   }, [router.query.github_error])
+
+  const isWalkcalcSource = useMemo(() => {
+    return readSourceQuery(router.query.source) === 'walkcalc'
+  }, [router.query.source])
 
   const handleGithubLogin = useCallback(() => {
     setGithubLoading(true)
@@ -533,6 +551,14 @@ function Login() {
             </CardContent>
             <CardFooter>
               <div className="w-full flex-col">
+                {isWalkcalcSource && (
+                  <a
+                    href="/privacy/walkcalc"
+                    className="mb-3 block text-xs font-medium text-neutral-600 underline-offset-4 hover:underline dark:text-neutral-300"
+                  >
+                    {t('privacyPolicy')}
+                  </a>
+                )}
                 <div className="flex w-full items-center justify-between">
                   <CardDescription className="text-xs">
                     Copyright © {new Date().getFullYear()} hong97.ltd

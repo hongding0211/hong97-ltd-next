@@ -17,6 +17,7 @@ import { RootOnly } from '../../decorators/root-only.decorator'
 import { UserId } from '../../decorators/user-id.decorator'
 import { AuthService } from './auth.service'
 import { CreateApiTokenDto, DeleteApiTokenParamsDto } from './dto/api-token.dto'
+import { AppleNativeLoginDto } from './dto/apple-native-login.dto'
 import { LoginDto } from './dto/login.dto'
 import { ModifyPasswordDto } from './dto/modify-password.dto'
 import { RefreshTokenRequestDto } from './dto/refresh-token-dto'
@@ -40,6 +41,15 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.login(loginDto, res)
+  }
+
+  @Post('apple/native')
+  @HttpCode(HttpStatus.OK)
+  async appleNativeLogin(
+    @Body() appleLoginDto: AppleNativeLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.loginWithAppleNative(appleLoginDto, res)
   }
 
   @Get('github')
@@ -114,6 +124,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     return this.authService.logout(req, res)
+  }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(
+    @UserId() userId: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.deleteAccount(userId, req, res)
   }
 
   @Get('api-tokens')

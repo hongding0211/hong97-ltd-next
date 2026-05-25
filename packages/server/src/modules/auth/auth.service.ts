@@ -1,4 +1,12 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto'
+import {
+  createHash,
+  createHmac,
+  createPublicKey,
+  randomBytes,
+  timingSafeEqual,
+  verify as verifySignature,
+} from 'crypto'
+import type { JsonWebKey } from 'crypto'
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
@@ -11,13 +19,28 @@ import { v4 as uuidv4 } from 'uuid'
 import { GeneralException } from '../../exceptions/general-exceptions'
 import { ServiceResponse } from '../../interceptors/response/types'
 import { parseJwtExpiresInToMs } from '../../utils/time-parser'
+import {
+  PushDevice,
+  PushDeviceDocument,
+} from '../push/schema/push-device.schema'
 import { User, UserDocument } from '../user/schema/user.schema'
 import { UserService } from '../user/user.service'
+import {
+  WalkcalcGroup,
+  WalkcalcGroupDocument,
+  WalkcalcParticipant,
+  WalkcalcParticipantDocument,
+  WalkcalcParticipantProjection,
+  WalkcalcParticipantProjectionDocument,
+  WalkcalcRecord,
+  WalkcalcRecordDocument,
+} from '../walkcalc/schema/walkcalc-group.schema'
 import {
   ApiTokenResponseDto,
   CreateApiTokenDto,
   CreateApiTokenResponseDto,
 } from './dto/api-token.dto'
+import { AppleNativeLoginDto } from './dto/apple-native-login.dto'
 import { HasLocalAuthResponseDto } from './dto/hasLocalAuth.dto'
 import {
   LocalLoginDto,
@@ -89,13 +112,49 @@ interface GithubProfile {
   email?: string
 }
 
+interface AppleJwk {
+  kid: string
+  kty: string
+  alg: string
+  use: string
+  n: string
+  e: string
+}
+
+interface AppleIdentityPayload {
+  iss?: string
+  aud?: string | string[]
+  exp?: number
+  sub?: string
+  email?: string
+  nonce?: string
+}
+
+interface AppleProfile {
+  subject: string
+  email?: string
+  name?: string
+}
+
 @Injectable()
 export class AuthService {
+  private appleJwksCache?: { expiresAt: number; keys: AppleJwk[] }
+
   constructor(
     @InjectModel(ApiToken.name) private apiTokenModel: Model<ApiTokenDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(RefreshSession.name)
     private refreshSessionModel: Model<RefreshSessionDocument>,
+    @InjectModel(PushDevice.name)
+    private pushDeviceModel: Model<PushDeviceDocument>,
+    @InjectModel(WalkcalcGroup.name)
+    private walkcalcGroupModel: Model<WalkcalcGroupDocument>,
+    @InjectModel(WalkcalcParticipant.name)
+    private walkcalcParticipantModel: Model<WalkcalcParticipantDocument>,
+    @InjectModel(WalkcalcParticipantProjection.name)
+    private walkcalcProjectionModel: Model<WalkcalcParticipantProjectionDocument>,
+    @InjectModel(WalkcalcRecord.name)
+    private walkcalcRecordModel: Model<WalkcalcRecordDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private userService: UserService,
@@ -189,6 +248,15 @@ export class AuthService {
     }
   }
 
+  async loginWithAppleNative(
+    appleLoginDto: AppleNativeLoginDto,
+    res?: Response,
+  ) {
+    const appleProfile = await this.verifyAppleNativeCredential(appleLoginDto)
+    const user = await this.upsertAppleUser(appleProfile)
+    return this.issueLoginSession(user, res)
+  }
+
   getGithubAuthorizationRedirect(redirect?: string): string {
     const config = this.getGithubOAuthConfig()
     if (!this.isGithubOAuthConfigured(config)) {
@@ -279,6 +347,12 @@ export class AuthService {
         this.configService.get<string>('auth.github.callbackUrl') || '',
       frontendUrl: this.getFrontendUrl(),
     }
+  }
+
+  private getAppleAudiences(): string[] {
+    const configured =
+      this.configService.get<string[]>('auth.apple.audiences') || []
+    return configured.length ? configured : ['ltd.hong97.walkcalc']
   }
 
   private getFrontendUrl(): string {
@@ -456,6 +530,106 @@ export class AuthService {
     const url = new URL('/sso/login', this.getFrontendUrl())
     url.searchParams.set('github_error', reason)
     return url.toString()
+  }
+
+  private async verifyAppleNativeCredential(
+    dto: AppleNativeLoginDto,
+  ): Promise<AppleProfile> {
+    const payload = await this.verifyAppleIdentityToken(dto.identityToken)
+    const audiences = this.getAppleAudiences()
+    const tokenAudiences = Array.isArray(payload.aud)
+      ? payload.aud
+      : payload.aud
+        ? [payload.aud]
+        : []
+
+    if (
+      payload.iss !== 'https://appleid.apple.com' ||
+      !payload.sub ||
+      !payload.exp ||
+      payload.exp * 1000 <= Date.now() ||
+      !tokenAudiences.some((audience) => audiences.includes(audience))
+    ) {
+      throw new UnauthorizedException('Invalid Apple identity token')
+    }
+
+    if (dto.nonce) {
+      const expectedNonce = createHash('sha256').update(dto.nonce).digest('hex')
+      if (payload.nonce !== expectedNonce) {
+        throw new UnauthorizedException('Invalid Apple nonce')
+      }
+    }
+
+    return {
+      subject: payload.sub,
+      email: payload.email,
+      name: dto.fullName?.trim() || undefined,
+    }
+  }
+
+  private async verifyAppleIdentityToken(
+    identityToken: string,
+  ): Promise<AppleIdentityPayload> {
+    const parts = identityToken.split('.')
+    if (parts.length !== 3) {
+      throw new UnauthorizedException('Invalid Apple identity token')
+    }
+
+    const [encodedHeader, encodedPayload, encodedSignature] = parts
+    const header = this.decodeJwtPart<{ kid?: string; alg?: string }>(
+      encodedHeader,
+    )
+    if (header.alg !== 'RS256' || !header.kid) {
+      throw new UnauthorizedException('Invalid Apple identity token')
+    }
+
+    const jwk = (await this.getAppleJwks()).find(
+      (candidate) => candidate.kid === header.kid,
+    )
+    if (!jwk) {
+      throw new UnauthorizedException('Unknown Apple signing key')
+    }
+
+    const publicKey = createPublicKey({
+      key: jwk as unknown as JsonWebKey,
+      format: 'jwk',
+    })
+    const signature = Buffer.from(encodedSignature, 'base64url')
+    const signingInput = Buffer.from(`${encodedHeader}.${encodedPayload}`)
+    const verified = verifySignature(
+      'RSA-SHA256',
+      signingInput,
+      publicKey,
+      signature,
+    )
+    if (!verified) {
+      throw new UnauthorizedException('Invalid Apple identity token')
+    }
+
+    return this.decodeJwtPart<AppleIdentityPayload>(encodedPayload)
+  }
+
+  private decodeJwtPart<T>(encoded: string): T {
+    try {
+      return JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as T
+    } catch {
+      throw new UnauthorizedException('Invalid Apple identity token')
+    }
+  }
+
+  private async getAppleJwks(): Promise<AppleJwk[]> {
+    if (this.appleJwksCache && this.appleJwksCache.expiresAt > Date.now()) {
+      return this.appleJwksCache.keys
+    }
+
+    const response = await axios.get<{ keys: AppleJwk[] }>(
+      'https://appleid.apple.com/auth/keys',
+    )
+    this.appleJwksCache = {
+      keys: response.data.keys,
+      expiresAt: Date.now() + 60 * 60 * 1000,
+    }
+    return response.data.keys
   }
 
   private generateAccessToken(user: UserDocument): string {
@@ -851,6 +1025,52 @@ export class AuthService {
     return user
   }
 
+  private async upsertAppleUser(profile: AppleProfile): Promise<UserDocument> {
+    const appleAuthData = {
+      subject: profile.subject,
+      email: profile.email,
+      name: profile.name,
+      lastSyncedAt: new Date(),
+    }
+    const existingUser = await this.userModel.findOne({
+      'authData.apple.subject': profile.subject,
+    })
+
+    if (existingUser) {
+      existingUser.authData = {
+        ...(existingUser.authData || {}),
+        apple: appleAuthData,
+      }
+      existingUser.authProviders = existingUser.authProviders || []
+      if (!existingUser.authProviders.includes('apple')) {
+        existingUser.authProviders.push('apple')
+      }
+      if (profile.name && !existingUser.profile?.name) {
+        existingUser.profile = {
+          ...(existingUser.profile || {}),
+          name: profile.name,
+        } as any
+      }
+      return existingUser
+    }
+
+    const fallbackName =
+      profile.name || profile.email?.split('@')[0] || 'Apple User'
+    const user = new this.userModel({
+      userId: uuidv4(),
+      profile: {
+        name: fallbackName,
+      },
+      authProviders: ['apple'],
+      authData: {
+        apple: appleAuthData,
+      },
+      isActive: true,
+    })
+
+    return user
+  }
+
   async info(userId: string) {
     const user = await this.userModel.findOne({ userId })
     if (!user) {
@@ -908,6 +1128,161 @@ export class AuthService {
     }
 
     return {}
+  }
+
+  async deleteAccount(
+    userId: string,
+    req?: Request,
+    res?: Response,
+  ): Promise<Record<string, never>> {
+    const user = await this.userModel.findOne({ userId })
+    if (!user) {
+      throw new GeneralException('auth.userNotFound')
+    }
+
+    const deletedAccountId = '__deleted_account__'
+    const deletedAccountName = 'Deleted account'
+    const now = Date.now()
+    const linkedParticipants = await this.walkcalcParticipantModel
+      .find({ kind: 'user', userId })
+      .exec()
+
+    await Promise.all(
+      linkedParticipants.map((participant) =>
+        this.anonymizeWalkcalcParticipant(participant, deletedAccountName, now),
+      ),
+    )
+
+    await Promise.all([
+      this.refreshSessionModel.deleteMany({ userId }).exec(),
+      this.apiTokenModel.deleteMany({ userId }).exec(),
+      this.pushDeviceModel.deleteMany({ recipientId: userId }).exec(),
+      this.walkcalcGroupModel
+        .updateMany(
+          { archivedUserIds: userId },
+          { $pull: { archivedUserIds: userId } },
+        )
+        .exec(),
+      this.walkcalcGroupModel
+        .updateMany(
+          { ownerUserId: userId },
+          { $set: { ownerUserId: deletedAccountId, modifiedAt: now } },
+        )
+        .exec(),
+      this.walkcalcGroupModel
+        .updateMany(
+          { deletedBy: userId },
+          { $set: { deletedBy: deletedAccountId } },
+        )
+        .exec(),
+      this.walkcalcRecordModel
+        .updateMany(
+          { createdBy: userId },
+          { $set: { createdBy: deletedAccountId } },
+        )
+        .exec(),
+      this.walkcalcRecordModel
+        .updateMany(
+          { updatedBy: userId },
+          { $set: { updatedBy: deletedAccountId } },
+        )
+        .exec(),
+      this.userModel.deleteOne({ userId }).exec(),
+    ])
+
+    if (req) {
+      await this.logout(req, res)
+    } else if (res) {
+      this.clearAuthCookies(res)
+    }
+
+    return {}
+  }
+
+  private async anonymizeWalkcalcParticipant(
+    participant: WalkcalcParticipantDocument,
+    deletedAccountName: string,
+    now: number,
+  ): Promise<void> {
+    const oldParticipantId = participant.participantId
+    const replacementParticipantId = uuidv4()
+    const groupCode = participant.groupCode
+    const replaceArrayItem = (fieldName: string) => ({
+      $map: {
+        input: `$${fieldName}`,
+        as: 'id',
+        in: {
+          $cond: [
+            { $eq: ['$$id', oldParticipantId] },
+            replacementParticipantId,
+            '$$id',
+          ],
+        },
+      },
+    })
+
+    await Promise.all([
+      this.walkcalcParticipantModel
+        .updateOne(
+          { _id: participant._id },
+          {
+            $set: {
+              participantId: replacementParticipantId,
+              kind: 'tempUser',
+              tempName: deletedAccountName,
+              modifiedAt: now,
+            },
+            $unset: { userId: '' },
+          },
+        )
+        .exec(),
+      this.walkcalcProjectionModel
+        .updateOne(
+          { groupCode, participantId: oldParticipantId },
+          {
+            $set: {
+              participantId: replacementParticipantId,
+              kind: 'tempUser',
+              modifiedAt: now,
+            },
+            $unset: { userId: '' },
+          },
+        )
+        .exec(),
+      this.walkcalcRecordModel
+        .updateMany({ groupCode, involvedParticipantIds: oldParticipantId }, [
+          {
+            $set: {
+              payerId: {
+                $cond: [
+                  { $eq: ['$payerId', oldParticipantId] },
+                  replacementParticipantId,
+                  '$payerId',
+                ],
+              },
+              fromId: {
+                $cond: [
+                  { $eq: ['$fromId', oldParticipantId] },
+                  replacementParticipantId,
+                  '$fromId',
+                ],
+              },
+              toId: {
+                $cond: [
+                  { $eq: ['$toId', oldParticipantId] },
+                  replacementParticipantId,
+                  '$toId',
+                ],
+              },
+              participantIds: replaceArrayItem('participantIds'),
+              involvedParticipantIds: replaceArrayItem(
+                'involvedParticipantIds',
+              ),
+            },
+          },
+        ] as any)
+        .exec(),
+    ])
   }
 
   async createApiToken(

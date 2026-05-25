@@ -135,6 +135,11 @@ describe('AuthService token flow', () => {
       apiTokenModel,
       userModel,
       refreshSessionModel,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
       {
         sign: jest.fn(() => `access-${++accessTokenCount}`),
       } as any,

@@ -16,6 +16,7 @@
   "redirectDescription": "正在处理你的登录请求，请稍等片刻...",
   "githubLogin": "Continue with GitHub",
   "githubLoginFailed": "GitHub 登录失败，请重试。",
+  "privacyPolicy": "隐私政策",
   "continueWith": "Continue with",
   "optional": "可选",
   "upload": "上传"

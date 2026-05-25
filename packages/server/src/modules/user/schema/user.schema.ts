@@ -3,7 +3,7 @@ import { Document } from 'mongoose'
 
 export type UserDocument = User & Document
 
-export type AuthProvider = 'local' | 'github' | 'phone'
+export type AuthProvider = 'local' | 'github' | 'phone' | 'apple'
 
 @Schema({ timestamps: true })
 export class UserProfile {
@@ -57,6 +57,12 @@ export class User {
       email?: string
       lastSyncedAt?: Date
     }
+    apple?: {
+      subject: string
+      email?: string
+      name?: string
+      lastSyncedAt?: Date
+    }
     phone?: {
       phoneNumber: string
       isVerified: boolean
@@ -72,5 +78,9 @@ export const UserSchema = SchemaFactory.createForClass(User)
 
 UserSchema.index(
   { 'authData.github.githubId': 1 },
+  { unique: true, sparse: true },
+)
+UserSchema.index(
+  { 'authData.apple.subject': 1 },
   { unique: true, sparse: true },
 )

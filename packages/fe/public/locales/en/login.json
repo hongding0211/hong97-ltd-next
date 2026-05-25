@@ -16,6 +16,7 @@
   "redirectDescription": "We are handling your login process. It won't take long.",
   "githubLogin": "Continue with GitHub",
   "githubLoginFailed": "GitHub login failed. Please try again.",
+  "privacyPolicy": "Privacy Policy",
   "continueWith": "Continue with",
   "optional": "Optional",
   "upload": "Upload"

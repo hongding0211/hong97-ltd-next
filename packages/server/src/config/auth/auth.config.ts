@@ -22,6 +22,17 @@ export default registerAs('auth', () => ({
     clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
     callbackUrl: process.env.GITHUB_OAUTH_CALLBACK_URL || '',
   },
+  apple: {
+    audiences: (
+      process.env.APPLE_SIGN_IN_AUDIENCES ||
+      process.env.APPLE_CLIENT_ID ||
+      process.env.IOS_BUNDLE_ID ||
+      'ltd.hong97.walkcalc'
+    )
+      .split(',')
+      .map((audience) => audience.trim())
+      .filter(Boolean),
+  },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   allowedRedirectOrigins: process.env.AUTH_ALLOWED_REDIRECT_ORIGINS,
   allowedRedirectSchemes: process.env.AUTH_ALLOWED_REDIRECT_SCHEMES,
@@ -30,6 +41,7 @@ export default registerAs('auth', () => ({
     '/auth/register',
     '/auth/logout',
     '/auth/refreshToken',
+    '/auth/apple/native',
     '/auth/github',
     '/auth/github/callback',
     '/oss/requestUpload',

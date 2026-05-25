@@ -83,6 +83,11 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
       { create: jest.fn(), find: jest.fn(), findOne: jest.fn() } as any,
       userModel as any,
       refreshSessionModel as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
       {
         sign: jest.fn(() => `access-${++accessTokenCount}`),
       } as any,
