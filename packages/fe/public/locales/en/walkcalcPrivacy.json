@@ -2,58 +2,113 @@
   "metaTitle": "WalkCalc Privacy Policy",
   "eyebrow": "WalkCalc",
   "title": "Privacy Policy",
-  "intro": "WalkCalc helps people manage shared expenses. This policy explains what information is collected, how it is used, and the choices available to you.",
-  "effectiveDate": "Effective date: May 21, 2026",
+  "intro": "WalkCalc helps people manage shared expenses. This policy explains what information WalkCalc collects, why it is collected, how it is shared, how long it is kept, and the choices available to you.",
+  "effectiveDate": "Effective date: May 25, 2026",
   "sections": [
     {
+      "title": "Scope",
+      "body": "This policy applies to the WalkCalc iOS app, the WalkCalc web sign-in pages, and the backend services used to sync WalkCalc account and shared expense data."
+    },
+    {
       "title": "Information We Collect",
-      "body": "WalkCalc collects the information needed to provide account access and shared expense features.",
+      "body": "WalkCalc collects information that is needed to provide account access, shared ledgers, syncing, security, and optional app features.",
       "items": [
-        "Account information, such as your name, email address, user ID, profile details, and optional avatar.",
-        "App content you create or join, such as groups, participant names, expense records, amounts, categories, notes, balances, and settlement records.",
-        "Device and notification information, such as an app-specific device ID, platform, device model, system version, app version, and push notification token when notifications are enabled.",
-        "Optional location coordinates if you allow location access and choose to attach your current location to a new record.",
-        "Optional camera access when you scan a group QR code. WalkCalc does not store photos from QR scanning."
+        "Account and profile information: your user ID, display name, email address when provided by your sign-in method, optional avatar, profile fields you choose to add, and sign-in provider identifiers such as Sign in with Apple or GitHub identifiers.",
+        "Authentication information: app access tokens, refresh sessions, login timestamps, and related security metadata used to keep you signed in and protect your account. WalkCalc does not store your Apple ID password, GitHub password, or local password in plain text.",
+        "Shared expense content: groups you create or join, participant names, temporary member names, group ownership, archived-group state, expense and settlement records, amounts, categories, notes, dates, balances, settlement suggestions, and deletion or edit history needed to operate the ledger.",
+        "Preferences and app settings: theme selection, default currency marker, language/locale, and similar settings used to personalize the app.",
+        "Device and notification information: app-specific device ID, platform, device model, operating system version, app version, bundle ID, notification environment, and push notification token when notifications are enabled.",
+        "Optional location data: latitude and longitude only when you grant location permission and choose to attach your current location to a new expense record.",
+        "Optional camera access: camera permission is used only to scan a group QR code. WalkCalc does not store photos or videos from QR scanning.",
+        "Technical and security logs: request time, IP address, user agent or device context, endpoint, error status, and similar server logs used to operate, secure, debug, and prevent abuse of the service.",
+        "Support communications: information you include when you contact us, such as your email address, message content, and any troubleshooting details you choose to provide."
+      ]
+    },
+    {
+      "title": "Information We Do Not Collect",
+      "items": [
+        "WalkCalc does not collect contacts, photo library contents, calendars, reminders, health data, payment card details, financial account credentials, or advertising identifiers.",
+        "WalkCalc does not access location in the background and does not collect location unless you grant permission and use the location attachment feature.",
+        "WalkCalc does not use the camera for face recognition, biometric analysis, or photo storage.",
+        "WalkCalc does not sell personal information and does not use personal information for third-party advertising or cross-app tracking."
       ]
     },
     {
       "title": "How We Use Information",
       "items": [
-        "To create and secure your account.",
-        "To sync groups, participants, expense records, balances, and settlement suggestions across devices.",
-        "To send app-related notifications when enabled.",
-        "To maintain, troubleshoot, and improve WalkCalc.",
-        "To prevent abuse, protect users, and comply with applicable legal obligations."
+        "To create, authenticate, and secure your account.",
+        "To sync groups, participants, expenses, balances, settlement records, and related ledger state across your devices.",
+        "To show shared group content to members of the same group.",
+        "To send app-related push notifications when notifications are enabled.",
+        "To provide optional features you choose to use, such as QR code group joining and attaching location to a record.",
+        "To save preferences such as language, theme, and default currency marker.",
+        "To maintain, debug, secure, and improve WalkCalc.",
+        "To prevent fraud, abuse, unauthorized access, and service misuse.",
+        "To comply with applicable legal obligations and respond to valid legal requests."
       ]
     },
     {
       "title": "Sharing",
-      "body": "WalkCalc does not sell your personal information and does not use it for third-party advertising or tracking. Information may be shared with the people in a group you join, because expense records and balances are collaborative app content. We may also use service providers that help host, secure, and operate the app, and we may disclose information when required by law."
+      "body": "WalkCalc shares information only where needed to provide the service, operate the app, or comply with law.",
+      "items": [
+        "Group members: shared expense content, participant names, balances, and settlement records are visible to members of the same group because they are collaborative ledger content.",
+        "Service providers: hosting, database, storage, push notification, authentication, and infrastructure providers may process data for us only to operate, secure, and support WalkCalc. We expect service providers to protect user data with the same or equivalent safeguards described in this policy.",
+        "Sign-in providers: when you use Sign in with Apple or GitHub, the sign-in provider processes the authentication request according to its own privacy practices. WalkCalc receives only the account information needed to create or authenticate your WalkCalc account.",
+        "Legal and safety: we may disclose information when required by law, to protect users, to investigate abuse, or to protect the rights, safety, and security of WalkCalc and others."
+      ]
     },
     {
       "title": "Tracking and Advertising",
-      "body": "WalkCalc does not use the App Tracking Transparency identifier, does not track you across apps or websites owned by other companies, and does not display third-party advertising."
+      "body": "WalkCalc does not display third-party advertising, does not use the App Tracking Transparency identifier, and does not track you across apps or websites owned by other companies. WalkCalc does not collect interactions with the app for advertising purposes."
     },
     {
-      "title": "Retention",
-      "body": "We keep account and expense information for as long as needed to provide WalkCalc, maintain records you choose to keep, resolve disputes, protect the service, and meet legal requirements. You may delete or modify app content where the app provides those controls."
+      "title": "Permissions",
+      "items": [
+        "Camera: used only when you choose to scan a group QR code. If you deny camera permission, you can still join groups by manually entering a group code.",
+        "Location: used only when you choose to attach your current location to a new expense record. If you deny location permission, you can still create records without location.",
+        "Notifications: used to send WalkCalc-related updates when enabled. You can disable notifications in iOS Settings at any time."
+      ]
     },
     {
-      "title": "Security",
-      "body": "We use reasonable technical and organizational measures designed to protect WalkCalc data. No method of transmission or storage is completely secure, so we cannot guarantee absolute security."
+      "title": "Retention and Deletion",
+      "body": "We keep information for as long as needed to provide WalkCalc, keep shared ledgers consistent, protect the service, resolve disputes, and meet legal obligations.",
+      "items": [
+        "You can edit or delete app content where WalkCalc provides those controls, such as expense records and groups.",
+        "You can delete your account from the app settings. Account deletion permanently removes your sign-in account, active sessions, API tokens, and registered push devices.",
+        "Because WalkCalc groups are collaborative records, account deletion disconnects your account identity from shared ledger history while preserving shared expense records needed by the remaining group members.",
+        "Some limited technical logs, backups, or legal records may remain for a reasonable period where needed for security, fraud prevention, service recovery, or legal compliance."
+      ]
     },
     {
       "title": "Your Choices",
       "items": [
-        "You can update profile information from the app's profile page.",
+        "You can update profile information from the profile page.",
         "You can choose whether to grant camera, location, and notification permissions in iOS Settings.",
-        "You can contact us to request help with access, correction, or deletion of your information."
+        "You can stop sharing new location data by not using the location attachment feature or by revoking location permission.",
+        "You can delete your account in the app settings.",
+        "You can contact us to request help with access, correction, deletion, or privacy questions."
       ]
     },
     {
+      "title": "Children",
+      "body": "WalkCalc is not directed to children under 13, and we do not knowingly collect personal information from children under 13. If you believe a child has provided personal information to WalkCalc, contact us so we can review and delete it where appropriate."
+    },
+    {
+      "title": "Security",
+      "body": "We use reasonable technical and organizational measures designed to protect WalkCalc data, including encrypted transport, authentication controls, hashed local passwords, and restricted operational access. No method of transmission or storage is completely secure, so we cannot guarantee absolute security."
+    },
+    {
+      "title": "International Processing",
+      "body": "WalkCalc data may be processed in locations where we or our service providers operate. We take steps designed to protect the information described in this policy wherever it is processed."
+    },
+    {
+      "title": "Changes",
+      "body": "We may update this policy as WalkCalc changes. The latest version will be posted on this page, and material changes will be reflected by updating the effective date."
+    },
+    {
       "title": "Contact",
-      "body": "If you have privacy questions about WalkCalc, contact us at keith.dh@hotmail.com."
+      "body": "If you have privacy questions or data requests for WalkCalc, contact us at keith.dh@hotmail.com."
     }
   ],
-  "footer": "This policy may be updated as WalkCalc changes. The latest version will be posted on this page."
+  "footer": "This policy is intended to describe WalkCalc's privacy practices clearly for users and App Store review."
 }
