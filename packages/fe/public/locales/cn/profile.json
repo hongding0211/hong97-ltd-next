@@ -23,7 +23,7 @@
   "oldOrNewPasswordRequired": "旧密码和新密码不能为空。",
   "deleteAccount": "删除账号",
   "deleteAccountTitle": "删除账号？",
-  "deleteAccountDescription": "这会永久删除你的账号，并在当前设备退出登录。此操作无法撤销。",
+  "deleteAccountDescription": "这会永久删除你的 hong97 账号，并在当前设备退出登录；如果其他 hong97 服务也使用同一账号，你可能无法继续访问这些服务。其他群组成员仍需要的 WalkCalc 共享账本历史会在移除你的账号身份后保留。此操作无法撤销。",
   "deleteAccountConfirm": "删除账号",
   "accountDeletedTitle": "账号已删除",
   "accountDeletedDescription": "你的账号已经删除。你可以关闭此页面并返回 App。",
