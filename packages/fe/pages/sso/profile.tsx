@@ -29,6 +29,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { http } from '@services/http'
+import {
+  readSsoSourceQuery,
+  resolveSsoSourceConfig,
+} from '@services/sso/source-config'
 import { useAppStore } from '@stores/general'
 import { uploadFile2Oss } from '@utils/oss'
 import { time } from '@utils/time'
@@ -50,7 +54,14 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import Avatar from '../../components/common/Avatar'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
@@ -139,9 +150,9 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const router = useRouter()
   const { locale } = router
-  const hideNavBar = router.query.hideNavbar === '1'
-  const showDeletedMessageAfterDelete =
-    router.query.deleteCompletion === 'message'
+  const sourceConfig = useMemo(() => {
+    return resolveSsoSourceConfig(readSsoSourceQuery(router.query.source))
+  }, [router.query.source])
 
   const { t } = useTranslation('profile')
 
@@ -231,7 +242,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
         type: 'success',
       })
       setShowDeleteAccount(false)
-      if (showDeletedMessageAfterDelete) {
+      if (sourceConfig.stayOnAccountDeleted) {
         setAccountDeleted(true)
         cleanUp()
         return
@@ -423,7 +434,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
           />
         </Head>
-        <AppLayout hideNavBar={hideNavBar}>
+        <AppLayout hideNavBar={sourceConfig.hideNavBar}>
           <AccountDeletedState onClose={() => window.close()} />
         </AppLayout>
       </>
@@ -439,7 +450,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
       </Head>
-      <AppLayout hideNavBar={hideNavBar}>
+      <AppLayout hideNavBar={sourceConfig.hideNavBar}>
         {/* 桌面端 */}
         <div className="max-w-[600px] mx-auto justify-between hidden md:flex mt-[40px]">
           <div className="flex flex-col items-center">
@@ -456,7 +467,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
               {uploadAvatarButton}
               {changePasswordButton}
               {deleteAccountButton}
-              {logoutButton}
+              {!sourceConfig.hideLogout && logoutButton}
             </div>
           </div>
           <div className="flex flex-col gap-y-6 ml-24 lg:ml-32 mt-4 w-full">
@@ -702,7 +713,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
                 {uploadAvatarButton}
                 {changePasswordButton}
                 {deleteAccountButton}
-                {logoutButton}
+                {!sourceConfig.hideLogout && logoutButton}
               </>
             )}
           </div>

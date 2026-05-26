@@ -11,6 +11,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@radix-ui/react-label'
+import {
+  readSsoSourceQuery,
+  resolveSsoSourceConfig,
+} from '@services/sso/source-config'
 import { useLoginStore } from '@stores/sso'
 import { uploadFile2Oss } from '@utils/oss'
 import {
@@ -57,32 +61,6 @@ const readRedirectQuery = (redirect: string | string[] | undefined) => {
   }
 
   return new URLSearchParams(window.location.search).get('redirect') ?? ''
-}
-
-const readSourceQuery = (source: string | string[] | undefined) => {
-  if (typeof source === 'string') {
-    return source
-  }
-  if (Array.isArray(source)) {
-    return source[0] ?? ''
-  }
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  return new URLSearchParams(window.location.search).get('source') ?? ''
-}
-
-type SourcePrivacyLink = {
-  href: string
-  labelKey: string
-}
-
-const SOURCE_PRIVACY_LINKS: Partial<Record<string, SourcePrivacyLink>> = {
-  walkcalc: {
-    href: '/privacy/walkcalc',
-    labelKey: 'walkcalcPrivacyPolicy',
-  },
 }
 
 const Uploader: React.FC = () => {
@@ -270,7 +248,8 @@ function Login() {
   }, [router.query.github_error])
 
   const sourcePrivacyLink = useMemo(() => {
-    return SOURCE_PRIVACY_LINKS[readSourceQuery(router.query.source)]
+    return resolveSsoSourceConfig(readSsoSourceQuery(router.query.source))
+      .privacyLink
   }, [router.query.source])
 
   const handleGithubLogin = useCallback(() => {
