@@ -23,7 +23,7 @@
   "oldOrNewPasswordRequired": "Old password and new password cannot be empty.",
   "deleteAccount": "Delete Account",
   "deleteAccountTitle": "Delete account?",
-  "deleteAccountDescription": "This permanently deletes your hong97 account, signs you out on this device, and may remove access to other hong97 services that use the same account. Shared WalkCalc ledger history needed by other group members is kept with your account identity removed. This action cannot be undone.",
+  "deleteAccountDescription": "This permanently deletes the unified SSO account used by WalkCalc, signs you out on this device, and may remove access to other developer-operated services that use the same account. Shared WalkCalc ledger history needed by other group members is kept with your account identity removed. This action cannot be undone.",
   "deleteAccountConfirm": "Delete Account",
   "accountDeletedTitle": "Account deleted",
   "accountDeletedDescription": "Your account has been deleted. You can close this page and return to the app.",

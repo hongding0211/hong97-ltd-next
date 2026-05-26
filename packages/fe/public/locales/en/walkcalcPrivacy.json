@@ -10,10 +10,10 @@
       "body": "This policy applies to the WalkCalc iOS app, the WalkCalc web sign-in pages, and the backend services used to sync WalkCalc account and shared expense data."
     },
     {
-      "title": "hong97 Account and SSO",
-      "body": "WalkCalc uses the hong97 account system for sign-in and single sign-on. When you create or sign in to an account from WalkCalc, the same hong97 account may be used to sign in to other hong97 apps or web services that you choose to use.",
+      "title": "Unified SSO Service",
+      "body": "WalkCalc uses a unified account and single sign-on service for sign-in. This shared SSO layer is part of the developer-operated backend architecture used by WalkCalc, not an unrelated third-party advertising, analytics, or tracking provider. The SSO service supports multiple sign-in methods, including Sign in with Apple, GitHub, and local email or phone sign-in where available, and then issues the unified account session used by WalkCalc. The WalkCalc SSO login entry is https://hong97.ltd/sso/login?source=walkcalc.",
       "items": [
-        "Basic account, profile, authentication, and security information is managed at the hong97 account level and may be used to authenticate you across hong97 services.",
+        "Basic account, profile, authentication, linked sign-in method, and security information is managed by the unified SSO service and may be used to authenticate you across developer-operated services that you choose to use.",
         "WalkCalc-specific ledger data, including groups, participants, expenses, balances, and settlement records, is used to provide WalkCalc and to show collaborative ledger content to members of the same WalkCalc group.",
         "WalkCalc does not use shared expense ledger data for third-party advertising, does not sell it, and does not share it with unrelated apps for cross-app tracking."
       ]
@@ -61,7 +61,7 @@
       "body": "WalkCalc shares information only where needed to provide the service, operate the app, or comply with law.",
       "items": [
         "Group members: shared expense content, participant names, balances, and settlement records are visible to members of the same group because they are collaborative ledger content.",
-        "hong97 account services: basic account, profile, authentication, and security information may be processed by the hong97 account system so the same account can sign in to WalkCalc and other hong97 services you choose to use. WalkCalc ledger content is not shared with unrelated services for advertising or tracking.",
+        "Unified SSO service: basic account, profile, authentication, linked sign-in method, and security information may be processed by the developer-operated SSO service so supported sign-in methods such as Sign in with Apple, GitHub, and local email or phone sign-in can result in the same WalkCalc account session. WalkCalc ledger content is not shared with unrelated services for advertising or tracking.",
         "Service providers: hosting, database, storage, push notification, authentication, and infrastructure providers may process data for us only to operate, secure, and support WalkCalc. We expect service providers to protect user data with the same or equivalent safeguards described in this policy.",
         "Sign-in providers: when you use Sign in with Apple or GitHub, the sign-in provider processes the authentication request according to its own privacy practices. WalkCalc receives only the account information needed to create or authenticate your WalkCalc account.",
         "Legal and safety: we may disclose information when required by law, to protect users, to investigate abuse, or to protect the rights, safety, and security of WalkCalc and others."
@@ -84,7 +84,7 @@
       "body": "We keep information for as long as needed to provide WalkCalc, keep shared ledgers consistent, protect the service, resolve disputes, and meet legal obligations.",
       "items": [
         "You can edit or delete app content where WalkCalc provides those controls, such as expense records and groups.",
-        "You can delete your account from the app settings. Account deletion permanently removes the hong97 sign-in account used by WalkCalc, active sessions, API tokens, and registered push devices. If you use the same hong97 account for other hong97 services, deleting the account may also remove your access to those services.",
+        "You can delete your account from the app settings. Account deletion permanently removes the unified SSO account used by WalkCalc, active sessions, API tokens, and registered push devices. If you use the same SSO account for other developer-operated services, deleting the account may also remove your access to those services.",
         "Because WalkCalc groups are collaborative records, account deletion disconnects your account identity from shared ledger history while preserving shared expense records needed by the remaining group members.",
         "Some limited technical logs, backups, or legal records may remain for a reasonable period where needed for security, fraud prevention, service recovery, or legal compliance."
       ]
