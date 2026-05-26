@@ -38,6 +38,7 @@ export type AuthAPIS = {
   GetHasLocalAuth: API<undefined, undefined, typeof HasLocalAuthResponseDto>
   GetIsAdmin: API<undefined, undefined, IsAdminResponseDto>
   PostLogout: API<undefined, undefined, null>
+  DeleteAccount: API<undefined, undefined, Record<string, never>>
   GetApiTokens: API<undefined, undefined, ApiTokenResponseDto[]>
   PostApiToken: API<
     undefined,

@@ -10,6 +10,7 @@ export const AUTH_PATHS: Record<keyof AuthAPIS, string> = {
   GetHasLocalAuth: 'auth/hasLocalAuth',
   GetIsAdmin: 'auth/isAdmin',
   PostLogout: 'auth/logout',
+  DeleteAccount: 'auth/account',
   GetApiTokens: 'auth/api-tokens',
   PostApiToken: 'auth/api-tokens',
   DeleteApiToken: 'auth/api-tokens/:tokenId',

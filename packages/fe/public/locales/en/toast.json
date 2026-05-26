@@ -8,6 +8,8 @@
   "updateProfileSuccess": "Update profile successfully",
   "nameRequired": "Name cannot be empty",
   "modifyPasswordSuccess": "Password modified successfully",
+  "deleteAccountSuccess": "Account deleted",
+  "deleteAccountFailed": "Failed to delete account",
   "copyUserIdSuccess": "User ID copied",
   "uploadSuccess": "Upload successfully",
   "fileTooLarge": "Cannot upload files larger than 20MB",

@@ -20,5 +20,13 @@
   "changePassword": "修改密码",
   "oldPassword": "旧密码",
   "newPassword": "新密码",
-  "oldOrNewPasswordRequired": "旧密码和新密码不能为空。"
+  "oldOrNewPasswordRequired": "旧密码和新密码不能为空。",
+  "deleteAccount": "删除账号",
+  "deleteAccountTitle": "删除账号？",
+  "deleteAccountDescription": "这会永久删除你的账号，并在当前设备退出登录。此操作无法撤销。",
+  "deleteAccountConfirm": "删除账号",
+  "accountDeletedTitle": "账号已删除",
+  "accountDeletedDescription": "你的账号已经删除。你可以关闭此页面并返回 App。",
+  "closePage": "关闭页面",
+  "accountDeletedCloseHint": "如果页面没有自动关闭，请使用 App 或浏览器的关闭入口。"
 }

@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -32,6 +42,7 @@ import {
   Loader2,
   LogOut,
   Pencil,
+  Trash2,
   UserRound,
 } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
@@ -80,6 +91,30 @@ interface IProfileProps {
   canModifyPassword: boolean
 }
 
+const AccountDeletedState: React.FC<{ onClose: () => void }> = ({
+  onClose,
+}) => {
+  const { t } = useTranslation('profile')
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] w-full max-w-[360px] flex-col items-center justify-center text-center">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-900 dark:bg-neutral-900 dark:text-neutral-50">
+        <CheckCircle className="h-7 w-7" />
+      </div>
+      <h1 className="text-2xl font-semibold">{t('accountDeletedTitle')}</h1>
+      <p className="mt-3 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+        {t('accountDeletedDescription')}
+      </p>
+      <Button className="mt-8 w-full" onClick={onClose}>
+        {t('closePage')}
+      </Button>
+      <p className="mt-3 text-xs leading-5 text-neutral-400 dark:text-neutral-500">
+        {t('accountDeletedCloseHint')}
+      </p>
+    </div>
+  )
+}
+
 export const Profile: React.FC<IProfileProps> = (props) => {
   const { canModifyPassword } = props
 
@@ -90,6 +125,9 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const [showModifyPassword, setShowModifyPassword] = useState(false)
   const [showImageCrop, setShowImageCrop] = useState(false)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false)
+  const [accountDeleted, setAccountDeleted] = useState(false)
 
   const [name, setName] = useState('')
   const [gender, setGender] = useState('')
@@ -102,6 +140,8 @@ export const Profile: React.FC<IProfileProps> = (props) => {
   const router = useRouter()
   const { locale } = router
   const hideNavBar = router.query.hideNavbar === '1'
+  const showDeletedMessageAfterDelete =
+    router.query.deleteCompletion === 'message'
 
   const { t } = useTranslation('profile')
 
@@ -109,9 +149,10 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const { user } = useGeneralContext()
 
-  const { isLoading, refresh, logout } = useAppStore((state) => ({
+  const { isLoading, cleanUp, refresh, logout } = useAppStore((state) => ({
     user: state.user,
     isLoading: state.isLoading,
+    cleanUp: state.cleanUp,
     refresh: state.refresh,
     logout: state.logout,
   }))
@@ -169,6 +210,41 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
   const handleLogout = () => {
     logout(locale)
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteAccountLoading) {
+      return
+    }
+
+    setDeleteAccountLoading(true)
+    try {
+      const response = await http.delete('DeleteAccount')
+      if (!response.isSuccess) {
+        toast('deleteAccountFailed', {
+          type: 'error',
+        })
+        return
+      }
+
+      toast('deleteAccountSuccess', {
+        type: 'success',
+      })
+      setShowDeleteAccount(false)
+      if (showDeletedMessageAfterDelete) {
+        setAccountDeleted(true)
+        cleanUp()
+        return
+      }
+      cleanUp()
+      window.location.href = `/${locale ?? 'en'}/about`
+    } catch {
+      toast('deleteAccountFailed', {
+        type: 'error',
+      })
+    } finally {
+      setDeleteAccountLoading(false)
+    }
   }
 
   const handleApplyEditing = () => {
@@ -273,10 +349,23 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       variant="destructive"
       className="w-full"
       onClick={handleLogout}
-      disabled={uploadLoading || profileEditing}
+      disabled={uploadLoading || profileEditing || deleteAccountLoading}
     >
       <LogOut className="w-4 h-4" />
       {t('logout')}
+    </Button>
+  )
+
+  const deleteAccountButton = (
+    <Button
+      size="sm"
+      variant="outline"
+      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-950 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+      onClick={() => setShowDeleteAccount(true)}
+      disabled={uploadLoading || profileEditing || deleteAccountLoading}
+    >
+      <Trash2 className="w-4 h-4" />
+      {t('deleteAccount')}
     </Button>
   )
 
@@ -310,16 +399,36 @@ export const Profile: React.FC<IProfileProps> = (props) => {
   )
 
   useEffect(() => {
+    if (accountDeleted) {
+      return
+    }
     if (!isLoading && !user) {
       router.replace(
         `/sso/login?redirect=${encodeURIComponent(window.location.href)}`,
       )
     }
-  }, [isLoading, router, user])
+  }, [accountDeleted, isLoading, router, user])
 
   useEffect(() => {
     syncProfileEditingFields()
   }, [syncProfileEditingFields])
+
+  if (accountDeleted) {
+    return (
+      <>
+        <Head>
+          <title>{t('accountDeletedTitle')}</title>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          />
+        </Head>
+        <AppLayout hideNavBar={hideNavBar}>
+          <AccountDeletedState onClose={() => window.close()} />
+        </AppLayout>
+      </>
+    )
+  }
 
   return (
     <>
@@ -346,6 +455,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
               {editProfileButton}
               {uploadAvatarButton}
               {changePasswordButton}
+              {deleteAccountButton}
               {logoutButton}
             </div>
           </div>
@@ -591,6 +701,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
                 {editProfileButton}
                 {uploadAvatarButton}
                 {changePasswordButton}
+                {deleteAccountButton}
                 {logoutButton}
               </>
             )}
@@ -612,6 +723,42 @@ export const Profile: React.FC<IProfileProps> = (props) => {
           show={showModifyPassword}
           onShowChange={setShowModifyPassword}
         />
+
+        <AlertDialog
+          open={showDeleteAccount}
+          onOpenChange={setShowDeleteAccount}
+        >
+          <AlertDialogContent className="w-[90%] max-w-[425px] rounded-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('deleteAccountTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('deleteAccountDescription')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteAccountLoading}>
+                {t('cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  variant="destructive"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    void handleDeleteAccount()
+                  }}
+                  disabled={deleteAccountLoading}
+                >
+                  {deleteAccountLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  {t('deleteAccountConfirm')}
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </AppLayout>
     </>
   )
