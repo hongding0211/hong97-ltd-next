@@ -17,6 +17,7 @@
   "githubLogin": "Continue with GitHub",
   "githubLoginFailed": "GitHub 登录失败，请重试。",
   "privacyPolicy": "隐私政策",
+  "walkcalcPrivacyPolicy": "WalkCalc 隐私政策",
   "continueWith": "Continue with",
   "optional": "可选",
   "upload": "上传"

@@ -15,6 +15,7 @@ import { useLoginStore } from '@stores/sso'
 import { uploadFile2Oss } from '@utils/oss'
 import {
   AlertCircle,
+  ArrowUpRight,
   Coffee,
   Eye,
   EyeClosed,
@@ -70,6 +71,18 @@ const readSourceQuery = (source: string | string[] | undefined) => {
   }
 
   return new URLSearchParams(window.location.search).get('source') ?? ''
+}
+
+type SourcePrivacyLink = {
+  href: string
+  labelKey: string
+}
+
+const SOURCE_PRIVACY_LINKS: Partial<Record<string, SourcePrivacyLink>> = {
+  walkcalc: {
+    href: '/privacy/walkcalc',
+    labelKey: 'walkcalcPrivacyPolicy',
+  },
 }
 
 const Uploader: React.FC = () => {
@@ -256,8 +269,8 @@ function Login() {
       : ''
   }, [router.query.github_error])
 
-  const isWalkcalcSource = useMemo(() => {
-    return readSourceQuery(router.query.source) === 'walkcalc'
+  const sourcePrivacyLink = useMemo(() => {
+    return SOURCE_PRIVACY_LINKS[readSourceQuery(router.query.source)]
   }, [router.query.source])
 
   const handleGithubLogin = useCallback(() => {
@@ -550,21 +563,21 @@ function Login() {
               </motion.div>
             </CardContent>
             <CardFooter>
-              <div className="w-full flex-col">
-                {isWalkcalcSource && (
-                  <a
-                    href="/privacy/walkcalc"
-                    className="mb-3 block text-xs font-medium text-neutral-600 underline-offset-4 hover:underline dark:text-neutral-300"
-                  >
-                    {t('privacyPolicy')}
-                  </a>
-                )}
-                <div className="flex w-full items-center justify-between">
-                  <CardDescription className="text-xs">
-                    Copyright © {new Date().getFullYear()} hong97.ltd
+              <div className="flex w-full items-center justify-between gap-4">
+                {sourcePrivacyLink ? (
+                  <CardDescription className="flex items-center text-xs leading-none">
+                    <a
+                      href={sourcePrivacyLink.href}
+                      className="inline-flex w-fit items-center gap-0.5 text-current underline-offset-4 hover:underline"
+                    >
+                      {t(sourcePrivacyLink.labelKey)}
+                      <ArrowUpRight className="h-3 w-3" aria-hidden />
+                    </a>
                   </CardDescription>
-                  <ContextToggle />
-                </div>
+                ) : (
+                  <span aria-hidden />
+                )}
+                <ContextToggle />
               </div>
             </CardFooter>
           </Card>
