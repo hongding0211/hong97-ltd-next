@@ -248,9 +248,12 @@ function Login() {
   }, [router.query.github_error])
 
   const sourcePrivacyLink = useMemo(() => {
+    if (!router.isReady) {
+      return undefined
+    }
     return resolveSsoSourceConfig(readSsoSourceQuery(router.query.source))
       .privacyLink
-  }, [router.query.source])
+  }, [router.isReady, router.query.source])
 
   const handleGithubLogin = useCallback(() => {
     setGithubLoading(true)
@@ -544,7 +547,7 @@ function Login() {
             <CardFooter>
               <div className="flex w-full items-center justify-between gap-4">
                 {sourcePrivacyLink ? (
-                  <CardDescription className="flex items-center text-xs leading-none">
+                  <div className="flex items-center text-xs leading-none text-neutral-500 dark:text-neutral-400">
                     <a
                       href={sourcePrivacyLink.href}
                       className="inline-flex w-fit items-center gap-0.5 text-current underline-offset-4 hover:underline"
@@ -552,9 +555,11 @@ function Login() {
                       {t(sourcePrivacyLink.labelKey)}
                       <ArrowUpRight className="h-3 w-3" aria-hidden />
                     </a>
-                  </CardDescription>
+                  </div>
                 ) : (
-                  <span aria-hidden />
+                  <CardDescription className="text-xs">
+                    Copyright © {new Date().getFullYear()} hong97.ltd
+                  </CardDescription>
                 )}
                 <ContextToggle />
               </div>
