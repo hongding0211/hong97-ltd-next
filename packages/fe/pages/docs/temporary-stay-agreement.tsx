@@ -11,8 +11,8 @@ type Clause = {
 const clauses: Clause[] = [
   {
     id: '001',
-    zh: '如刘嘉逊产生需要独处并进行自我慰藉之冲动，应前往黄某、丁某住所，或选择依法合规、不会影响他人的公共场所；不得在安峻岑住所内实施、筹备、讨论实施细节，或留下任何可疑证据。',
-    en: "Should Liu Jiaxun experience an urge for private self-relief, he shall proceed to the residence of Huang or Ding, or to a lawful public setting where no other person is disturbed. He shall not perform, prepare for, discuss operational details of, or leave suspicious evidence of such activity inside An Juncen's home.",
+    zh: '如刘嘉逊产生需要独处并进行自我慰藉之冲动，应前往黄某、丁某住所，或选择依法合规、不会影响他人的公共场所；不得在安峻岑住所内实施、筹备或讨论实施细节。该限制不以安峻岑是否发现为成立条件。',
+    en: "Should Liu Jiaxun experience an urge for private self-relief, he shall proceed to the residence of Huang or Ding, or to a lawful public setting where no other person is disturbed. He shall not perform, prepare for, or discuss operational details of such activity inside An Juncen's home. This restriction applies regardless of whether An Juncen becomes aware of it.",
   },
   {
     id: '002',
