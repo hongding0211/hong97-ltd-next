@@ -11,6 +11,7 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { IBlogConfig } from '../../types/blog'
@@ -22,6 +23,8 @@ type BlogProps = {
 
 export default function Blog(props: BlogProps) {
   const { blogs: initialBlogs } = props
+  const router = useRouter()
+  const locale = props.locale ?? router.locale
 
   const { t } = useTranslation('common')
   const { t: tBlog } = useTranslation('blog')
@@ -93,18 +96,25 @@ export default function Blog(props: BlogProps) {
     setSearchTerm(e.target.value)
   }
 
+  const getLocalizedHref = (href: string) => {
+    if (locale === 'cn') {
+      return `/cn${href}`
+    }
+    return href
+  }
+
   const getBlogHref = (blog: IBlogConfig) => {
     const blogKey = encodeURIComponent(blog.key)
 
     if (blog.hasPublished === false) {
-      return `/blog/edit?id=${blogKey}`
+      return getLocalizedHref(`/blog/edit?id=${blogKey}`)
     }
 
     if (blog.hasPublished === true) {
-      return `/blog/id/${blogKey}`
+      return getLocalizedHref(`/blog/id/${blogKey}`)
     }
 
-    return `/blog/markdowns/${blogKey}?key=${blogKey}`
+    return getLocalizedHref(`/blog/markdowns/${blogKey}?key=${blogKey}`)
   }
 
   return (
@@ -147,7 +157,8 @@ export default function Blog(props: BlogProps) {
             </div>
             {user?.isAdmin && (
               <Link
-                href="/blog/edit"
+                href={getLocalizedHref('/blog/edit')}
+                locale={false}
                 className="rounded-full flex items-center gap-x-1.5 bg-neutral-100 dark:bg-neutral-800 p-2 px-3 cursor-pointer"
               >
                 <Pencil className="w-2.5 h-2.5" />
@@ -174,6 +185,7 @@ export default function Blog(props: BlogProps) {
                     <div key={blog.key} className="flex flex-col">
                       <Link
                         href={getBlogHref(blog)}
+                        locale={false}
                         className="flex items-center gap-x-1 cursor-pointer no-underline"
                       >
                         <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
