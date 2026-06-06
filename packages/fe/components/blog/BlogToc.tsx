@@ -23,7 +23,7 @@ export function BlogToc({
   }
 
   return (
-    <nav aria-label="文章目录" className="w-full max-w-[180px]">
+    <nav aria-label="文章目录" className="w-full">
       <div
         aria-hidden={!showBlogTitle}
         className={cn(
@@ -34,7 +34,7 @@ export function BlogToc({
         <button
           type="button"
           onClick={onTitleSelect}
-          className="block w-[70%] truncate text-left text-[13px] font-medium uppercase leading-5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
+          className="block w-full truncate text-left text-[13px] font-medium uppercase leading-5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
         >
           {blogTitle}
         </button>

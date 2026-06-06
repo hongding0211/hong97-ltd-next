@@ -523,13 +523,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           className={cn(
             'm-auto mt-[-1.5rem]',
             hasToc
-              ? 'grid max-w-[1216px] grid-cols-1 gap-8 md:grid-cols-[140px_minmax(0,760px)_140px] md:gap-6 lg:grid-cols-[180px_minmax(0,760px)_180px] lg:gap-12'
+              ? 'blog-reading-shell--with-toc'
               : 'flex max-w-[1000px] justify-center',
           )}
         >
           {hasToc && (
-            <aside className="hidden pt-[7rem] md:block">
-              <div className="sticky top-[8.5rem] lg:-translate-x-2">
+            <aside className="blog-reading-toc hidden pt-[7rem] md:block">
+              <div className="sticky top-[8.5rem]">
                 <BlogToc
                   items={effectiveTocItems}
                   activeId={activeTocId}
@@ -627,7 +627,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               <Comments comments={comments} onAction={handleCommentAction} />
             </div>
           </MdxLayout>
-          {hasToc && <div className="hidden md:block" />}
+          {hasToc && <div className="blog-reading-balance hidden md:block" />}
         </div>
         {showMobileToc && (
           <div

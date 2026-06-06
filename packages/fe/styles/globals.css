@@ -64,6 +64,42 @@ html {
 }
 
 @layer components {
+  .blog-reading-shell--with-toc {
+    @apply grid grid-cols-1 gap-8;
+  }
+
+  @media (min-width: 800px) {
+    .blog-reading-shell--with-toc {
+      --blog-article-column: min(47.5rem, 65ch);
+      --blog-toc-column: clamp(5.5rem, calc((100vw - 47.5rem) / 4), 11.25rem);
+      --blog-toc-gap: clamp(1.25rem, calc(1.25rem + (100vw - 50rem) * 0.08), 3rem);
+
+      width: min(
+        100%,
+        calc(
+          var(--blog-article-column) + var(--blog-toc-column) +
+            var(--blog-toc-column) + var(--blog-toc-gap) + var(--blog-toc-gap)
+        )
+      );
+      max-width: 76rem;
+      grid-template-columns:
+        minmax(0, var(--blog-toc-column))
+        minmax(0, var(--blog-article-column))
+        minmax(0, var(--blog-toc-column));
+      column-gap: var(--blog-toc-gap);
+      row-gap: 2rem;
+    }
+
+    .blog-reading-toc {
+      width: min(100%, var(--blog-toc-column));
+      justify-self: end;
+    }
+
+    .blog-reading-balance {
+      min-width: 0;
+    }
+  }
+
   .prose ul {
     @apply pl-4 my-1;
   }
