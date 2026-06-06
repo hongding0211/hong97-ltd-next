@@ -528,7 +528,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           )}
         >
           {hasToc && (
-            <aside className="blog-reading-toc hidden pt-[7rem] md:block">
+            <aside className="blog-reading-toc hidden pt-[7rem] min-[800px]:block">
               <div className="sticky top-[8.5rem]">
                 <BlogToc
                   items={effectiveTocItems}
@@ -627,13 +627,15 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               <Comments comments={comments} onAction={handleCommentAction} />
             </div>
           </MdxLayout>
-          {hasToc && <div className="blog-reading-balance hidden md:block" />}
+          {hasToc && (
+            <div className="blog-reading-balance hidden min-[800px]:block" />
+          )}
         </div>
         {showMobileToc && (
           <div
             aria-hidden={!isMobileTocOpen}
             className={cn(
-              'fixed inset-0 z-40 md:hidden transition-opacity duration-200 ease-out',
+              'fixed inset-0 z-40 min-[800px]:hidden transition-opacity duration-200 ease-out',
               isMobileTocOpen
                 ? 'pointer-events-auto opacity-100'
                 : 'pointer-events-none opacity-0',
@@ -736,7 +738,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             aria-expanded={isMobileTocOpen}
             onClick={() => setIsMobileTocOpen((open) => !open)}
             className={cn(
-              'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-50 md:hidden',
+              'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-50 min-[800px]:hidden',
               'flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300/90',
               'bg-white/70 text-neutral-800 backdrop-blur',
               'transition active:scale-95 dark:border-neutral-700/90 dark:bg-neutral-950/70 dark:text-neutral-100',
