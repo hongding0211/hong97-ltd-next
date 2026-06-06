@@ -3,7 +3,7 @@
   "eyebrow": "WalkCalc",
   "title": "Privacy Policy",
   "intro": "WalkCalc helps people manage shared expenses. This policy explains what information WalkCalc collects, why it is collected, how it is shared, how long it is kept, and the choices available to you.",
-  "effectiveDate": "Effective date: May 27, 2026",
+  "effectiveDate": "Effective date: June 6, 2026",
   "sections": [
     {
       "title": "Scope",
@@ -19,12 +19,22 @@
       ]
     },
     {
+      "title": "Local-Only Use",
+      "body": "WalkCalc can be used without signing in for local ledger features. Local groups, temporary members, expense records, balances, and settlement information created in local mode are stored on your device and are not uploaded to WalkCalc servers.",
+      "items": [
+        "Signing in does not automatically upload, merge, sync, or back up local-only groups to your online account.",
+        "Local-only groups remain separate from online shared groups after sign-in unless WalkCalc later provides a clear user-controlled import or sync action and you choose to use it.",
+        "Because local-only groups are kept on your device, they may be lost if you delete the app, erase the device, or remove local app data."
+      ]
+    },
+    {
       "title": "Information We Collect",
       "body": "WalkCalc collects information that is needed to provide account access, shared ledgers, syncing, security, and optional app features.",
       "items": [
         "Account and profile information: your user ID, display name, email address when provided by your sign-in method, optional avatar, profile fields you choose to add, and sign-in provider identifiers such as Sign in with Apple or GitHub identifiers.",
         "Authentication information: app access tokens, refresh sessions, login timestamps, and related security metadata used to keep you signed in and protect your account. WalkCalc does not store your Apple ID password, GitHub password, or local password in plain text.",
         "Shared expense content: groups you create or join, participant names, temporary member names, group ownership, archived-group state, expense and settlement records, amounts, categories, notes, dates, balances, settlement suggestions, and deletion or edit history needed to operate the ledger.",
+        "Local-only ledger content: groups and records created for local-only use are stored on your device and are not collected by the backend service unless you later choose an explicit import or sync option.",
         "Preferences and app settings: theme selection, default currency marker, language/locale, and similar settings used to personalize the app.",
         "Device and notification information: app-specific device ID, platform, device model, operating system version, app version, bundle ID, notification environment, and push notification token when notifications are enabled.",
         "Optional location data: latitude and longitude only when you grant location permission and choose to attach your current location to a new expense record.",
@@ -47,6 +57,7 @@
       "items": [
         "To create, authenticate, and secure your account.",
         "To sync groups, participants, expenses, balances, settlement records, and related ledger state across your devices.",
+        "To provide local-only ledger features on your device without requiring an account or server upload.",
         "To show shared group content to members of the same group.",
         "To send app-related push notifications when notifications are enabled.",
         "To provide optional features you choose to use, such as QR code group joining and attaching location to a record.",
@@ -84,6 +95,7 @@
       "body": "We keep information for as long as needed to provide WalkCalc, keep shared ledgers consistent, protect the service, resolve disputes, and meet legal obligations.",
       "items": [
         "You can edit or delete app content where WalkCalc provides those controls, such as expense records and groups.",
+        "Local-only groups are retained on your device until you delete them in the app, delete the app, erase the device, or remove local app data. They are not retained on WalkCalc servers.",
         "You can delete your account from the app settings. Account deletion permanently removes the unified SSO account used by WalkCalc, active sessions, API tokens, and registered push devices. If you use the same SSO account for other developer-operated services, deleting the account may also remove your access to those services.",
         "Because WalkCalc groups are collaborative records, account deletion disconnects your account identity from shared ledger history while preserving shared expense records needed by the remaining group members.",
         "Some limited technical logs, backups, or legal records may remain for a reasonable period where needed for security, fraud prevention, service recovery, or legal compliance."
