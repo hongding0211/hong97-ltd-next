@@ -3,7 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactMdxComponent } from '../react-mdx-types'
 
 interface LazyEditorProps {
@@ -25,6 +25,11 @@ export const LazyEditor: React.FC<LazyEditorProps> = ({
 }) => {
   const [jsonInput, setJsonInput] = useState(propsJson)
   const [jsonError, setJsonError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setJsonInput(propsJson)
+    setJsonError(null)
+  }, [propsJson])
 
   const parsedProps = useMemo(() => {
     try {
@@ -104,7 +109,11 @@ export const LazyEditor: React.FC<LazyEditorProps> = ({
         )}
 
         {!loading && !error && LazyComponent && (
-          <LazyComponent props={parsedProps} mode="editor" />
+          <LazyComponent
+            props={parsedProps}
+            onPropsUpdate={onPropsUpdate}
+            mode="editor"
+          />
         )}
 
         {!loading && !error && !LazyComponent && (

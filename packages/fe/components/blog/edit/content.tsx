@@ -8,7 +8,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
 import { ReactMdxNode } from './editor/react-mdx-node'
@@ -25,12 +25,26 @@ const Content: React.FC<IContent> = (props) => {
 
   const [initValue] = useState(value)
 
-  const handleUpdate = useRef(
-    debounce((e: EditorEvents['update']) => {
-      const md = e.editor.getMarkdown()
-      onValueChange(md)
-    }, 300),
+  const onValueChangeRef = useRef(onValueChange)
+
+  useEffect(() => {
+    onValueChangeRef.current = onValueChange
+  }, [onValueChange])
+
+  const handleUpdate = useMemo(
+    () =>
+      debounce((e: EditorEvents['update']) => {
+        const md = e.editor.getMarkdown()
+        onValueChangeRef.current(md)
+      }, 300),
+    [],
   )
+
+  useEffect(() => {
+    return () => {
+      handleUpdate.cancel()
+    }
+  }, [handleUpdate])
 
   const { t } = useTranslation('blog')
 
@@ -77,8 +91,7 @@ const Content: React.FC<IContent> = (props) => {
     immediatelyRender: false,
     content: initValue,
     contentType: 'markdown',
-    // eslint-disable-next-line react-hooks/refs
-    onUpdate: handleUpdate.current,
+    onUpdate: handleUpdate,
     autofocus: initValue ? undefined : 'all',
   })
 

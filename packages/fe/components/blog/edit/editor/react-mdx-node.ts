@@ -44,6 +44,25 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
   },
 }
 
+const getSerializableProps = (name: string, props: string) => {
+  if (name !== 'img') {
+    return props
+  }
+
+  try {
+    const parsed = JSON.parse(props)
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return props
+    }
+
+    const { loading: _loading, uploadId: _uploadId, ...restProps } = parsed
+    return JSON.stringify(restProps)
+  } catch {
+    return props
+  }
+}
+
 export const ReactMdxNode = Node.create({
   name: 'reactMdxNode',
 
@@ -126,13 +145,18 @@ export const ReactMdxNode = Node.create({
       getAttrs: (token: any) => {
         const content = token.content || token.markup || ''
         const match = content.match(
-          /<ReactMdxComponent\s+name="([^"]+)"\s+props='([^']+)'\s*\/>/,
+          /<ReactMdxComponent\s+name=(["'])([^"']+)\1\s+props=(?:"((?:\\"|[^"])*)"|'((?:\\'|[^'])*)')\s*\/>/,
         )
 
         if (match) {
+          const props =
+            match[4] !== undefined
+              ? match[4].replace(/\\'/g, "'")
+              : (match[3] ?? '{}').replace(/\\"/g, '"')
+
           return {
-            name: match[1],
-            props: match[2].replace(/\\'/g, "'"),
+            name: match[2],
+            props,
           }
         }
 
@@ -144,7 +168,7 @@ export const ReactMdxNode = Node.create({
   renderMarkdown(node) {
     const { name, props } = node.attrs as ReactMdxNodeAttrs
 
-    const propsStr = props.replace(/'/g, "\\'")
+    const propsStr = getSerializableProps(name, props).replace(/'/g, "\\'")
     return `<ReactMdxComponent name="${name}" props='${propsStr}' />\n\n`
   },
 

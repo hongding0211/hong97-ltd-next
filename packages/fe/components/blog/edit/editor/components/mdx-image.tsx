@@ -7,7 +7,7 @@ import { toast } from '@utils/toast'
 import cx from 'classnames'
 import { CloudUpload, Loader2, Plus, Repeat, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
-import React, { useEffect, useId, useState } from 'react'
+import React, { useEffect, useId, useMemo, useState } from 'react'
 import { ReactMdxComponent } from '../react-mdx-types'
 
 interface IMdxImage {
@@ -15,6 +15,7 @@ interface IMdxImage {
   caption: string
   loop: boolean
   loading?: boolean
+  uploadId?: string
 }
 
 const MdxImage: ReactMdxComponent<IMdxImage> = ({
@@ -22,14 +23,22 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   onPropsUpdate,
   mode,
 }) => {
-  const { urls = '', caption = '', loop, loading: loadingProps = false } = props
+  const {
+    urls = '',
+    caption = '',
+    loop = false,
+    loading: loadingProps = false,
+  } = props
 
-  const url = (() => {
+  const url = useMemo(() => {
     if (!urls.trim().length) {
       return []
     }
-    return urls.split(',')
-  })()
+    return urls
+      .split(',')
+      .map((u) => u.trim())
+      .filter(Boolean)
+  }, [urls])
 
   const [loading, setLoading] = useState(loadingProps)
   const [idx, setIdx] = useState(0)
@@ -39,7 +48,7 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   const uid = useId()
 
   const handleUpload = async (toastOnSuccess?: boolean) => {
-    if (loading) {
+    if (loading || !onPropsUpdate) {
       return
     }
     const input = document.createElement('input')
@@ -47,10 +56,14 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
     input.accept = 'image/*'
     input.id = uid
     input.multiple = true
+    input.className = 'hidden'
+    const cleanup = () => {
+      input.remove()
+    }
     input.onchange = async () => {
       const _files = Array.from(input.files || [])
       if (!_files?.length) {
-        toast('blog.uploadFailed', { type: 'error' })
+        cleanup()
         return
       }
       try {
@@ -60,7 +73,12 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         )
         const uploadedFiles = (
           await Promise.all(compressedImg.map((c) => uploadFile2Oss(c, 'blog')))
-        ).filter(Boolean)
+        ).filter((filePath): filePath is string => Boolean(filePath))
+
+        if (!uploadedFiles.length) {
+          throw new Error('Upload failed')
+        }
+
         onPropsUpdate({
           ...props,
           urls: [...url, ...uploadedFiles].join(','),
@@ -72,23 +90,35 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
         toast('blog.uploadFailed', { type: 'error' })
       } finally {
         setLoading(false)
+        cleanup()
       }
     }
+    input.addEventListener('cancel', cleanup, { once: true })
     document.body.appendChild(input)
     input.click()
-    document.body.removeChild(input)
   }
 
   const handleDel = () => {
+    if (!onPropsUpdate) {
+      return
+    }
+    const nextUrls = url.filter((_, i) => i !== idx)
+    setIdx(Math.max(0, Math.min(idx, nextUrls.length - 1)))
     onPropsUpdate({
       ...props,
-      urls: url.filter((_, i) => i !== idx).join(','),
+      urls: nextUrls.join(','),
     })
   }
 
   useEffect(() => {
     setLoading(loadingProps)
   }, [loadingProps])
+
+  useEffect(() => {
+    if (idx >= url.length) {
+      setIdx(Math.max(url.length - 1, 0))
+    }
+  }, [idx, url.length])
 
   if (mode === 'editor') {
     return (

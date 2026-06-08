@@ -3,6 +3,21 @@ import type { Editor } from '@tiptap/react'
 import { handleImagePaste } from './image-paste-manager'
 import type { ReactMdxNodeAttrs } from './react-mdx-types'
 
+const createUploadId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+const createPendingImageAttrs = (uploadId: string): ReactMdxNodeAttrs => ({
+  name: 'img',
+  props: JSON.stringify({
+    urls: '',
+    caption: '',
+    loop: false,
+    loading: true,
+    uploadId,
+  }),
+})
+
 export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
   return new Plugin({
     key: new PluginKey('imagePaste'),
@@ -36,32 +51,26 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
           const nodeStart = $from.before()
           const nodeEnd = $to.after()
 
-          const attrs: ReactMdxNodeAttrs = {
-            name: 'img',
-            props: JSON.stringify({ urls: '', caption: '', loading: true }),
-          }
+          const uploadId = createUploadId()
+          const attrs = createPendingImageAttrs(uploadId)
           const firstNode = nodeType.create(attrs)
           tr.replaceRangeWith(nodeStart, nodeEnd, firstNode)
           insertPos = nodeStart
 
-          const finalPos = insertPos
           setTimeout(() => {
-            handleImagePaste(editor, imageFiles[0], finalPos)
+            handleImagePaste(editor, imageFiles[0], uploadId)
           }, 0)
 
           insertPos += firstNode.nodeSize
 
           for (let i = 1; i < imageFiles.length; i++) {
-            const attrs: ReactMdxNodeAttrs = {
-              name: 'img',
-              props: JSON.stringify({ urls: '', caption: '', loading: true }),
-            }
+            const uploadId = createUploadId()
+            const attrs = createPendingImageAttrs(uploadId)
             const node = nodeType.create(attrs)
             tr.insert(insertPos, node)
 
-            const finalPos = insertPos
             setTimeout(() => {
-              handleImagePaste(editor, imageFiles[i], finalPos)
+              handleImagePaste(editor, imageFiles[i], uploadId)
             }, 0)
 
             insertPos += node.nodeSize
@@ -70,16 +79,13 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
           insertPos = $from.after()
 
           imageFiles.forEach((file) => {
-            const attrs: ReactMdxNodeAttrs = {
-              name: 'img',
-              props: JSON.stringify({ urls: '', caption: '', loading: true }),
-            }
+            const uploadId = createUploadId()
+            const attrs = createPendingImageAttrs(uploadId)
             const node = nodeType.create(attrs)
             tr.insert(insertPos, node)
 
-            const finalPos = insertPos
             setTimeout(() => {
-              handleImagePaste(editor, file, finalPos)
+              handleImagePaste(editor, file, uploadId)
             }, 0)
 
             insertPos += node.nodeSize
