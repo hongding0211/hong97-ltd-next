@@ -15,6 +15,7 @@ import {
 import {
   WalkcalcBalanceDetailDto,
   WalkcalcBalanceListDto,
+  WalkcalcCurrencyBalanceDto,
   WalkcalcDropRecordMutationDto,
   WalkcalcGroupDto,
   WalkcalcGroupSummaryDto,
@@ -97,6 +98,7 @@ const recordCategoryNames: Record<string, string[]> = {
 
 const exactSettlementParticipantLimit = 12
 const groupSummaryParticipantPreviewLimit = 5
+const defaultCurrencyCode = 'CNY'
 
 @Injectable()
 export class WalkcalcService {
@@ -142,7 +144,7 @@ export class WalkcalcService {
     const activeGroups = groupCodes.length
       ? await this.walkcalcGroupModel
           .find(this.activeGroupFilter({ code: { $in: groupCodes } }))
-          .select({ code: 1 })
+          .select({ code: 1, currencyCode: 1 })
           .exec()
       : []
     const activeGroupCodes = new Set(activeGroups.map((group) => group.code))
@@ -153,7 +155,36 @@ export class WalkcalcService {
           : sum,
       '0',
     )
-    return { totalBalance: formatMoneyAmount(total) }
+    const currencyByGroup = new Map(
+      activeGroups.map((group) => [
+        group.code,
+        this.normalizedCurrencyCode(group.currencyCode),
+      ]),
+    )
+    const totalsByCurrency = new Map<string, string>()
+    for (const projection of projections) {
+      if (!activeGroupCodes.has(projection.groupCode)) {
+        continue
+      }
+      const currencyCode =
+        currencyByGroup.get(projection.groupCode) ?? defaultCurrencyCode
+      totalsByCurrency.set(
+        currencyCode,
+        addMoneyValues(
+          totalsByCurrency.get(currencyCode) ?? '0',
+          projection.balanceValue,
+        ),
+      )
+    }
+    const balances: WalkcalcCurrencyBalanceDto[] = [
+      ...totalsByCurrency.entries(),
+    ]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([currencyCode, totalBalance]) => ({
+        currencyCode,
+        totalBalance: formatMoneyAmount(totalBalance),
+      }))
+    return { totalBalance: formatMoneyAmount(total), balances }
   }
 
   async createGroup(
@@ -175,6 +206,7 @@ export class WalkcalcService {
             code,
             ownerUserId: userId,
             name: dto.name,
+            currencyCode: this.normalizedCurrencyCode(dto.currencyCode),
             archivedUserIds: [],
             isDeleted: false,
             createdAtMs: now,
@@ -461,6 +493,18 @@ export class WalkcalcService {
       }),
     )
     return { code, name }
+  }
+
+  async updateGroupCurrency(
+    userId: string,
+    code: string,
+    currencyCode: string,
+  ): Promise<{ code: string; currencyCode: string }> {
+    const group = await this.loadOwnedGroup(code, userId)
+    group.currencyCode = this.normalizedCurrencyCode(currencyCode)
+    group.modifiedAt = Date.now()
+    await group.save()
+    return { code, currencyCode: group.currencyCode }
   }
 
   async addRecord(
@@ -1429,6 +1473,7 @@ export class WalkcalcService {
       return {
         code: group.code,
         name: group.name,
+        currencyCode: this.normalizedCurrencyCode(group.currencyCode),
         ownerUserId: group.ownerUserId,
         archivedUserIds: group.archivedUserIds,
         isOwner: group.ownerUserId === userId,
@@ -1526,6 +1571,7 @@ export class WalkcalcService {
     return {
       code: group.code,
       name: group.name,
+      currencyCode: this.normalizedCurrencyCode(group.currencyCode),
       ownerUserId: group.ownerUserId,
       archivedUserIds: group.archivedUserIds,
       isOwner: group.ownerUserId === userId,
@@ -1536,6 +1582,13 @@ export class WalkcalcService {
       modifiedAt: group.modifiedAt,
       participants,
     }
+  }
+
+  private normalizedCurrencyCode(currencyCode?: string): string {
+    const normalized = currencyCode?.trim().toUpperCase()
+    return normalized && /^[A-Z]{3}$/.test(normalized)
+      ? normalized
+      : defaultCurrencyCode
   }
 
   private async loadParticipantProjectionDtos(
