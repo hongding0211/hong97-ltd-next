@@ -1,6 +1,6 @@
 {
   "name": "hong97-ltd-next",
-  "version": "0.3.36",
+  "version": "0.3.37",
   "private": true,
   "packageManager": "pnpm@8.15.9",
   "scripts": {
