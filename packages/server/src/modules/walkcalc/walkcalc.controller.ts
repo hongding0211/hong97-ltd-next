@@ -18,7 +18,6 @@ import {
   JoinWalkcalcGroupDto,
   QueryWalkcalcGroupsDto,
   RenameWalkcalcGroupDto,
-  UpdateWalkcalcGroupCurrencyDto,
 } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
@@ -185,20 +184,6 @@ export class WalkcalcController {
     @Body() dto: RenameWalkcalcGroupDto,
   ) {
     return this.walkcalcService.renameGroup(userId, code, dto.name)
-  }
-
-  @Patch('groups/:code/currency')
-  @HttpCode(HttpStatus.OK)
-  async updateGroupCurrency(
-    @UserId() userId: string,
-    @Param('code') code: string,
-    @Body() dto: UpdateWalkcalcGroupCurrencyDto,
-  ) {
-    return this.walkcalcService.updateGroupCurrency(
-      userId,
-      code,
-      dto.currencyCode,
-    )
   }
 
   @Post('records')

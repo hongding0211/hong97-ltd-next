@@ -3,7 +3,6 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
-  IsISO4217CurrencyCode,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -17,10 +16,6 @@ export class CreateWalkcalcGroupDto {
   @IsString()
   @IsNotEmpty()
   name: string
-
-  @IsOptional()
-  @IsISO4217CurrencyCode()
-  currencyCode?: string
 }
 
 export class JoinWalkcalcGroupDto {
@@ -47,11 +42,6 @@ export class RenameWalkcalcGroupDto {
   @IsString()
   @IsNotEmpty()
   name: string
-}
-
-export class UpdateWalkcalcGroupCurrencyDto {
-  @IsISO4217CurrencyCode()
-  currencyCode: string
 }
 
 export class QueryWalkcalcGroupsDto {

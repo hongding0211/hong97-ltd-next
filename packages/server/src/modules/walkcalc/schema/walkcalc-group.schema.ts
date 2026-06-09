@@ -15,9 +15,6 @@ export class WalkcalcGroup {
   @Prop({ required: true })
   name: string
 
-  @Prop({ required: true, default: 'CNY' })
-  currencyCode: string
-
   @Prop({ type: [String], default: [] })
   archivedUserIds: string[]
 

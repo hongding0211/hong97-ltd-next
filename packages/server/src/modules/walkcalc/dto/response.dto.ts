@@ -53,7 +53,6 @@ export interface WalkcalcRecordDto {
 export interface WalkcalcGroupDto {
   code: string
   name: string
-  currencyCode: string
   ownerUserId: string
   archivedUserIds: string[]
   isOwner: boolean
@@ -66,7 +65,6 @@ export interface WalkcalcGroupDto {
 export interface WalkcalcGroupSummaryDto {
   code: string
   name: string
-  currencyCode: string
   ownerUserId: string
   archivedUserIds: string[]
   isOwner: boolean
@@ -82,12 +80,6 @@ export interface WalkcalcGroupSummaryDto {
 }
 
 export interface WalkcalcHomeSummaryDto {
-  totalBalance: MoneyAmount
-  balances?: WalkcalcCurrencyBalanceDto[]
-}
-
-export interface WalkcalcCurrencyBalanceDto {
-  currencyCode: string
   totalBalance: MoneyAmount
 }
 

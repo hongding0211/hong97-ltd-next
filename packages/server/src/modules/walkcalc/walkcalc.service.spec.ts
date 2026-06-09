@@ -106,12 +106,7 @@ describe('WalkcalcService normalized ledger', () => {
           modifiedAt: 300,
           archivedUserIds: ['u1'],
         }),
-        groupDoc({
-          code: 'CD34',
-          name: 'Next Trip',
-          currencyCode: 'USD',
-          modifiedAt: 200,
-        }),
+        groupDoc({ code: 'CD34', name: 'Next Trip', modifiedAt: 200 }),
         groupDoc({
           code: 'EF56',
           name: 'Deleted Trip',
@@ -134,10 +129,6 @@ describe('WalkcalcService normalized ledger', () => {
 
     await expect(ctx.service.homeSummary('u1')).resolves.toEqual({
       totalBalance: '7.50',
-      balances: [
-        { currencyCode: 'CNY', totalBalance: '10.00' },
-        { currencyCode: 'USD', totalBalance: '-2.50' },
-      ],
     })
     await expect(
       ctx.service.myGroups('u1', { page: 1, pageSize: 1 }),
@@ -938,7 +929,6 @@ describe('WalkcalcService normalized ledger', () => {
     expectProjection(ctx, 'tmp1', { balanceValue: '0' })
     await expect(ctx.service.homeSummary('u1')).resolves.toEqual({
       totalBalance: '0.00',
-      balances: [],
     })
   })
 
