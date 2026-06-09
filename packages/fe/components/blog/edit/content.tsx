@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
 import { ReactMdxNode } from './editor/react-mdx-node'
+import { EditorToolbar } from './editor/toolbar'
 
 const lowlight = createLowlight(all)
 
@@ -97,6 +98,7 @@ const Content: React.FC<IContent> = (props) => {
 
   return (
     <>
+      <EditorToolbar editor={editor} />
       <DragHandle editor={editor}>
         <DndHandler />
       </DragHandle>

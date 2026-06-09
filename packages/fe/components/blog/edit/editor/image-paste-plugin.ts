@@ -18,18 +18,20 @@ const createPendingImageAttrs = (uploadId: string): ReactMdxNodeAttrs => ({
   }),
 })
 
+const getImageFiles = (files: FileList | null | undefined) => {
+  if (!files?.length) {
+    return []
+  }
+
+  return Array.from(files).filter((file) => file.type.startsWith('image/'))
+}
+
 export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
   return new Plugin({
     key: new PluginKey('imagePaste'),
     props: {
       handlePaste: (view, event) => {
-        if (!event.clipboardData?.files.length) {
-          return false
-        }
-
-        const imageFiles = Array.from(event.clipboardData.files).filter(
-          (file) => file.type.startsWith('image/'),
-        )
+        const imageFiles = getImageFiles(event.clipboardData?.files)
 
         if (!imageFiles.length) {
           return false
@@ -93,6 +95,44 @@ export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
         }
 
         dispatch(tr)
+        return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (moved) {
+          return false
+        }
+
+        const imageFiles = getImageFiles(event.dataTransfer?.files)
+
+        if (!imageFiles.length) {
+          return false
+        }
+
+        event.preventDefault()
+
+        const insertPos =
+          view.posAtCoords({
+            left: event.clientX,
+            top: event.clientY,
+          })?.pos ?? view.state.selection.from
+
+        const content = imageFiles.flatMap((file) => {
+          const uploadId = createUploadId()
+
+          setTimeout(() => {
+            handleImagePaste(editor, file, uploadId)
+          }, 0)
+
+          return [
+            {
+              type: 'reactMdxNode',
+              attrs: createPendingImageAttrs(uploadId),
+            },
+          ]
+        })
+
+        editor.chain().focus().insertContentAt(insertPos, content).run()
+
         return true
       },
     },
