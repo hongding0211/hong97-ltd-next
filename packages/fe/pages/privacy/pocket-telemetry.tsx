@@ -11,8 +11,8 @@ type Section = {
   items?: string[]
 }
 
-export default function HealthSyncPrivacy() {
-  const { t } = useTranslation('healthsyncPrivacy')
+export default function PocketTelemetryPrivacy() {
+  const { t } = useTranslation('pocketTelemetryDoc')
   const sections = t('sections', { returnObjects: true }) as Section[]
 
   return (
@@ -25,7 +25,7 @@ export default function HealthSyncPrivacy() {
           content="width=device-width, initial-scale=1, maximum-scale=1"
         />
       </Head>
-      <AppLayout className="!px-0 !pt-0 sm:!px-5 sm:!pt-5">
+      <AppLayout hideNavBar className="!px-0 !pt-0 sm:!px-5 sm:!pt-5">
         <main className="box-border flex w-full max-w-full flex-col overflow-hidden px-4 pb-8 pt-7 sm:mx-auto sm:max-w-3xl sm:px-8 sm:pb-20 sm:pt-24">
           <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400 sm:mb-3 sm:text-sm">
             {t('eyebrow')}
@@ -76,7 +76,7 @@ export async function getStaticProps({ locale }: any) {
     props: {
       ...(await serverSideTranslations(locale, [
         'common',
-        'healthsyncPrivacy',
+        'pocketTelemetryDoc',
       ])),
     },
   }

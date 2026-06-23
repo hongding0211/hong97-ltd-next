@@ -1,0 +1,78 @@
+{
+  "metaTitle": "Pocket Telemetry 文档与隐私政策",
+  "eyebrow": "Pocket Telemetry",
+  "title": "Pocket Telemetry",
+  "intro": "Pocket Telemetry 是一个 local-first 的 iOS 遥测 App，用来记录手机侧信号、导出原始数据包，并把用户选择的数据同步到自己控制的 endpoint。",
+  "effectiveDate": "生效日期：2026 年 6 月 24 日",
+  "sections": [
+    {
+      "title": "这个 App 是什么",
+      "body": "Pocket Telemetry 把 iPhone 变成一个个人遥测来源。它记录有用的设备、位置和经用户授权的 HealthKit 信号，让用户可以在本地查看、导出，或发送到自己的私有后端，用于个人自动化和具备上下文感知能力的 agent。这个 App 是数据工具，不是医疗器械、健康服务或诊断工具。"
+    },
+    {
+      "title": "它可以做什么",
+      "items": [
+        "通过 Core Location 记录位置样本，包括时间戳、经纬度、精度、海拔、速度、方向和可用的来源元数据。",
+        "记录轻量设备状态，例如电量、充电状态、低电量模式和温度状态。",
+        "在用户授予 iOS 健康权限后读取选定的 HealthKit 数据，并使用 forward-only cursor，避免每次同步都重新导入全部历史。",
+        "使用 App 私有存储在设备本地保存遥测数据。",
+        "提供 raw data 视图，方便调试和检查。",
+        "将选定时间范围和类型的数据导出为结构化数据包。",
+        "启用 Auto Sync 后，把队列中的遥测数据上传到用户配置的 endpoint。"
+      ]
+    },
+    {
+      "title": "采样机制",
+      "body": "Pocket Telemetry 只会记录已启用来源的信号。每个 recorder 会把小颗粒 raw sample 写入本地存储，上传和导出功能读取本地存储，而不是在发送时直接临时查询系统 API。",
+      "items": [
+        "位置采样由 Core Location 更新和所选记录策略驱动。Low Power、Balanced、High Accuracy 会在耗电、精度和更新频率之间做不同取舍。",
+        "后台位置记录受 iOS 后台执行规则影响。系统可能根据设备状态、运动状态、电量、权限和系统策略暂停、批处理、延迟或合并更新。",
+        "电池采样会在 App 观察到设备状态变化，或准备导出/同步遥测数据时记录轻量快照。电量以 0-1 数值保存，下游展示时应转换为百分比。",
+        "健康采样使用 HealthKit observer/background delivery 加 forward-only cursor date。首次授权时 App 会把 cursor 初始化到当前时间，避免意外拉取用户完整历史健康库。",
+        "健康导入是分页且有上限的。如果仍有更多样本，后续 observer callback 或同步流程可以从已保存 cursor 继续，而不是一次大导入阻塞 App。",
+        "有价值的 raw value 会被保留。像 speed/course 不可用这类平台 sentinel 值，应由下游分析归一化，而不是当作真实测量值。"
+      ]
+    },
+    {
+      "title": "Auto Sync 机制",
+      "body": "Auto Sync 是可选开启的。用户提供 endpoint URL 和可选 API token，并选择手动、每小时或每天同步。Pocket Telemetry 会从本地队列记录构建上传 envelope，发送到配置的 endpoint，并在本地维护上传状态，让失败可重试，同时不删除原始遥测记录。",
+      "items": [
+        "Manual sync 只会在用户点击 Sync Now 时上传队列数据。",
+        "Hourly sync 只有在距离上次同步窗口至少 1 小时后才会上传。",
+        "Daily sync 只有在距离上次同步窗口至少 24 小时后才会上传。",
+        "App 会先把本地遥测记录加入上传队列，再从队列上传。这样记录过程不依赖网络是否可用。",
+        "上传成功后可以推进本地上传状态；上传失败时队列项会保留，供后续重试。",
+        "关闭 Auto Sync 时可以清空待上传队列，但不会删除设备上保存的原始遥测记录。",
+        "App 不要求使用 Pocket Telemetry 托管后端。endpoint 由用户配置，可以是个人服务器、调试采集器或自托管自动化服务。"
+      ]
+    },
+    {
+      "title": "上传数据结构",
+      "body": "上传 payload 使用简单 envelope：包含 schema version、创建时间、批次 id 和按 category 分组的遥测数据。每个 category 包含若干记录，每条记录有稳定 id、时间戳、来源、记录类型、记录级 schema version，以及对应类型的 raw payload。",
+      "items": [
+        "顶层字段：schema_version、created_at、id 和 data。",
+        "当前 category 包括 battery、location，以及在用户授权且存在数据时的 health。",
+        "Battery 记录包含电量、充电状态、低电量模式、温度状态和 recorded_at。",
+        "Location 记录包含 latitude、longitude、horizontal_accuracy、vertical_accuracy、altitude、speed、course、可选 floor_level、source 和 recorded_at。",
+        "Health 记录来自用户授权的 HealthKit 数据，并尽量保持低层、可扩展的 raw telemetry 形态，而不是强行映射成 App 自己定义的业务表。"
+      ]
+    },
+    {
+      "title": "Privacy Policy",
+      "body": "Pocket Telemetry 围绕用户控制和 local-first 处理设计。除非用户主动导出或启用同步到自己选择的 endpoint，数据默认留在设备上。",
+      "items": [
+        "权限：Pocket Telemetry 只会为用户启用的功能请求位置、后台位置和 HealthKit 权限。用户可以随时在 iOS 设置或健康 App 中撤销权限。",
+        "健康数据：App 只会在授权后读取 HealthKit 数据。它不会向 Apple 健康写入伪造健康数据，也不提供医学建议、诊断、治疗、监测或预防。",
+        "本地存储：App 设置、遥测记录、上传队列状态、HealthKit cursor 状态和导出状态可能保存在设备上，直到用户清除数据、重置 App、删除 App 或抹掉设备。",
+        "导出：导出的文件会保存到用户选择的位置。保存到 iCloud Drive 或分享给其他位置的文件，由对应目的地自身的隐私实践处理。",
+        "同步目的地：当用户配置 endpoint 时，Pocket Telemetry 会按照用户选择把选定遥测数据发送到该 endpoint。目的地可以是个人服务器、自托管服务或其他用户控制的后端。该服务器可能按自身配置记录日志或保留上传数据。",
+        "不用于广告：Pocket Telemetry 不会将遥测或 HealthKit 数据用于广告、跨 App 追踪、画像、信贷决策、雇佣决策、保险决策或数据经纪。",
+        "无第三方广告 SDK：App 不包含第三方广告 SDK，也不会出售、出租或交易用户遥测数据。",
+        "安全：App 依赖 iOS 沙盒、平台权限控制，以及用户所选 endpoint 的传输安全。任何存储或传输方式都不是零风险；用户应只同步到自己信任的 endpoint。",
+        "儿童：Pocket Telemetry 并非面向 13 岁以下儿童，我们不会有意通过 App 收集儿童个人信息。",
+        "变更与联系：本政策可能随 App 变化更新。如有隐私问题，请联系 keith.dh@hotmail.com。"
+      ]
+    }
+  ],
+  "footer": "Pocket Telemetry 是为个人数据工作流和 App Store 审核清晰度而设计的、由用户控制的实用遥测工具。"
+}
