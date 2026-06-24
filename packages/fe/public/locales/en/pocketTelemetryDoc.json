@@ -1,78 +1,96 @@
 {
-  "metaTitle": "Pocket Telemetry Documentation and Privacy Policy",
+  "metaTitle": "Pocket Telemetry App Guide and Privacy Policy",
   "eyebrow": "Pocket Telemetry",
-  "title": "Pocket Telemetry",
-  "intro": "Pocket Telemetry is a local-first iOS telemetry app for recording phone-side signals, exporting raw data packages, and syncing selected records to a user-controlled endpoint.",
+  "title": "A personal record of what your iPhone observes.",
+  "intro": "Pocket Telemetry helps you keep a private timeline of useful signals from your iPhone, such as location, battery state, and health data you choose to allow. You can review the records on device, export them, or sync them to your own destination.",
   "effectiveDate": "Effective date: June 24, 2026",
-  "sections": [
+  "highlights": [
     {
-      "title": "What the App Is",
-      "body": "Pocket Telemetry turns an iPhone into a personal telemetry source. It records useful device, location, and authorized HealthKit signals so the user can inspect them locally, export them, or send them to a private backend for personal automation and context-aware agents. The app is a data utility, not a medical device, health service, or diagnostic tool."
+      "title": "You choose what is recorded",
+      "body": "The app asks for iOS permissions only when a feature needs them, and you can turn permissions off in iOS Settings or Apple Health."
     },
     {
-      "title": "What It Can Do",
-      "items": [
-        "Record location samples with Core Location, including timestamp, coordinates, accuracy, altitude, speed, course, and source metadata when available.",
-        "Record lightweight device state such as battery level, charging state, Low Power Mode, and thermal state.",
-        "Read selected HealthKit data after the user grants iOS Health permission, using forward-only cursors so repeated syncs do not need to re-import the whole history.",
-        "Store telemetry locally on device using app-private storage.",
-        "Show raw data for debugging and inspection.",
-        "Export selected telemetry ranges into a structured data package.",
-        "Upload queued telemetry to a user-configured endpoint when Auto Sync is enabled."
-      ]
+      "title": "Useful for a personal timeline",
+      "body": "Pocket Telemetry is made for personal context, automation, experiments, and review. It is not a medical product or diagnosis tool."
     },
     {
-      "title": "Sampling Mechanism",
-      "body": "Pocket Telemetry records signals only from enabled sources. Each recorder writes small raw samples into local storage, and upload/export features read from that local store instead of talking directly to system APIs at send time.",
-      "items": [
-        "Location sampling is driven by Core Location updates and the selected recording policy. Low Power, Balanced, and High Accuracy modes trade off battery use, accuracy, and update frequency.",
-        "Background location recording depends on iOS background execution rules. iOS may pause, batch, delay, or coalesce updates depending on device state, motion, battery, permissions, and system policy.",
-        "Battery sampling records lightweight snapshots when the app observes device-state changes or prepares telemetry for export or sync. Battery level is stored as a 0-1 value and should be displayed as a percentage by downstream tools.",
-        "Health sampling uses HealthKit observer/background delivery plus forward-only cursor dates. On first authorization the app initializes cursors to the current time so it does not unexpectedly pull the user's full historical Health database.",
-        "Health imports are paged and bounded. If more samples exist, later observer callbacks or sync passes can continue from the saved cursor rather than blocking the app with one large import.",
-        "Raw values are preserved where useful. Platform sentinel values such as unavailable speed or course should be normalized by downstream analysis rather than treated as real measurements."
-      ]
-    },
-    {
-      "title": "Auto Sync Mechanism",
-      "body": "Auto Sync is opt-in. The user provides an endpoint URL and optional API token, then chooses whether uploads should be manual, hourly, or daily. Pocket Telemetry builds upload envelopes from queued local records, sends them to the configured endpoint, and tracks upload state locally so failures can be retried without deleting the original telemetry.",
-      "items": [
-        "Manual sync sends queued data only when the user taps Sync Now.",
-        "Hourly sync uploads only after at least one hour has passed since the previous sync window.",
-        "Daily sync uploads only after at least twenty-four hours has passed since the previous sync window.",
-        "The app enqueues local telemetry first, then uploads from the queue. This keeps recording independent from network availability.",
-        "Successful uploads can advance local upload state. Failed uploads keep queued items available for retry.",
-        "Disabling Auto Sync can clear queued upload items without deleting the original telemetry records stored on device.",
-        "The app does not require a Pocket Telemetry hosted backend. The endpoint is user-configured and can be a personal server, a debug collector, or a self-hosted automation service."
-      ]
-    },
-    {
-      "title": "Upload Data Structure",
-      "body": "Upload payloads use a simple envelope with a schema version, creation timestamp, batch id, and grouped telemetry categories. Each category contains records with stable ids, timestamps, source names, record kinds, per-record schema versions, and a raw payload for that record type.",
-      "items": [
-        "Top-level fields: schema_version, created_at, id, and data.",
-        "Category groups currently include battery, location, and health when the corresponding feature is enabled and data exists.",
-        "Battery records include level, charging state, Low Power Mode, thermal state, and recorded_at.",
-        "Location records include latitude, longitude, horizontal and vertical accuracy, altitude, speed, course, optional floor level, source, and recorded_at.",
-        "Health records are represented as raw telemetry records derived from HealthKit data the user authorized, keeping the schema low-level and extensible instead of forcing every HealthKit type into app-specific business tables."
-      ]
-    },
-    {
-      "title": "Privacy Policy",
-      "body": "Pocket Telemetry is designed around user control and local-first handling. Data stays on the device unless the user exports it or enables sync to an endpoint they choose.",
-      "items": [
-        "Permissions: Pocket Telemetry requests location, background location, and HealthKit permissions only for features the user enables. The user can revoke these permissions in iOS Settings or the Health app.",
-        "Health data: the app reads HealthKit data only after authorization. It does not write fabricated health data into Apple Health and does not provide medical advice, diagnosis, treatment, monitoring, or prevention.",
-        "Local storage: app settings, telemetry records, upload queue state, HealthKit cursor state, and export state may be stored on the device until the user clears data, resets the app, deletes the app, or erases the device.",
-        "Exports: exported files are saved where the user chooses. Files saved to iCloud Drive or shared elsewhere are handled by those destinations' own privacy practices.",
-        "Sync destinations: when the user configures an endpoint, Pocket Telemetry sends selected telemetry to that endpoint at the user's direction. The destination may be a personal server, self-hosted service, or another user-controlled backend. The server may log or retain uploaded data according to its own configuration.",
-        "No advertising use: Pocket Telemetry does not use telemetry or HealthKit data for advertising, cross-app tracking, profiling, credit decisions, employment decisions, insurance decisions, or data brokerage.",
-        "No third-party ad SDKs: the app does not include third-party advertising SDKs or sell, rent, or trade user telemetry data.",
-        "Security: the app relies on iOS sandboxing, platform permission controls, and the transport security of the endpoints the user chooses. No storage or transmission method is risk-free; users should only sync to endpoints they trust.",
-        "Children: Pocket Telemetry is not directed to children under 13, and we do not knowingly collect personal information from children through the app.",
-        "Changes and contact: this policy may be updated as the app changes. For privacy questions, contact keith.dh@hotmail.com."
-      ]
+      "title": "Sync is optional",
+      "body": "Nothing is sent just because the app is installed. Uploads happen only after you configure a destination and enable sync."
     }
   ],
-  "footer": "Pocket Telemetry is built as a practical, user-controlled telemetry utility for personal data workflows and App Store review clarity."
+  "featuresEyebrow": "What it does",
+  "featuresTitle": "Record the signals that matter to you",
+  "featuresIntro": "Pocket Telemetry focuses on a few practical data sources instead of trying to become a full health dashboard.",
+  "featureCards": [
+    {
+      "title": "Location history",
+      "body": "Save location points so you can reconstruct movement, places visited, or time spent in different areas."
+    },
+    {
+      "title": "Device state",
+      "body": "Track simple phone conditions such as battery level, charging state, Low Power Mode, and thermal state."
+    },
+    {
+      "title": "Health data you allow",
+      "body": "Read selected Apple Health data only after you grant permission. You decide which health categories are available to the app."
+    },
+    {
+      "title": "Export and review",
+      "body": "Inspect records in the app and export data when you want to analyze it elsewhere or keep your own archive."
+    }
+  ],
+  "syncEyebrow": "Auto Sync",
+  "syncTitle": "Automatic when you want it, quiet when you do not",
+  "syncIntro": "Auto Sync is designed for personal workflows where the phone records data during the day and sends it later to a destination you control.",
+  "syncSteps": [
+    {
+      "title": "Choose a destination",
+      "body": "Add your sync URL and token if your server requires one. This can be a personal server, a test collector, or another private endpoint."
+    },
+    {
+      "title": "Pick a rhythm",
+      "body": "Use manual sync when you want full control, or choose hourly or daily sync for routine background uploads."
+    },
+    {
+      "title": "Network can fail safely",
+      "body": "If the phone is offline or a request fails, the app keeps local records available so a later sync can try again."
+    }
+  ],
+  "dataEyebrow": "Data",
+  "dataTitle": "Simple records, easy to inspect",
+  "dataIntro": "The app keeps data in practical categories. Exact fields may evolve, but the intent stays the same: make personal records readable, exportable, and syncable.",
+  "dataCards": [
+    {
+      "title": "Location",
+      "body": "Time, latitude and longitude, accuracy, altitude when available, and movement-related values reported by iOS."
+    },
+    {
+      "title": "Battery",
+      "body": "Battery percentage, charging status, Low Power Mode, and basic thermal condition."
+    },
+    {
+      "title": "Health",
+      "body": "Health categories you explicitly authorize through Apple Health permissions."
+    },
+    {
+      "title": "Sync batches",
+      "body": "When sync is enabled, selected records are grouped into upload batches so your destination can receive them consistently."
+    }
+  ],
+  "privacyEyebrow": "Privacy Policy",
+  "privacy": {
+    "title": "Privacy Policy",
+    "body": "Pocket Telemetry handles sensitive personal data, so the policy is simple: the app records only what you enable, keeps data under your control, and does not use your data for advertising or tracking.",
+    "items": [
+      "Permissions: the app may request Location, Background Location, and Apple Health permissions for the features you enable. You can revoke permissions at any time in iOS Settings or the Health app.",
+      "Health data: Pocket Telemetry reads Apple Health data only after your authorization. It does not provide medical advice, diagnosis, treatment, prevention, or emergency monitoring.",
+      "On-device data: records and settings may remain on your iPhone until you clear them, reset the app, delete the app, or erase the device.",
+      "Exports: exported files are saved where you choose. If you move them to iCloud Drive or another service, that destination handles the file under its own rules.",
+      "Sync destinations: when you configure a sync destination, selected data is sent there at your direction. Only use destinations you trust.",
+      "No ads or data sale: Pocket Telemetry does not sell, rent, trade, or use your location, health, or device records for advertising or cross-app tracking.",
+      "Children: Pocket Telemetry is not directed to children under 13.",
+      "Contact: for privacy questions, contact keith.dh@hotmail.com."
+    ]
+  },
+  "footer": "This page may be updated as Pocket Telemetry changes."
 }
