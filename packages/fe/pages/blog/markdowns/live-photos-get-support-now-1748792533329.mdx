@@ -105,9 +105,10 @@ useEffect(() => {
 export default BlogContainer
 
 export async function getServerSideProps(context) {
-  const { locale, query } = context
+  const { locale, query, params } = context
+  const blogId = query?.key || params?.slug || 'live-photos-get-support-now-1748792533329'
   const meta = await http.get('GetBlogMeta', {
-    blogId: query?.key
+    blogId
   }, { locale })
   return {
     props: {
@@ -117,4 +118,3 @@ export async function getServerSideProps(context) {
     },
   }
 }
-

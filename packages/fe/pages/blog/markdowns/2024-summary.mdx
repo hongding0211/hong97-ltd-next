@@ -84,9 +84,10 @@ import { http } from '@services/http'
 export default BlogContainer
 
 export async function getServerSideProps(context) {
-  const { locale, query } = context
+  const { locale, query, params } = context
+  const blogId = query?.key || params?.slug || '2024-summary'
   const meta = await http.get('GetBlogMeta', {
-    blogId: query?.key
+    blogId
   }, { locale })
   return {
     props: {
