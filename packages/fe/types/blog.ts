@@ -7,4 +7,5 @@ export interface IBlogConfig {
   coverImg?: string
   hasPublished?: boolean
   hidden2Public?: boolean
+  pinned?: boolean
 }

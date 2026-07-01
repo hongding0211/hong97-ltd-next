@@ -18,6 +18,8 @@ import {
   EyeClosed,
   Heart,
   Pencil,
+  Pin,
+  PinOff,
   Share2,
   TableOfContents,
   X,
@@ -213,6 +215,23 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       await http.put('PutBlogMeta', {
         blogId: meta.blogId,
         hidden2Public: !meta?.hidden2Public,
+      })
+      toast('blog.saveSuccess', { type: 'success' })
+    } catch {
+      // noop
+    } finally {
+      await refetchMeta()
+    }
+  }
+
+  const handleTogglePinned = async () => {
+    if (!isAdmin) {
+      return
+    }
+    try {
+      await http.put('PutBlogMeta', {
+        blogId: meta.blogId,
+        pinned: !meta?.pinned,
       })
       toast('blog.saveSuccess', { type: 'success' })
     } catch {
@@ -571,6 +590,17 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   )}
                   {showEdit && (
                     <>
+                      <div
+                        onClick={handleTogglePinned}
+                        className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                        title={meta?.pinned ? 'Unpin' : 'Pin'}
+                      >
+                        {meta?.pinned ? (
+                          <PinOff className="w-3 h-3" />
+                        ) : (
+                          <Pin className="w-3 h-3" />
+                        )}
+                      </div>
                       <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
                         <Link
                           href={`/blog/edit?id=${meta.blogId}`}

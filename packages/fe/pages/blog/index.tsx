@@ -18,11 +18,12 @@ import { IBlogConfig } from '../../types/blog'
 
 type BlogProps = {
   blogs: IBlogConfig[]
+  pinnedBlogs: IBlogConfig[]
   locale: string
 }
 
 export default function Blog(props: BlogProps) {
-  const { blogs: initialBlogs } = props
+  const { blogs: initialBlogs, pinnedBlogs: initialPinnedBlogs } = props
   const router = useRouter()
   const locale = props.locale ?? router.locale
 
@@ -30,6 +31,8 @@ export default function Blog(props: BlogProps) {
   const { t: tBlog } = useTranslation('blog')
 
   const [blogs, setBlogs] = useState<IBlogConfig[]>(initialBlogs)
+  const [pinnedBlogs, setPinnedBlogs] =
+    useState<IBlogConfig[]>(initialPinnedBlogs)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
@@ -43,8 +46,10 @@ export default function Blog(props: BlogProps) {
           page: 1,
           pageSize: 1000,
           search: search || undefined,
+          includePinned: true,
         })
         setBlogs(response.data.data as IBlogConfig[])
+        setPinnedBlogs((response.data.pinnedData || []) as IBlogConfig[])
       } catch (error) {
         console.error('Search failed:', error)
       } finally {
@@ -167,14 +172,53 @@ export default function Blog(props: BlogProps) {
             )}
           </div>
           <div className="mx-2 mt-2 sm:mt-8">
-            {!isSearching && blogs.length === 0 && (
+            {!isSearching && blogs.length === 0 && pinnedBlogs.length === 0 && (
               <span className="opacity-60 text-sm">{t('noBlog')}</span>
+            )}
+            {pinnedBlogs.length > 0 && (
+              <div className="flex mb-8 sm:mb-12">
+                <span className="w-[8.5rem] sm:w-[12.5rem] shrink-0 relative top-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+                  Pined
+                </span>
+                <div className="flex flex-col gap-y-3 sm:gap-y-4">
+                  {pinnedBlogs.map((blog) => (
+                    <div key={blog.key} className="flex flex-col">
+                      <Link
+                        href={getBlogHref(blog)}
+                        locale={false}
+                        className="flex items-center gap-x-1 cursor-pointer no-underline"
+                      >
+                        <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
+                          {blog.title}
+                        </span>
+                        {blog.hasPublished === false && (
+                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                            Draft
+                          </Badge>
+                        )}
+                        {blog.hidden2Public && (
+                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                            Non-Public
+                          </Badge>
+                        )}
+                      </Link>
+                      <span className="text-xs mt-[0.05rem] sm:mt-0 font-medium opacity-60">
+                        {time.format(blog.time, 'dateWithoutYear')}
+                        {blog.keywords?.length ? ', ' : ''}
+                        {blog.keywords?.map((k, _i) => (
+                          <span key={k}>{` #${k}`}</span>
+                        ))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
             {sortedYear.map((year) => (
               <div key={year} className="flex mb-8 sm:mb-12">
                 <span
                   className={cx(
-                    'mr-16 sm:mr-32 relative text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100',
+                    'w-[8.5rem] sm:w-[12.5rem] shrink-0 relative text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100',
                     groupedBlogsByYear?.[year]?.length > 1 ? 'top-0' : 'top-1',
                   )}
                 >
@@ -230,6 +274,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       {
         page: 1,
         pageSize: 200,
+        includePinned: true,
       },
       {
         serverSideCtx: ctx,
@@ -237,11 +282,13 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     ),
   ])
   const blogs = blogData?.data?.data || []
+  const pinnedBlogs = blogData?.data?.pinnedData || []
 
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'toast', 'blog'])),
       blogs,
+      pinnedBlogs,
       locale,
     },
   }

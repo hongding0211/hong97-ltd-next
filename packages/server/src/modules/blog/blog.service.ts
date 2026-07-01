@@ -33,6 +33,17 @@ export class BlogService {
     private barkService: BarkService,
   ) {}
 
+  private andQuery(...queries: Record<string, any>[]) {
+    const filtered = queries.filter((q) => Object.keys(q).length > 0)
+    if (filtered.length === 0) {
+      return {}
+    }
+    if (filtered.length === 1) {
+      return filtered[0]
+    }
+    return { $and: filtered }
+  }
+
   private async createBlog(meta: {
     blogId: string
     blogTitle: string
@@ -100,6 +111,7 @@ export class BlogService {
       shortCode: blog.shortCode,
       hasPublished: isAdmin?.isAdmin ? blog.hasPublished : undefined,
       hidden2Public: isAdmin?.isAdmin ? blog.hidden2Public : undefined,
+      pinned: isAdmin?.isAdmin ? blog.pinned : undefined,
       lastUpdateAt: blog.lastUpdateTime,
     }
   }
@@ -256,6 +268,7 @@ export class BlogService {
     const title = body?.title ?? dayjs().format('YYYY-MM-DD HH:mm:ss')
     const coverImg = body?.coverImg
     const keywords = body?.keywords ?? []
+    const pinned = body?.pinned ?? false
     const blog = new this.blogModel({
       blogId: uuidv4(),
       title,
@@ -267,6 +280,7 @@ export class BlogService {
       time: Date.now(),
       hasPublished: false,
       hidden2Public: false,
+      pinned,
       lastUpdateTime: Date.now(),
     })
     await blog.save()
@@ -276,13 +290,15 @@ export class BlogService {
       time: blog.time,
       keywords,
       coverImg,
+      pinned,
     }
   }
 
   async list(blogsDto: BlogsDto, userId?: string): Promise<BlogsResponseDto> {
-    const { page = 1, pageSize = 10, search } = blogsDto
+    const { page = 1, pageSize = 10, search, includePinned } = blogsDto
 
     const isAdmin = await this.authService.isAdmin(userId || '-1')
+    const isAdminUser = isAdmin?.isAdmin ?? false
 
     // Build search query
     const searchQuery = search
@@ -294,7 +310,7 @@ export class BlogService {
         }
       : {}
 
-    const visibilityQuery = isAdmin?.isAdmin
+    const visibilityQuery = isAdminUser
       ? {} // Admin can see all blogs
       : {
           $and: [
@@ -313,11 +329,13 @@ export class BlogService {
           ],
         }
 
-    const query = {
-      $and: [searchQuery, visibilityQuery].filter(
-        (q) => Object.keys(q).length > 0,
-      ),
-    }
+    const baseQuery = this.andQuery(searchQuery, visibilityQuery)
+
+    const query = includePinned
+      ? this.andQuery(baseQuery, {
+          $or: [{ pinned: { $exists: false } }, { pinned: false }],
+        })
+      : baseQuery
 
     const total = await this.blogModel.countDocuments(query)
 
@@ -327,17 +345,28 @@ export class BlogService {
       .limit(pageSize)
       .sort({ time: -1 })
 
+    const pinnedBlogs = includePinned
+      ? await this.blogModel
+          .find(this.andQuery(baseQuery, { pinned: true }))
+          .sort({ time: -1 })
+      : []
+
+    const toResponse = (e: BlogDocument): Partial<BlogResponseDto> => ({
+      key: e.blogId,
+      title: e.title,
+      coverImg: e.coverImg,
+      keywords: e.keywords,
+      time: e.time,
+      authRequired: e.authRequired,
+      pinned: e.pinned,
+      hasPublished: isAdminUser ? e.hasPublished : e.hasPublished || undefined,
+      hidden2Public: isAdminUser ? e.hidden2Public : undefined,
+    })
+
     return {
-      data: blogs.map((e) => ({
-        key: e.blogId,
-        title: e.title,
-        coverImg: e.coverImg,
-        keywords: e.keywords,
-        time: e.time,
-        authRequired: e.authRequired,
-        hasPublished: isAdmin ? e.hasPublished : undefined,
-        hidden2Public: isAdmin ? e.hidden2Public : undefined,
-      })),
+      data: blogs.map(toResponse),
+      pinnedData: pinnedBlogs.map(toResponse),
+      pinnedTotal: pinnedBlogs.length,
       total,
       page,
       pageSize,

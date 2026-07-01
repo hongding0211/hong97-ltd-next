@@ -57,6 +57,9 @@ export class Blog {
   @Prop()
   hidden2Public?: boolean
 
+  @Prop({ default: false })
+  pinned?: boolean
+
   @Prop()
   lastUpdateTime?: number
 }

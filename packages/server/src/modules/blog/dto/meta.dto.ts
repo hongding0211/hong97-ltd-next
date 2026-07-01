@@ -53,6 +53,10 @@ export class MetaResponseDto {
   @IsOptional()
   hidden2Public?: boolean
 
+  @IsBoolean()
+  @IsOptional()
+  pinned?: boolean
+
   @IsNumber()
   @IsOptional()
   lastUpdateAt?: number
@@ -89,6 +93,10 @@ export class UpdateMetaDto {
   @IsBoolean()
   @IsOptional()
   hidden2Public?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  pinned?: boolean
 
   @IsNumber()
   @IsOptional()

@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer'
 import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator'
 import {
   PaginationQueryDto,
@@ -31,6 +32,10 @@ export class BlogNew2Dto {
   @IsString()
   @IsOptional()
   coverImg?: string
+
+  @IsBoolean()
+  @IsOptional()
+  pinned?: boolean
 }
 
 export class BlogResponseDto {
@@ -40,12 +45,23 @@ export class BlogResponseDto {
   keywords: string[]
   coverImg?: string
   authRequired?: boolean
+  pinned?: boolean
+  hasPublished?: boolean
+  hidden2Public?: boolean
 }
 
 export class BlogsDto extends PaginationQueryDto {
   @IsString()
   @IsOptional()
   search?: string
+
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  @IsOptional()
+  includePinned?: boolean
 }
 
-export class BlogsResponseDto extends PaginationResponseDto<BlogResponseDto> {}
+export class BlogsResponseDto extends PaginationResponseDto<BlogResponseDto> {
+  pinnedData?: Array<Partial<BlogResponseDto>>
+  pinnedTotal?: number
+}

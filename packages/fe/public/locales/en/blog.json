@@ -37,6 +37,7 @@
     "confirmDel": "Confirm delete",
     "confirmDelDesc": "This action cannot be undone, please proceed with caution.",
     "deleteOk": "Delete successfully",
+    "pinned": "Pined",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "addKeyword": "Add keyword",
