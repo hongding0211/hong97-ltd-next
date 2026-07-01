@@ -331,11 +331,7 @@ export class BlogService {
 
     const baseQuery = this.andQuery(searchQuery, visibilityQuery)
 
-    const query = includePinned
-      ? this.andQuery(baseQuery, {
-          $or: [{ pinned: { $exists: false } }, { pinned: false }],
-        })
-      : baseQuery
+    const query = baseQuery
 
     const total = await this.blogModel.countDocuments(query)
 
