@@ -74,6 +74,8 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
 
   const showShareIcon = !!(isAdmin || shortCode)
 
+  const showPin = isAdmin && !!meta?.blogId
+
   const showEdit = isAdmin && meta?.hasPublished !== undefined
 
   useEffect(() => {
@@ -578,7 +580,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   key={k}
                 >{` #${k}`}</span>
               ))}
-              {(showShareIcon || showEdit) && (
+              {(showShareIcon || showPin || showEdit) && (
                 <div className="flex shrink-0 items-center gap-x-1">
                   {showShareIcon && (
                     <div
@@ -588,19 +590,21 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                       <Share2 className="w-3 h-3" />
                     </div>
                   )}
+                  {showPin && (
+                    <div
+                      onClick={handleTogglePinned}
+                      className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                      title={meta?.pinned ? 'Unpin' : 'Pin'}
+                    >
+                      {meta?.pinned ? (
+                        <PinOff className="w-3 h-3" />
+                      ) : (
+                        <Pin className="w-3 h-3" />
+                      )}
+                    </div>
+                  )}
                   {showEdit && (
                     <>
-                      <div
-                        onClick={handleTogglePinned}
-                        className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                        title={meta?.pinned ? 'Unpin' : 'Pin'}
-                      >
-                        {meta?.pinned ? (
-                          <PinOff className="w-3 h-3" />
-                        ) : (
-                          <Pin className="w-3 h-3" />
-                        )}
-                      </div>
                       <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
                         <Link
                           href={`/blog/edit?id=${meta.blogId}`}

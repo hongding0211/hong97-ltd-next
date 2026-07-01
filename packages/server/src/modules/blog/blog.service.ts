@@ -418,14 +418,18 @@ export class BlogService {
       {} as Record<string, any>,
     )
 
+    const fieldsToSet = {
+      ...cleanedFields,
+      lastUpdateTime: Date.now(),
+      ...(cleanedFields.blogTitle !== undefined
+        ? { title: cleanedFields.blogTitle }
+        : {}),
+    }
+
     const blog = await this.blogModel.findOneAndUpdate(
       { blogId },
       {
-        $set: {
-          ...cleanedFields,
-          lastUpdateTime: Date.now(),
-          title: cleanedFields.blogTitle,
-        },
+        $set: fieldsToSet,
       },
       { new: true }, // 返回更新后的文档
     )
