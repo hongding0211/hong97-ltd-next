@@ -90,6 +90,9 @@ Create a `.env` file in `packages/server/` with:
 # Database
 MONGODB_URI=mongodb://localhost:27017/hong97-ltd-next
 
+# Redis-backed rate limiting
+REDIS_URL=redis://default:your-redis-password@127.0.0.1:6379/0
+
 # Authentication
 JWT_SECRET=your-jwt-secret
 JWT_REFRESH_SECRET=your-refresh-secret

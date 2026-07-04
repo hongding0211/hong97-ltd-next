@@ -9,6 +9,7 @@ import { HeaderResolver, I18nModule } from 'nestjs-i18n'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import config from './config'
+import { RedisThrottlerStorage } from './config/rate-limit/redis-throttler.storage'
 import { AuthGuard } from './guards/auth.guard'
 import { CustomThrottleGuard } from './guards/throttle'
 import { StructuredResponseInterceptor } from './interceptors/response/structured-response'
@@ -52,12 +53,21 @@ import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        return [
+        const throttlers = [
           {
             ttl: configService.get('rateLimit.ttl') ?? 60000,
             limit: configService.get('rateLimit.limit') ?? 10,
           },
         ]
+        const redisUrl = configService.get<string>('rateLimit.redisUrl')
+        if (!redisUrl) {
+          return throttlers
+        }
+
+        return {
+          throttlers,
+          storage: new RedisThrottlerStorage(redisUrl),
+        }
       },
     }),
     I18nModule.forRoot({
