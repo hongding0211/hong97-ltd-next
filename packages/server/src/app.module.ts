@@ -96,11 +96,11 @@ import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
     AppService,
     {
       provide: APP_GUARD,
-      useClass: CustomThrottleGuard,
+      useClass: AuthGuard,
     },
     {
       provide: APP_GUARD,
-      useClass: AuthGuard,
+      useClass: CustomThrottleGuard,
     },
     {
       provide: APP_INTERCEPTOR,
