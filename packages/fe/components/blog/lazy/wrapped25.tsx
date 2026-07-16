@@ -1,5 +1,5 @@
 import { Highlighter } from '@/components/ui/highlighter'
-import { ReactMdxComponent } from '../edit/editor/react-mdx-types'
+import type { ReactMdxComponent } from '../react-mdx-types'
 
 interface IWrapped25 {
   type: string

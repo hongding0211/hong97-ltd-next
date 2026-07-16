@@ -1,7 +1,7 @@
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/react'
+import type { ReactMdxNodeAttrs } from '../../react-mdx-types'
 import { handleImagePaste } from './image-paste-manager'
-import type { ReactMdxNodeAttrs } from './react-mdx-types'
 
 export const createImagePastePlugin = (editor: Editor, nodeType: any) => {
   return new Plugin({

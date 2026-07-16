@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import React, { useCallback, useMemo, useState } from 'react'
-import type { ReactMdxComponent } from '../react-mdx-types'
+import type { ReactMdxComponent } from '../../../react-mdx-types'
 
 interface LazyEditorProps {
   componentName: string

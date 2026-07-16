@@ -24,6 +24,74 @@ import { MetaDto, MetaResponseDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
+type BlogMetaRead = Pick<
+  Blog,
+  | 'blogId'
+  | 'title'
+  | 'viewHistory'
+  | 'likeHistory'
+  | 'time'
+  | 'coverImg'
+  | 'keywords'
+  | 'authRequired'
+  | 'shortCode'
+  | 'hasPublished'
+  | 'hidden2Public'
+  | 'pinned'
+  | 'lastUpdateTime'
+>
+
+type BlogListRead = Pick<
+  Blog,
+  | 'blogId'
+  | 'title'
+  | 'coverImg'
+  | 'keywords'
+  | 'time'
+  | 'authRequired'
+  | 'pinned'
+  | 'hasPublished'
+  | 'hidden2Public'
+>
+
+type BlogContentRead = Pick<Blog, 'blogId' | 'content'>
+
+const BLOG_META_PROJECTION = {
+  _id: 0,
+  blogId: 1,
+  title: 1,
+  viewHistory: 1,
+  likeHistory: 1,
+  time: 1,
+  coverImg: 1,
+  keywords: 1,
+  authRequired: 1,
+  shortCode: 1,
+  hasPublished: 1,
+  hidden2Public: 1,
+  pinned: 1,
+  lastUpdateTime: 1,
+} as const
+
+const BLOG_LIST_PROJECTION = {
+  _id: 0,
+  blogId: 1,
+  title: 1,
+  coverImg: 1,
+  keywords: 1,
+  time: 1,
+  authRequired: 1,
+  pinned: 1,
+  hasPublished: 1,
+  hidden2Public: 1,
+} as const
+
+const BLOG_CONTENT_PROJECTION = {
+  _id: 0,
+  blogId: 1,
+  content: 1,
+} as const
+
 @Injectable()
 export class BlogService {
   constructor(
@@ -86,7 +154,10 @@ export class BlogService {
   async meta(metaDto: MetaDto, userId?: string): Promise<MetaResponseDto> {
     const { blogId } = metaDto
 
-    const blog = await this.blogModel.findOne({ blogId })
+    const blog = await this.blogModel
+      .findOne({ blogId })
+      .select(BLOG_META_PROJECTION)
+      .lean<BlogMetaRead | null>()
 
     if (!blog) {
       throw new GeneralException('blog.blogNotFound')
@@ -111,7 +182,7 @@ export class BlogService {
       shortCode: blog.shortCode,
       hasPublished: isAdmin?.isAdmin ? blog.hasPublished : undefined,
       hidden2Public: isAdmin?.isAdmin ? blog.hidden2Public : undefined,
-      pinned: isAdmin?.isAdmin ? blog.pinned : undefined,
+      pinned: isAdmin?.isAdmin ? blog.pinned ?? false : undefined,
       lastUpdateAt: blog.lastUpdateTime,
     }
   }
@@ -337,24 +408,28 @@ export class BlogService {
 
     const blogs = await this.blogModel
       .find(query)
+      .select(BLOG_LIST_PROJECTION)
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .sort({ time: -1 })
+      .lean<BlogListRead[]>()
 
     const pinnedBlogs = includePinned
       ? await this.blogModel
           .find(this.andQuery(baseQuery, { pinned: true }))
+          .select(BLOG_LIST_PROJECTION)
           .sort({ time: -1 })
+          .lean<BlogListRead[]>()
       : []
 
-    const toResponse = (e: BlogDocument): Partial<BlogResponseDto> => ({
+    const toResponse = (e: BlogListRead): Partial<BlogResponseDto> => ({
       key: e.blogId,
       title: e.title,
       coverImg: e.coverImg,
       keywords: e.keywords,
       time: e.time,
       authRequired: e.authRequired,
-      pinned: e.pinned,
+      pinned: e.pinned ?? false,
       hasPublished: isAdminUser ? e.hasPublished : e.hasPublished || undefined,
       hidden2Public: isAdminUser ? e.hidden2Public : undefined,
     })
@@ -440,7 +515,10 @@ export class BlogService {
   async getContent(contentDto: GetContentDto) {
     const { blogId } = contentDto
 
-    const blog = await this.blogModel.findOne({ blogId })
+    const blog = await this.blogModel
+      .findOne({ blogId })
+      .select(BLOG_CONTENT_PROJECTION)
+      .lean<BlogContentRead | null>()
 
     if (!blog) {
       throw new GeneralException('blog.blogNotFound')

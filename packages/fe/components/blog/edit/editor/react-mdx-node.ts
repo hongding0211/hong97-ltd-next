@@ -4,45 +4,10 @@ import {
   ReactNodeViewRenderer,
   mergeAttributes,
 } from '@tiptap/react'
-import MdxImage from './components/mdx-image'
+import { ComponentMap } from '../../react-mdx-registry'
+import type { ReactMdxNodeAttrs } from '../../react-mdx-types'
 import { createImagePastePlugin } from './image-paste-plugin'
 import { ReactMdxNodeView } from './react-mdx-node-view'
-import type { ComponentMapEntry, ReactMdxNodeAttrs } from './react-mdx-types'
-
-/**
- * Register all custom MDX components here
- */
-export const ComponentMap: Record<string, ComponentMapEntry> = {
-  img: {
-    component: MdxImage,
-    displayName: 'MDX Image',
-    defaultProps: {
-      urls: '',
-      caption: '',
-      loop: false,
-    },
-  },
-  /**
-   * Following components are examples of lazy-loaded components
-   */
-  'lazy.wrapped25': {
-    lazy: true,
-    displayName: 'Wrapped25',
-    defaultProps: {
-      type: '0',
-    },
-    lazyLoader: () => import('../../lazy/wrapped25'),
-  },
-  'lazy.foo': {
-    lazy: true,
-    displayName: 'Lazy Foo',
-    defaultProps: {
-      message: 'Hello from Foo!',
-      color: '#10b981',
-    },
-    lazyLoader: () => import('../../lazy/foo'),
-  },
-}
 
 export const ReactMdxNode = Node.create({
   name: 'reactMdxNode',

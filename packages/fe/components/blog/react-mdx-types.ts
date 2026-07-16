@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 
 export interface IReactMdxComponentProps<T = Record<string, any>> {
   props: T

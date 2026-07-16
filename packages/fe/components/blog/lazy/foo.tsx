@@ -1,5 +1,5 @@
 import React from 'react'
-import type { ReactMdxComponent } from '../edit/editor/react-mdx-types'
+import type { ReactMdxComponent } from '../react-mdx-types'
 
 interface FooProps {
   message?: string

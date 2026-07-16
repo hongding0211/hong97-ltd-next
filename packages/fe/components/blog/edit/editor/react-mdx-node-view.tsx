@@ -2,9 +2,12 @@
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper } from '@tiptap/react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { ComponentMap } from '../../react-mdx-registry'
+import type {
+  LazyComponentState,
+  ReactMdxNodeAttrs,
+} from '../../react-mdx-types'
 import { LazyEditor } from './components/lazy-editor'
-import { ComponentMap } from './react-mdx-node'
-import type { LazyComponentState, ReactMdxNodeAttrs } from './react-mdx-types'
 
 export const ReactMdxNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes, selected } = props

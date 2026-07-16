@@ -8,7 +8,7 @@ import cx from 'classnames'
 import { CloudUpload, Loader2, Plus, Repeat, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useEffect, useId, useState } from 'react'
-import { ReactMdxComponent } from '../react-mdx-types'
+import type { ReactMdxComponent } from '../../../react-mdx-types'
 
 interface IMdxImage {
   urls: string

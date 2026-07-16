@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ComponentMap } from './edit/editor/react-mdx-node'
-import type { ReactMdxComponent as ReactMdxComponentType } from './edit/editor/react-mdx-types'
+import { ComponentMap } from './react-mdx-registry'
+import type { ReactMdxComponent as ReactMdxComponentType } from './react-mdx-types'
 
 export interface ReactMdxComponentProps {
   name: string

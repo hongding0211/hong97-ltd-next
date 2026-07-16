@@ -7,7 +7,6 @@ const nextConfig = {
   i18n: {
     defaultLocale: 'en',
     locales: ['cn', 'en'],
-    reloadOnPrerender: true,
   },
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   ...(
