@@ -186,18 +186,18 @@ export default function Blog(props: BlogProps) {
                       <Link
                         href={getBlogHref(blog)}
                         locale={false}
-                        className="flex items-center gap-x-1 cursor-pointer no-underline"
+                        className="inline cursor-pointer no-underline"
                       >
                         <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
                           {blog.title}
                         </span>
                         {blog.hasPublished === false && (
-                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                          <Badge className="ml-1 align-middle whitespace-nowrap !bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
                             Draft
                           </Badge>
                         )}
                         {blog.hidden2Public && (
-                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                          <Badge className="ml-1 align-middle whitespace-nowrap !bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
                             Non-Public
                           </Badge>
                         )}
@@ -230,18 +230,18 @@ export default function Blog(props: BlogProps) {
                       <Link
                         href={getBlogHref(blog)}
                         locale={false}
-                        className="flex items-center gap-x-1 cursor-pointer no-underline"
+                        className="inline cursor-pointer no-underline"
                       >
                         <span className="!m-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 hover:underline">
                           {blog.title}
                         </span>
                         {blog.hasPublished === false && (
-                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                          <Badge className="ml-1 align-middle whitespace-nowrap !bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
                             Draft
                           </Badge>
                         )}
                         {blog.hidden2Public && (
-                          <Badge className="!bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
+                          <Badge className="ml-1 align-middle whitespace-nowrap !bg-neutral-100 !text-neutral-500 dark:!bg-neutral-800 dark:!text-white text-[10px] p-0 px-1 w-fit h-fit">
                             Non-Public
                           </Badge>
                         )}
