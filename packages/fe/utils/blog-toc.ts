@@ -93,5 +93,9 @@ export function addHeadingAnchors(markdown: string) {
     })
     .join('\n')
 
-  return { content, tocItems: normalizeBlogTocItems(tocItems) }
+  return {
+    content,
+    tocItems: normalizeBlogTocItems(tocItems),
+    headingItems: tocItems,
+  }
 }

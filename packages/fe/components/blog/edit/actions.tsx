@@ -10,10 +10,12 @@ import cx from 'classnames'
 import {
   CloudUpload,
   Eye,
-  EyeClosed,
+  EyeOff,
   ListPlus,
   Loader2,
   Pencil,
+  Pin,
+  PinOff,
   Save,
   SearchCheck,
   Trash,
@@ -28,6 +30,7 @@ interface IActions {
   onSave?: () => void
   onPublish?: () => void
   onHiddenChange?: () => void
+  onPinnedChange?: () => void
   onDelete?: () => void
   onTogglePreview?: () => void
   loading?: ActionLoading
@@ -40,6 +43,7 @@ const Actions: React.FC<IActions> = (props) => {
     onSave,
     onPublish,
     onHiddenChange,
+    onPinnedChange,
     onDelete,
     onTogglePreview,
     loading,
@@ -184,12 +188,31 @@ const Actions: React.FC<IActions> = (props) => {
               {loading === 'hidden' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : meta.hidden2Public ? (
-                <EyeClosed className="w-4 h-4" />
+                <EyeOff className="w-4 h-4" />
               ) : (
                 <Eye className="w-4 h-4" />
               )}
               <span className="hidden sm:inline">
                 {t(meta.hidden2Public ? 'edit.hidden' : 'edit.unHidden')}
+              </span>
+            </Button>
+          )}
+          {meta && (
+            <Button
+              disabled={loading === 'pinned'}
+              size="xs"
+              variant="outline"
+              onClick={onPinnedChange}
+            >
+              {loading === 'pinned' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : meta.pinned ? (
+                <Pin className="w-4 h-4" />
+              ) : (
+                <PinOff className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {t(meta.pinned ? 'edit.pinned' : 'edit.unpinned')}
               </span>
             </Button>
           )}

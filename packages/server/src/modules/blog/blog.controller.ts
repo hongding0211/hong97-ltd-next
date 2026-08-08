@@ -8,9 +8,13 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common'
+import type { Request, Response } from 'express'
 import { RootOnly } from 'src/decorators/root-only.decorator'
 import { UserId } from 'src/decorators/user-id.decorator'
+import { BlogViewDedupeService } from './blog-view-dedupe.service'
 import { BlogService } from './blog.service'
 import { BlogDto, BlogNew2Dto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
@@ -21,7 +25,10 @@ import { ViewDto } from './dto/view.dto'
 
 @Controller('blog')
 export class BlogController {
-  constructor(private readonly blogService: BlogService) {}
+  constructor(
+    private readonly blogService: BlogService,
+    private readonly blogViewDedupeService: BlogViewDedupeService,
+  ) {}
 
   @Post('new')
   @RootOnly()
@@ -45,8 +52,18 @@ export class BlogController {
 
   @Post('view')
   @HttpCode(HttpStatus.OK)
-  async view(@Body() viewDto: ViewDto, @UserId() userId?: string) {
-    return this.blogService.view(viewDto, userId)
+  async view(
+    @Body() viewDto: ViewDto,
+    @UserId() userId: string | undefined,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const viewerIdentity = this.blogViewDedupeService.resolveViewerIdentity(
+      request,
+      response,
+      userId,
+    )
+    return this.blogService.view(viewDto, viewerIdentity, userId)
   }
 
   @Get('meta')

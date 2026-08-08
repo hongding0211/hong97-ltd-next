@@ -42,6 +42,7 @@ export default function Page(props: EditPageProps) {
     title?: string
     coverImg?: string
     keywords?: string[]
+    content?: string
   }) => {
     const res = await http.post('PostBlogNew', meta)
     if (!res?.isSuccess || !res?.data?.key) {

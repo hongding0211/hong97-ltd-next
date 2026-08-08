@@ -38,6 +38,7 @@
     "confirmDelDesc": "删除后不可恢复，请谨慎操作。",
     "deleteOk": "删除成功",
     "pinned": "置顶",
+    "unpinned": "未置顶",
     "confirm": "确认",
     "cancel": "取消",
     "addKeyword": "添加 Tags",

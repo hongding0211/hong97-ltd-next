@@ -15,7 +15,7 @@ import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import {
   Eye,
-  EyeClosed,
+  EyeOff,
   Heart,
   Pencil,
   Pin,
@@ -248,20 +248,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       .post('PostBlogView', {
         blogId: meta.blogId,
       })
-      .then(() => {
-        return http.get('GetBlogMeta', {
-          blogId: meta.blogId,
-        })
-      })
       .then((res) => {
         if (!res.isSuccess) {
           return
         }
         setViewCnt(res.data.viewCount)
-        setLikeCnt(res.data.likeCount)
-        setIsLiked(res.data.isLiked)
       })
-  }, [meta])
+  }, [meta.blogId])
 
   useEffect(() => {
     fetchComments()
@@ -594,33 +587,40 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                     <div
                       onClick={handleTogglePinned}
                       className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                      title={meta?.pinned ? 'Unpin' : 'Pin'}
+                      title={
+                        meta?.pinned ? t('edit.pinned') : t('edit.unpinned')
+                      }
                     >
                       {meta?.pinned ? (
-                        <PinOff className="w-3 h-3" />
-                      ) : (
                         <Pin className="w-3 h-3" />
+                      ) : (
+                        <PinOff className="w-3 h-3" />
                       )}
                     </div>
                   )}
                   {showEdit && (
                     <>
+                      <div
+                        onClick={handleToggleHidden}
+                        className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                        title={
+                          meta?.hidden2Public
+                            ? t('edit.hidden')
+                            : t('edit.unHidden')
+                        }
+                      >
+                        {meta?.hidden2Public ? (
+                          <EyeOff className="w-3 h-3" />
+                        ) : (
+                          <Eye className="w-3 h-3" />
+                        )}
+                      </div>
                       <div className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer">
                         <Link
                           href={`/blog/edit?id=${meta.blogId}`}
                           className="w-full h-full absolute top-0 left-0"
                         />
                         <Pencil className="w-3 h-3" />
-                      </div>
-                      <div
-                        onClick={handleToggleHidden}
-                        className="rounded p-1 relative hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
-                      >
-                        {meta?.hidden2Public ? (
-                          <EyeClosed className="w-3 h-3" />
-                        ) : (
-                          <Eye className="w-3 h-3" />
-                        )}
                       </div>
                     </>
                   )}

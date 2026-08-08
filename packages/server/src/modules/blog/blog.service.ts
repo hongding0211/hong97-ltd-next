@@ -11,6 +11,10 @@ import { AuthService } from '../auth/auth.service'
 import { BarkService } from '../bark/bark.service'
 import { UserService } from '../user/user.service'
 import {
+  BlogViewDedupeService,
+  BlogViewerIdentity,
+} from './blog-view-dedupe.service'
+import {
   BlogDto,
   BlogNew2Dto,
   BlogResponseDto,
@@ -21,14 +25,13 @@ import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
 import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
 import { MetaDto, MetaResponseDto, UpdateMetaDto } from './dto/meta.dto'
-import { ViewDto } from './dto/view.dto'
+import { ViewDto, ViewResponseDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
 type BlogMetaRead = Pick<
   Blog,
   | 'blogId'
   | 'title'
-  | 'viewHistory'
   | 'likeHistory'
   | 'time'
   | 'coverImg'
@@ -39,7 +42,7 @@ type BlogMetaRead = Pick<
   | 'hidden2Public'
   | 'pinned'
   | 'lastUpdateTime'
->
+> & { viewCount: number }
 
 type BlogListRead = Pick<
   Blog,
@@ -60,7 +63,7 @@ const BLOG_META_PROJECTION = {
   _id: 0,
   blogId: 1,
   title: 1,
-  viewHistory: 1,
+  viewCount: { $size: { $ifNull: ['$viewHistory', []] } },
   likeHistory: 1,
   time: 1,
   coverImg: 1,
@@ -99,6 +102,7 @@ export class BlogService {
     private userService: UserService,
     private authService: AuthService,
     private barkService: BarkService,
+    private blogViewDedupeService: BlogViewDedupeService,
   ) {}
 
   private andQuery(...queries: Record<string, any>[]) {
@@ -135,29 +139,59 @@ export class BlogService {
     return blog
   }
 
-  async view(viewDto: ViewDto, userId?: string) {
+  async view(
+    viewDto: ViewDto,
+    viewerIdentity: BlogViewerIdentity,
+    userId?: string,
+  ): Promise<ViewResponseDto> {
     const { blogId } = viewDto
 
-    const blog = await this.blogModel.findOne({ blogId })
-
-    if (!blog) {
+    const existingViewCount = await this.getViewCount(blogId)
+    if (existingViewCount === undefined) {
       throw new GeneralException('blog.blogNotFound')
     }
 
-    blog.viewHistory.push({ userId, time: Date.now() })
+    const counted = await this.blogViewDedupeService.claim(
+      blogId,
+      viewerIdentity.aliases,
+    )
+    if (!counted) {
+      return { blogId, counted: false, viewCount: existingViewCount }
+    }
 
-    await blog.save()
+    const updateResult = await this.blogModel.updateOne(
+      { blogId },
+      {
+        $push: {
+          viewHistory: {
+            userId,
+            visitorIdHash: viewerIdentity.visitorIdHash,
+            time: Date.now(),
+          },
+        },
+      },
+    )
+    if (!updateResult.matchedCount) {
+      throw new GeneralException('blog.blogNotFound')
+    }
 
-    return blog
+    const viewCount = await this.getViewCount(blogId)
+    return {
+      blogId,
+      counted: true,
+      viewCount: viewCount ?? existingViewCount + 1,
+    }
   }
 
   async meta(metaDto: MetaDto, userId?: string): Promise<MetaResponseDto> {
     const { blogId } = metaDto
 
-    const blog = await this.blogModel
-      .findOne({ blogId })
-      .select(BLOG_META_PROJECTION)
-      .lean<BlogMetaRead | null>()
+    const [blog] = await this.blogModel
+      .aggregate<BlogMetaRead>([
+        { $match: { blogId } },
+        { $project: BLOG_META_PROJECTION },
+      ])
+      .exec()
 
     if (!blog) {
       throw new GeneralException('blog.blogNotFound')
@@ -172,7 +206,7 @@ export class BlogService {
     return {
       blogId,
       blogTitle: blog.title,
-      viewCount: blog.viewHistory.length,
+      viewCount: blog.viewCount,
       likeCount: blog.likeHistory.length,
       isLiked,
       time: blog.time,
@@ -185,6 +219,21 @@ export class BlogService {
       pinned: isAdmin?.isAdmin ? blog.pinned ?? false : undefined,
       lastUpdateAt: blog.lastUpdateTime,
     }
+  }
+
+  private async getViewCount(blogId: string) {
+    const [blog] = await this.blogModel
+      .aggregate<{ viewCount: number }>([
+        { $match: { blogId } },
+        {
+          $project: {
+            _id: 0,
+            viewCount: { $size: { $ifNull: ['$viewHistory', []] } },
+          },
+        },
+      ])
+      .exec()
+    return blog?.viewCount
   }
 
   async like(likeDto: MetaDto, userId?: string) {
@@ -339,6 +388,7 @@ export class BlogService {
     const title = body?.title ?? dayjs().format('YYYY-MM-DD HH:mm:ss')
     const coverImg = body?.coverImg
     const keywords = body?.keywords ?? []
+    const content = body?.content ?? ''
     const pinned = body?.pinned ?? false
     const blog = new this.blogModel({
       blogId: uuidv4(),
@@ -348,6 +398,7 @@ export class BlogService {
       comments: [],
       keywords,
       coverImg,
+      content,
       time: Date.now(),
       hasPublished: false,
       hidden2Public: false,

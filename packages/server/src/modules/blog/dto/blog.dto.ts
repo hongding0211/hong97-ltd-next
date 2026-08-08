@@ -33,6 +33,10 @@ export class BlogNew2Dto {
   @IsOptional()
   coverImg?: string
 
+  @IsString()
+  @IsOptional()
+  content?: string
+
   @IsBoolean()
   @IsOptional()
   pinned?: boolean

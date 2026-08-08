@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ImagesV2 } from '@components/common/images-v2'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
+import { addHeadingAnchors } from '@utils/blog-toc'
 import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
@@ -12,7 +13,14 @@ import { useTranslation } from 'next-i18next'
 import { MDXRemote } from 'next-mdx-remote'
 import { serialize } from 'next-mdx-remote/serialize'
 import { useRouter } from 'next/router'
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import rehypeHighlight from 'rehype-highlight'
 import { customComponents } from '../../../mdx-components'
 import MdxLayout from '../mdx-layout'
@@ -20,6 +28,7 @@ import Actions from './actions'
 import Content from './content'
 import Cover from './cover'
 import Keywords from './keywords'
+import EditToc from './toc'
 
 const components = {
   ImagesV2,
@@ -32,6 +41,7 @@ export type ActionLoading =
   | 'coverChange'
   | 'coverRemove'
   | 'hidden'
+  | 'pinned'
   | 'delete'
   | null
 
@@ -45,6 +55,7 @@ interface IBlogCommon {
     title?: string
     coverImg?: string
     keywords?: string[]
+    content?: string
   }) => Promise<void>
 }
 
@@ -62,6 +73,11 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const [title, setTitle] = useState(meta?.blogTitle || '')
   const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
   const [keywords, setKeywords] = useState<string[]>(meta?.keywords || [])
+
+  const { content: anchoredContent, tocItems } = useMemo(
+    () => addHeadingAnchors(content),
+    [content],
+  )
 
   const blogIdRef = useRef('')
 
@@ -89,6 +105,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             title,
             coverImg,
             keywords,
+            content,
           })
         } else {
           const [res0, res1] = await Promise.all([
@@ -145,6 +162,19 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       await http.put('PutBlogMeta', {
         blogId: meta?.blogId,
         hidden2Public: !meta?.hidden2Public,
+      })
+      await onRefreshMeta?.()
+    } finally {
+      setActionLoading(null)
+    }
+  }, [meta, onRefreshMeta])
+
+  const handlePinnedChange = useCallback(async () => {
+    setActionLoading('pinned')
+    try {
+      await http.put('PutBlogMeta', {
+        blogId: meta?.blogId,
+        pinned: !meta?.pinned,
       })
       await onRefreshMeta?.()
     } finally {
@@ -257,7 +287,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   useEffect(() => {
     if (mode === 'preview') {
-      serialize(content, {
+      serialize(anchoredContent, {
         mdxOptions: {
           development: process.env.NODE_ENV === 'development',
           rehypePlugins: [rehypeHighlight],
@@ -267,7 +297,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     return () => {
       setPreviewContent(undefined)
     }
-  }, [mode, content])
+  }, [mode, anchoredContent])
 
   useEffect(() => {
     if (!meta?.blogId) {
@@ -284,6 +314,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
         onPublish={handlePublish}
         onSave={() => handleSave(false)}
         onHiddenChange={handleHiddenChange}
+        onPinnedChange={handlePinnedChange}
         onDelete={handleDelete}
         loading={actionLoading}
         onTogglePreview={() => {
@@ -302,7 +333,15 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
         onRemoveCover={handleRemoveCover}
         loading={actionLoading}
       />
-      <div className="m-auto max-w-[1000px] mt-[-1.5rem] flex justify-center overflow-x-hidden">
+      <div
+        className={cx(
+          'm-auto mt-[-1.5rem]',
+          tocItems.length
+            ? 'blog-reading-shell--with-toc'
+            : 'flex max-w-[1000px] justify-center',
+        )}
+      >
+        {!!tocItems.length && <EditToc items={tocItems} blogTitle={title} />}
         {mode === 'edit' ? (
           <MdxLayout>
             <Input
@@ -320,7 +359,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
               </figcaption>
             )}
             <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
-            <div className="pt-2">
+            <div className="overflow-x-hidden pt-2">
               <Content value={content} onValueChange={handleValueChange} />
             </div>
           </MdxLayout>
@@ -334,7 +373,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
                 <span key={k}>{` #${k}`}</span>
               ))}
             </figcaption>
-            <div className="pt-2">
+            <div className="overflow-x-hidden pt-2">
               {previewContent ? (
                 <MDXRemote {...previewContent} components={components} />
               ) : (
@@ -342,6 +381,9 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
               )}
             </div>
           </MdxLayout>
+        )}
+        {!!tocItems.length && (
+          <div className="blog-reading-balance hidden min-[800px]:block" />
         )}
       </div>
     </>

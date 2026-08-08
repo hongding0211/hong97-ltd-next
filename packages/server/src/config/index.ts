@@ -1,6 +1,7 @@
 import appConfig from './app/app.config'
 import authConfig from './auth/auth.config'
 import barkConfig from './bark/bark.config'
+import blogConfig from './blog/blog.config'
 import databaseConfig from './database/database.config'
 import ossConfig from './oss/oss.config'
 import pushConfig from './push/push.config'
@@ -14,4 +15,5 @@ export default {
   push: pushConfig,
   rateLimit: rateLimitConfig,
   bark: barkConfig,
+  blog: blogConfig,
 }

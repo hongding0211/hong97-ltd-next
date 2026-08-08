@@ -14,6 +14,7 @@ export class Blog {
   @Prop({ required: true })
   viewHistory: {
     userId?: string
+    visitorIdHash?: string
     time: number
   }[]
 

@@ -5,6 +5,7 @@ import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { addHeadingAnchors } from '@utils/blog-toc'
 import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
@@ -14,6 +15,23 @@ import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
 import { ReactMdxNode } from './editor/react-mdx-node'
 
 const lowlight = createLowlight(all)
+
+const syncHeadingIds = (editor: EditorEvents['update']['editor']) => {
+  const { headingItems } = addHeadingAnchors(editor.getMarkdown())
+  const headings = Array.from(
+    editor.view.dom.querySelectorAll('h1, h2, h3, h4'),
+  ) as HTMLHeadingElement[]
+
+  headings.forEach((heading, index) => {
+    const id = headingItems[index]?.id
+
+    if (id) {
+      heading.id = id
+    } else {
+      heading.removeAttribute('id')
+    }
+  })
+}
 
 interface IContent {
   value: string
@@ -78,7 +96,11 @@ const Content: React.FC<IContent> = (props) => {
     content: initValue,
     contentType: 'markdown',
     // eslint-disable-next-line react-hooks/refs
-    onUpdate: handleUpdate.current,
+    onCreate: ({ editor }) => syncHeadingIds(editor),
+    onUpdate: (event) => {
+      syncHeadingIds(event.editor)
+      handleUpdate.current(event)
+    },
     autofocus: initValue ? undefined : 'all',
   })
 
