@@ -248,7 +248,7 @@ export function TrashItem({
   }, [galleryId])
 
   return (
-    <div className="py-4 border-b border-neutral-100 dark:border-neutral-950 last:border-b-0">
+    <div className="border-b-[0.5px] border-neutral-200/80 py-4 last:border-b-0 dark:border-neutral-800/80">
       <div className="space-y-2">
         {/* 内容 */}
         {item.content && (

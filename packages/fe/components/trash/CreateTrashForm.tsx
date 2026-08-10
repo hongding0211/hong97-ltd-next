@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { http } from '@services/http'
 import { CreateTrashDto } from '@services/trash/types'
 import { toast } from '@utils/toast'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, MessageCirclePlus } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import { useEffect, useRef, useState } from 'react'
 import ImageUploader, { ImageUploaderRef } from '../common/ImageUploader'
@@ -108,7 +108,20 @@ export function CreateTrashForm({ onSuccess }: CreateTrashFormProps) {
   const [loading, setLoading] = useState(false)
   const [content, setContent] = useState('')
   const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [isFooterVisible, setIsFooterVisible] = useState(false)
   const imageUploaderRef = useRef<ImageUploaderRef>(null)
+
+  useEffect(() => {
+    const footer = document.querySelector('footer')
+    if (!footer) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsFooterVisible(entry.isIntersecting)
+    })
+    observer.observe(footer)
+
+    return () => observer.disconnect()
+  }, [])
 
   const isDesktop =
     typeof window !== 'undefined' &&
@@ -163,9 +176,13 @@ export function CreateTrashForm({ onSuccess }: CreateTrashFormProps) {
       type="button"
       size="icon"
       aria-label={t('form.publishButton')}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] left-1/2 z-50 h-12 w-12 -translate-x-1/2 rounded-full shadow-lg transition-transform active:scale-95"
+      className={`fixed right-[calc(env(safe-area-inset-right)+2rem)] bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-50 h-12 w-12 rounded-full shadow-lg transition-[transform,opacity] duration-200 active:scale-95 md:right-[calc(50vw_-_21rem)] ${
+        isFooterVisible
+          ? 'pointer-events-none translate-y-3 opacity-0'
+          : 'opacity-100'
+      }`}
     >
-      <Plus className="!h-5 !w-5" />
+      <MessageCirclePlus className="!h-5 !w-5 translate-x-px -translate-y-px" />
     </Button>
   )
 

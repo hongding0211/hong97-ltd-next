@@ -5,7 +5,7 @@ import { GetServerSideProps } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { CreateTrashForm } from '../../components/trash/CreateTrashForm'
 import { TrashItem } from '../../components/trash/TrashItem'
@@ -14,51 +14,29 @@ import {
   PaginationResponseDto,
   TrashResponseDto,
 } from '../../services/trash/types'
-import { time } from '../../utils/time'
 import { toast } from '../../utils/toast'
 
 interface TrashPageProps {
   initialData: PaginationResponseDto<TrashResponseDto>
 }
 
-interface GroupedTrashItems {
-  [key: string]: {
-    items: TrashResponseDto[]
-    displayTitle: string
-    sortOrder: number
-  }
+const TRASH_TIME_ZONE = 'Asia/Shanghai'
+
+function getTrashYear(timestamp: number) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: TRASH_TIME_ZONE,
+    year: 'numeric',
+  }).format(new Date(timestamp))
 }
 
-// 日期分组函数
-function getDateGroup(
-  timestamp: number,
-  _locale: string,
-  t: any,
-): { key: string; displayTitle: string; sortOrder: number } {
-  const now = new Date()
-  const date = new Date(timestamp)
-
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-
-  if (date >= today) {
-    return { key: 'today', displayTitle: t('dateGroups.today'), sortOrder: 0 }
-  }
-  if (date >= yesterday) {
-    return {
-      key: 'yesterday',
-      displayTitle: t('dateGroups.yesterday'),
-      sortOrder: 1,
-    }
-  }
-
-  // 对于除今天昨天之外的所有日期，都显示具体日期
-  const dateKey = `date_${Math.floor(date.getTime() / 86400000)}` // 使用天数作为key，同一天的数据会在同一组
-  return {
-    key: dateKey,
-    displayTitle: time.formatDateGroupTitle(timestamp),
-    sortOrder: Math.floor((now.getTime() - date.getTime()) / 86400000) + 2, // 从昨天之后开始排序，越老的数据sortOrder越大
-  }
+function formatTrashYear(timestamp: number, locale: string) {
+  return new Intl.DateTimeFormat(
+    locale.startsWith('cn') || locale.startsWith('zh') ? 'zh-CN' : 'en-US',
+    {
+      timeZone: TRASH_TIME_ZONE,
+      year: 'numeric',
+    },
+  ).format(new Date(timestamp))
 }
 
 export default function TrashPage({ initialData }: TrashPageProps) {
@@ -74,45 +52,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
   const user = useUser()
 
   const isAdmin = user?.isAdmin ?? false
-
-  // 按日期分组推文
-  const groupedItems = useMemo(() => {
-    const groups: {
-      [key: string]: {
-        items: TrashResponseDto[]
-        displayTitle: string
-        sortOrder: number
-      }
-    } = {}
-
-    items.forEach((item) => {
-      const groupInfo = getDateGroup(item.timestamp, i18n.language, t)
-      if (!groups[groupInfo.key]) {
-        groups[groupInfo.key] = {
-          items: [],
-          displayTitle: groupInfo.displayTitle,
-          sortOrder: groupInfo.sortOrder,
-        }
-      }
-      groups[groupInfo.key].items.push(item)
-    })
-
-    // 确保每个分组内的数据也按时间倒序排列
-    Object.values(groups).forEach((group) => {
-      group.items.sort((a, b) => b.timestamp - a.timestamp)
-    })
-
-    // 按排序顺序返回分组
-    const sortedGroups = Object.entries(groups).sort(
-      ([, a], [, b]) => a.sortOrder - b.sortOrder,
-    )
-    const result: GroupedTrashItems = {}
-    sortedGroups.forEach(([key, value]) => {
-      result[key] = value
-    })
-
-    return result
-  }, [items, i18n.language, t])
+  const currentYear = getTrashYear(Date.now())
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
@@ -231,31 +171,33 @@ export default function TrashPage({ initialData }: TrashPageProps) {
               }
             />
           ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedItems).map(([groupKey, groupData]) => (
-                <div key={groupKey} className="space-y-0">
-                  {/* 日期组标题 */}
-                  <div className="mt-6 mb-1">
-                    <h2 className="text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
-                      {groupData.displayTitle}
-                    </h2>
-                  </div>
+            <div>
+              {items.map((item, index) => {
+                const year = getTrashYear(item.timestamp)
+                const previousYear =
+                  index > 0
+                    ? getTrashYear(items[index - 1].timestamp)
+                    : undefined
 
-                  {/* 该日期组的推文 */}
-                  <div className="space-y-0">
-                    {groupData.items.map((item) => (
-                      <TrashItem
-                        key={item._id}
-                        item={item}
-                        onDelete={handleDelete}
-                        onLikeUpdate={handleLikeUpdate}
-                        onCommentUpdate={handleCommentUpdate}
-                        isAdmin={isAdmin}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                return (
+                  <Fragment key={item._id}>
+                    {year !== previousYear && (
+                      <h2 className="pt-6 pb-1 text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
+                        {year === currentYear
+                          ? t('dateGroups.thisYear')
+                          : formatTrashYear(item.timestamp, i18n.language)}
+                      </h2>
+                    )}
+                    <TrashItem
+                      item={item}
+                      onDelete={handleDelete}
+                      onLikeUpdate={handleLikeUpdate}
+                      onCommentUpdate={handleCommentUpdate}
+                      isAdmin={isAdmin}
+                    />
+                  </Fragment>
+                )
+              })}
 
               {loading && (
                 <div className="flex justify-center py-4">

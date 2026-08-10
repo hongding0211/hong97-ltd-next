@@ -8,6 +8,7 @@
     "userDescription": "Waiting to be filled with thoughts..."
   },
   "dateGroups": {
+    "thisYear": "Lately",
     "today": "Today",
     "yesterday": "Yesterday",
     "thisWeek": "This Week",
