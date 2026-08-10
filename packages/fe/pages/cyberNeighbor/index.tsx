@@ -1,6 +1,7 @@
 import AppLayout from '@components/app-layout/AppLayout'
+import { EmptyState } from '@components/common/EmptyState'
 import { http } from '@services/http'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, UsersRound } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
@@ -64,14 +65,22 @@ const CyberNeighbor: React.FC<{
       </Head>
       <AppLayout>
         <div className="max-w-[500px] mx-auto sm:mt-6 flex-col">
-          {links.map((item, index) => (
-            <React.Fragment key={item.link}>
-              <Item link={item} />
-              {index !== links.length - 1 && (
-                <div className="w-full h-[0.5px] my-3 bg-neutral-300 dark:bg-neutral-700" />
-              )}
-            </React.Fragment>
-          ))}
+          {links.length === 0 ? (
+            <EmptyState
+              icon={UsersRound}
+              title={t('empty.cyberNeighbor.title')}
+              description={t('empty.cyberNeighbor.description')}
+            />
+          ) : (
+            links.map((item, index) => (
+              <React.Fragment key={item.link}>
+                <Item link={item} />
+                {index !== links.length - 1 && (
+                  <div className="w-full h-[0.5px] my-3 bg-neutral-300 dark:bg-neutral-700" />
+                )}
+              </React.Fragment>
+            ))
+          )}
         </div>
       </AppLayout>
     </>

@@ -197,6 +197,10 @@ const CreateShortLink: React.FC<{
   const { t: tCommon } = useTranslation('common')
 
   useEffect(() => {
+    if (!open) {
+      return
+    }
+
     if (editItem) {
       setOriginalUrl(editItem.originalUrl)
       // 高级配置暂时隐藏，只保留基本字段
@@ -472,11 +476,17 @@ function ShortLink({ locale }: { locale: string }) {
       }
       setLoading(true)
       return http
-        .get('GetShortLinkList', {
-          page: page.current,
-          pageSize: size.current,
-          search: searchQuery || undefined,
-        })
+        .get(
+          'GetShortLinkList',
+          {
+            page: page.current,
+            pageSize: size.current,
+            search: searchQuery || undefined,
+          },
+          {
+            silentAuthError: true,
+          },
+        )
         .then((res) => {
           if (refetch) {
             setItems(res.data.data)
@@ -486,7 +496,8 @@ function ShortLink({ locale }: { locale: string }) {
           setTotal(res.data.total)
         })
         .catch((err) => {
-          if (err?.status === 403) {
+          const status = err?.response?.status ?? err?.status
+          if (status === 401 || status === 403) {
             setNoPermission(true)
           }
         })
@@ -532,7 +543,7 @@ function ShortLink({ locale }: { locale: string }) {
     debouncedSearch(query)
   }
 
-  const content = useMemo(() => {
+  const content = (() => {
     if (noPermission) {
       return (
         <div className="flex justify-center">
@@ -629,20 +640,11 @@ function ShortLink({ locale }: { locale: string }) {
         </div>
       </div>
     )
-  }, [
-    items,
-    handleCreate,
-    t,
-    handleLoadMore,
-    total,
-    tCommon,
-    loading,
-    searchQuery,
-  ])
+  })()
 
   useEffect(() => {
     fetch(true)
-  }, [searchQuery])
+  }, [fetch])
 
   // 清理防抖函数
   useEffect(() => {

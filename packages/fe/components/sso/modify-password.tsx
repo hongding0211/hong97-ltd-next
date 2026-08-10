@@ -21,7 +21,7 @@ import {
 import { http } from '@services/http'
 import { useAppStore } from '@stores/general'
 import { toast } from '@utils/toast'
-import { AlertCircle, Ban, Check, Eye, EyeClosed, Loader2 } from 'lucide-react'
+import { AlertCircle, Eye, EyeClosed, Loader2 } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import { InputWithLabel } from '../common/input-with-label'
 
@@ -192,16 +192,11 @@ const ModifyPassword: React.FC<{
           <div className="grid mt-2 grid-cols-2 gap-x-2">
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
-                <Ban className="w-4 h-4" />
                 {t('cancel')}
               </Button>
             </DrawerClose>
             <Button disabled={loading} onClick={handleApply}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {t('apply')}
             </Button>
           </div>
@@ -239,16 +234,11 @@ const ModifyPassword: React.FC<{
           <div className="grid grid-cols-2 gap-x-2">
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
-                <Ban className="w-4 h-4" />
                 {t('cancel')}
               </Button>
             </DrawerClose>
             <Button disabled={loading} onClick={handleApply}>
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {t('apply')}
             </Button>
           </div>

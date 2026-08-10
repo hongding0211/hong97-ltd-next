@@ -1,9 +1,20 @@
 import typography from '@tailwindcss/typography'
 import type { Config } from 'tailwindcss'
 import tailwindcssAnimate from 'tailwindcss-animate'
+import plugin from 'tailwindcss/plugin'
+
+const interactionFeedback = plugin(({ addVariant }) => {
+  addVariant('hover', [
+    '@media (hover: hover) and (pointer: fine) { &:hover }',
+    '@media (hover: none) and (pointer: coarse) { &:active }',
+  ])
+})
 
 const config = {
   darkMode: ['class'],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -68,7 +79,7 @@ const config = {
       },
     },
   },
-  plugins: [tailwindcssAnimate, typography],
+  plugins: [tailwindcssAnimate, typography, interactionFeedback],
 } satisfies Config
 
 export default config

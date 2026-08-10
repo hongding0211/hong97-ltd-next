@@ -1,7 +1,6 @@
 import { Textarea } from '@/components/ui/textarea'
 import { useLogin } from '@hooks/useLogin'
 import { emitter } from '@utils/emitter'
-import { Send } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useState } from 'react'
 
@@ -48,14 +47,16 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
         }
         rows={2}
         disabled={disabled || loading}
-        className="text-sm resize-none"
+        className="text-sm resize-none pr-20"
       />
-      <div
-        className="flex justify-end absolute bottom-3.5 right-3.5 text-neutral-400 hover:text-neutral-500 dark:hover:text-neutral-300 transition-colors cursor-pointer"
+      <button
+        type="button"
+        className="absolute bottom-3 right-3 text-xs font-semibold text-neutral-600 transition-opacity hover:text-neutral-900 active:opacity-50 disabled:cursor-default disabled:opacity-40 dark:text-neutral-300 dark:hover:text-neutral-50"
         onClick={handleSubmit}
+        disabled={disabled || loading || !content.trim()}
       >
-        <Send className="w-3.5 h-3.5" />
-      </div>
+        {loading ? t('comment.publishing') : t('comment.publish')}
+      </button>
     </div>
   )
 }

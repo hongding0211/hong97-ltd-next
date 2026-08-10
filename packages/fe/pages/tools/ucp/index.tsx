@@ -182,10 +182,16 @@ function UCP({ locale }: { locale: string }) {
     }
     setLoading(true)
     return http
-      .get('GetUcpList', {
-        page: page.current,
-        pageSize: size.current,
-      })
+      .get(
+        'GetUcpList',
+        {
+          page: page.current,
+          pageSize: size.current,
+        },
+        {
+          silentAuthError: true,
+        },
+      )
       .then((res) => {
         if (refetch) {
           setItems(res.data.data)
@@ -195,7 +201,8 @@ function UCP({ locale }: { locale: string }) {
         setTotal(res.data.total)
       })
       .catch((err) => {
-        if (err?.status === 403) {
+        const status = err?.response?.status ?? err?.status
+        if (status === 401 || status === 403) {
           setNoPermission(true)
         }
       })
@@ -289,7 +296,16 @@ function UCP({ locale }: { locale: string }) {
         )}
       </div>
     )
-  }, [items, handleAdd, t, handleLoadMore, total, tCommon, loading])
+  }, [
+    noPermission,
+    items,
+    handleAdd,
+    t,
+    handleLoadMore,
+    total,
+    tCommon,
+    loading,
+  ])
 
   useEffect(() => {
     fetch()

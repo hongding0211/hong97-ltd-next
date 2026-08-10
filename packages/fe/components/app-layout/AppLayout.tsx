@@ -126,6 +126,14 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   } dark:hover:text-neutral-100`}
                 >
                   {t(`nav.${m.key}`)}
+                  {m.badge && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute right-[-11px] top-[-2px] text-[7px] font-semibold leading-none tracking-[-0.02em]"
+                    >
+                      {m.badge}
+                    </span>
+                  )}
                   {m.icon && (
                     <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
                   )}
@@ -196,6 +204,14 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                     } hover:text-neutral-900 dark:hover:text-neutral-100 text-nowrap w-min`}
                   >
                     {t(`nav.${m.key}`)}
+                    {m.badge && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-[-11px] top-[1px] text-[7px] font-semibold leading-none tracking-[-0.02em]"
+                      >
+                        {m.badge}
+                      </span>
+                    )}
                     {m.icon && (
                       <m.icon className="absolute h-[10px] w-[10px] top-0 right-[-13px]" />
                     )}

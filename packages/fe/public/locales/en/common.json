@@ -15,6 +15,12 @@
   "back": "Back",
   "optional": "Optional",
   "noBlog": "Nothing here yet...",
+  "empty": {
+    "cyberNeighbor": {
+      "title": "No neighbors yet",
+      "description": "New neighbors will appear here."
+    }
+  },
   "login": "Login",
   "cropAvatar": "Edit Avatar",
   "apply": "Apply",

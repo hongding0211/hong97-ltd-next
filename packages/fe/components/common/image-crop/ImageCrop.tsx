@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DialogClose } from '@radix-ui/react-dialog'
-import { Ban, CheckCircle } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useEffect, useRef, useState } from 'react'
 import Cropper from 'react-easy-crop'
@@ -118,12 +117,10 @@ const ImageCrop: React.FC<ImageCropProps> = (props) => {
           <div className="items-center mt-6 grid grid-cols-2 gap-x-2">
             <DialogClose className="w-full" asChild>
               <Button size="sm" variant="outline">
-                <Ban className="w-4 h-4" />
                 {t('cancel')}
               </Button>
             </DialogClose>
             <Button size="sm" onClick={handleApply}>
-              <CheckCircle className="w-4 h-4" />
               {t('apply')}
             </Button>
           </div>

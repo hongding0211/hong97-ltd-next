@@ -1,11 +1,12 @@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@components/common/EmptyState'
 import { useUser } from '@hooks/useUser'
 import { http } from '@services/http'
 import { time } from '@utils/time'
 import cx from 'classnames'
 import { debounce } from 'lodash'
-import { Pencil, Search } from 'lucide-react'
+import { BookOpen, Pencil, Search } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
@@ -122,6 +123,9 @@ export default function Blog(props: BlogProps) {
     return getLocalizedHref(`/blog/markdowns/${blogKey}?key=${blogKey}`)
   }
 
+  const isEmpty = !isSearching && blogs.length === 0 && pinnedBlogs.length === 0
+  const isEmptySearch = isEmpty && searchTerm.trim().length > 0
+
   return (
     <>
       <Head>
@@ -172,8 +176,20 @@ export default function Blog(props: BlogProps) {
             )}
           </div>
           <div className="mx-2 mt-2 sm:mt-8">
-            {!isSearching && blogs.length === 0 && pinnedBlogs.length === 0 && (
-              <span className="opacity-60 text-sm">{t('noBlog')}</span>
+            {isEmpty && (
+              <EmptyState
+                icon={BookOpen}
+                title={
+                  isEmptySearch
+                    ? tBlog('empty.searchTitle')
+                    : tBlog('empty.title')
+                }
+                description={
+                  isEmptySearch
+                    ? tBlog('empty.searchDescription')
+                    : tBlog('empty.description')
+                }
+              />
             )}
             {pinnedBlogs.length > 0 && (
               <div className="flex mb-8 sm:mb-12">

@@ -3,6 +3,7 @@ export type IMenuItem = {
   path: string
   externalLink?: boolean
   icon?: any
+  badge?: string
 }
 
 export type IFooterItem = {
@@ -23,6 +24,7 @@ export const menuConfig: IMenuItem[] = [
   {
     key: 'trash',
     path: '/trash',
+    badge: 'TM',
   },
   {
     key: 'tools',

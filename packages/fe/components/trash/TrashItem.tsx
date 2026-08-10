@@ -311,7 +311,7 @@ export function TrashItem({
           <button
             type="button"
             onClick={() => setShowCommentForm(!showCommentForm)}
-            className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400"
+            className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400 hover:underline active:underline active:opacity-100"
           >
             {t('comment.text')}
           </button>
@@ -319,7 +319,7 @@ export function TrashItem({
             <button
               type="button"
               onClick={() => setShowDeleteDialog(true)}
-              className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400"
+              className="opacity-70 cursor-pointer text-neutral-500 dark:text-neutral-400 hover:underline active:underline active:opacity-100"
             >
               {t('delete.text')}
             </button>

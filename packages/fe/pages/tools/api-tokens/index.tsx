@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,12 +13,19 @@ import AppLayout from '@components/app-layout/AppLayout'
 import { ApiTokenResponseDto } from '@server/modules/auth/dto/api-token.dto'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
-import { Copy, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react'
-import { GetStaticPropsContext } from 'next'
+import {
+  CircleSlash,
+  Copy,
+  KeyRound,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 const formatDate = (date?: Date | string | null) => {
   if (!date) {
@@ -26,28 +34,42 @@ const formatDate = (date?: Date | string | null) => {
   return new Date(date).toLocaleString()
 }
 
-function ApiTokens({ locale }: { locale: string }) {
+interface ApiTokensProps {
+  locale: string
+  initialTokens: ApiTokenResponseDto[]
+  initialNoPermission: boolean
+}
+
+function ApiTokens({
+  locale,
+  initialTokens,
+  initialNoPermission,
+}: ApiTokensProps) {
   const { t } = useTranslation('tools')
   const { t: tCommon } = useTranslation('common')
-  const [tokens, setTokens] = useState<ApiTokenResponseDto[]>([])
+  const [tokens, setTokens] = useState<ApiTokenResponseDto[]>(initialTokens)
   const [name, setName] = useState('')
   const [newToken, setNewToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [noPermission, setNoPermission] = useState(initialNoPermission)
 
   const loadTokens = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await http.get('GetApiTokens')
+      const res = await http.get('GetApiTokens', undefined, {
+        ignoreForbidden: true,
+      })
       setTokens(res.data ?? [])
+      setNoPermission(false)
+    } catch (error: any) {
+      if (error?.status === 403 || error?.response?.status === 403) {
+        setNoPermission(true)
+      }
     } finally {
       setLoading(false)
     }
   }, [])
-
-  useEffect(() => {
-    loadTokens()
-  }, [loadTokens])
 
   const handleCopy = (value: string) => {
     navigator.clipboard.writeText(value)
@@ -120,102 +142,118 @@ function ApiTokens({ locale }: { locale: string }) {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="mt-10 flex flex-col gap-y-3">
-            <div className="flex items-center gap-x-2">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t('items.api-tokens.namePlaceholder')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCreate()
-                  }
-                }}
-              />
-              <Button onClick={handleCreate} disabled={creating}>
-                {creating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                {t('items.api-tokens.create')}
-              </Button>
+          {noPermission ? (
+            <div className="flex justify-center">
+              <div className="w-[80%] max-w-[400px] mt-24 md:mt-48">
+                <Alert>
+                  <CircleSlash className="w-4 h-4" />
+                  <AlertTitle>{t('items.api-tokens.title')}</AlertTitle>
+                  <AlertDescription className="mt-5">
+                    {t('items.api-tokens.noPermission')}
+                  </AlertDescription>
+                </Alert>
+              </div>
             </div>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {t('items.api-tokens.description')}
-            </p>
-          </div>
-
-          {newToken && (
-            <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
-              <div className="flex items-center justify-between gap-x-3">
-                <div className="flex flex-col gap-y-1 min-w-0">
-                  <span className="font-semibold text-amber-800 dark:text-amber-200">
-                    {t('items.api-tokens.createdTitle')}
-                  </span>
-                  <code className="break-all text-sm text-amber-900 dark:text-amber-100">
-                    {newToken}
-                  </code>
-                  <span className="text-xs text-amber-700 dark:text-amber-300">
-                    {t('items.api-tokens.createdHint')}
-                  </span>
+          ) : (
+            <>
+              <div className="mt-10 flex flex-col gap-y-3">
+                <div className="flex items-center gap-x-2">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t('items.api-tokens.namePlaceholder')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreate()
+                      }
+                    }}
+                  />
+                  <Button onClick={handleCreate} disabled={creating}>
+                    {creating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    {t('items.api-tokens.create')}
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleCopy(newToken)}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  {t('items.api-tokens.description')}
+                </p>
               </div>
-            </div>
-          )}
 
-          <div className="mt-8 flex flex-col gap-y-1">
-            {loading && (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
-            )}
-            {!loading && tokens.length === 0 && (
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                {t('items.api-tokens.empty')}
-              </span>
-            )}
-            {!loading &&
-              tokens.map((token, index) => (
-                <div key={token.tokenId}>
-                  <div className="flex items-center justify-between gap-x-4 py-3">
-                    <div className="flex items-center gap-x-3 min-w-0">
-                      <KeyRound className="w-4 h-4 shrink-0 text-neutral-500" />
-                      <div className="flex flex-col gap-y-1 min-w-0">
-                        <span className="font-medium truncate">
-                          {token.name}
-                        </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                          {token.tokenPrefix}… ·{' '}
-                          {t('items.api-tokens.createdAt')}:{' '}
-                          {formatDate(token.createdAt)} ·{' '}
-                          {t('items.api-tokens.lastUsedAt')}:{' '}
-                          {formatDate(token.lastUsedAt)}
-                        </span>
-                      </div>
+              {newToken && (
+                <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+                  <div className="flex items-center justify-between gap-x-3">
+                    <div className="flex flex-col gap-y-1 min-w-0">
+                      <span className="font-semibold text-amber-800 dark:text-amber-200">
+                        {t('items.api-tokens.createdTitle')}
+                      </span>
+                      <code className="break-all text-sm text-amber-900 dark:text-amber-100">
+                        {newToken}
+                      </code>
+                      <span className="text-xs text-amber-700 dark:text-amber-300">
+                        {t('items.api-tokens.createdHint')}
+                      </span>
                     </div>
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleDelete(token)}
+                      variant="outline"
+                      onClick={() => handleCopy(newToken)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Copy className="w-4 h-4" />
                     </Button>
                   </div>
-                  {index !== tokens.length - 1 && (
-                    <div className="w-full h-[0.5px] bg-neutral-300 dark:bg-neutral-700" />
-                  )}
                 </div>
-              ))}
-          </div>
+              )}
+
+              <div className="mt-8 flex flex-col gap-y-1">
+                {loading && (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+                {!loading && tokens.length === 0 && (
+                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                    {t('items.api-tokens.empty')}
+                  </span>
+                )}
+                {!loading &&
+                  tokens.map((token, index) => (
+                    <div key={token.tokenId}>
+                      <div className="flex items-center justify-between gap-x-4 py-3">
+                        <div className="flex items-center gap-x-3 min-w-0">
+                          <KeyRound className="w-4 h-4 shrink-0 text-neutral-500" />
+                          <div className="flex flex-col gap-y-1 min-w-0">
+                            <span className="font-medium truncate">
+                              {token.name}
+                            </span>
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                              {token.tokenPrefix}… ·{' '}
+                              {t('items.api-tokens.createdAt')}:{' '}
+                              {formatDate(token.createdAt)} ·{' '}
+                              {t('items.api-tokens.lastUsedAt')}:{' '}
+                              {formatDate(token.lastUsedAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDelete(token)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      {index !== tokens.length - 1 && (
+                        <div className="w-full h-[0.5px] bg-neutral-300 dark:bg-neutral-700" />
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
         </div>
       </AppLayout>
     </>
@@ -224,11 +262,29 @@ function ApiTokens({ locale }: { locale: string }) {
 
 export default ApiTokens
 
-export async function getServerSideProps(context: GetStaticPropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'cn' } = context
+
+  let initialTokens: ApiTokenResponseDto[] = []
+  let initialNoPermission = false
+
+  try {
+    const response = await http.get('GetApiTokens', undefined, {
+      enableOnlyWithAuthInServerSide: true,
+      silentAuthError: true,
+      serverSideCtx: context,
+    })
+    initialTokens = response?.data ?? []
+  } catch (error: any) {
+    initialNoPermission =
+      error?.status === 403 || error?.response?.status === 403
+  }
+
   return {
     props: {
       locale,
+      initialTokens,
+      initialNoPermission,
       ...(await serverSideTranslations(locale, ['common', 'tools', 'toast'])),
     },
   }

@@ -70,6 +70,7 @@
     "api-tokens": {
       "title": "API Token",
       "subTitle": "管理永久 API 访问令牌",
+      "noPermission": "您没有权限访问该页面",
       "description": "用于脚本或第三方客户端的永久 Bearer Token。Token 只会在创建后显示一次，请妥善保存。",
       "create": "创建",
       "namePlaceholder": "Token 名称，例如 CLI 或 Zapier",

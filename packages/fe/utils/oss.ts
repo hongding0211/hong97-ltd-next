@@ -5,6 +5,31 @@ import { toast } from './toast'
 
 const axiosInstance = axios.create()
 
+const uploadViaDevProxy = async (url: string, file: File) => {
+  await axiosInstance.post('/api/dev/oss-upload', file, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'X-OSS-Upload-URL': url,
+    },
+  })
+}
+
+const uploadFile = async (url: string, file: File) => {
+  try {
+    await axiosInstance.put(url, file, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+    })
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'development') {
+      throw error
+    }
+
+    await uploadViaDevProxy(url, file)
+  }
+}
+
 export async function convertImageToWebP(
   file: File,
   quality = 0.9,
@@ -87,17 +112,12 @@ export async function uploadFile2Oss(
       throw new Error()
     }
 
-    await axiosInstance.put(
+    await uploadFile(
       url,
       new File([file], fileName, {
         type: file.type,
         lastModified: file.lastModified,
       }),
-      {
-        headers: {
-          'Content-Type': 'application/octet-stream',
-        },
-      },
     )
 
     return filePath

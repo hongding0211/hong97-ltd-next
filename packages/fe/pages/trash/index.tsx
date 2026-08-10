@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { EmptyState } from '@components/common/EmptyState'
 import { useUser } from '@hooks/useUser'
 import { Loader2, Trash } from 'lucide-react'
 import { GetServerSideProps } from 'next'
@@ -218,24 +218,18 @@ export default function TrashPage({ initialData }: TrashPageProps) {
       </Head>
       <AppLayout>
         <div className="container mx-auto mt-[-0.5rem] sm:mt-4 pb-12 max-w-2xl p-0">
-          <div className="flex items-center justify-end mb-4">
-            {isAdmin && <CreateTrashForm onSuccess={handleCreateSuccess} />}
-          </div>
+          {isAdmin && <CreateTrashForm onSuccess={handleCreateSuccess} />}
 
           {items.length === 0 ? (
-            <div className="flex justify-center">
-              <div className="w-[80%] max-w-[400px] mt-24 md:mt-48">
-                <Alert>
-                  <Trash className="w-4 h-4" />
-                  <AlertTitle>{t('empty.title')}</AlertTitle>
-                  <AlertDescription className="mt-6 mb-1">
-                    {isAdmin
-                      ? t('empty.adminDescription')
-                      : t('empty.userDescription')}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </div>
+            <EmptyState
+              icon={Trash}
+              title={t('empty.title')}
+              description={
+                isAdmin
+                  ? t('empty.adminDescription')
+                  : t('empty.userDescription')
+              }
+            />
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedItems).map(([groupKey, groupData]) => (

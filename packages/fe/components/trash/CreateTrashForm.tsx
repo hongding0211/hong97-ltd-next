@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { http } from '@services/http'
 import { CreateTrashDto } from '@services/trash/types'
 import { toast } from '@utils/toast'
-import { Loader2, PlusCircle } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import { useEffect, useRef, useState } from 'react'
 import ImageUploader, { ImageUploaderRef } from '../common/ImageUploader'
@@ -159,9 +159,13 @@ export function CreateTrashForm({ onSuccess }: CreateTrashFormProps) {
   }
 
   const Trigger = (
-    <Button className="flex items-center gap-2" variant="ghost">
-      <PlusCircle className="w-4 h-4" />
-      {t('form.publishButton')}
+    <Button
+      type="button"
+      size="icon"
+      aria-label={t('form.publishButton')}
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] left-1/2 z-50 h-12 w-12 -translate-x-1/2 rounded-full shadow-lg transition-transform active:scale-95"
+    >
+      <Plus className="!h-5 !w-5" />
     </Button>
   )
 

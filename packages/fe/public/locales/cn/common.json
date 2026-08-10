@@ -15,6 +15,12 @@
   "back": "返回",
   "optional": "可选",
   "noBlog": "暂无内容...",
+  "empty": {
+    "cyberNeighbor": {
+      "title": "还没有网上邻居",
+      "description": "有新邻居时会出现在这里。"
+    }
+  },
   "login": "登录",
   "cropAvatar": "编辑头像",
   "apply": "应用",

@@ -14,6 +14,12 @@
   "blogNotFound": "博客不存在",
   "search": "按标题或标签搜索",
   "newBlog": "新增",
+  "empty": {
+    "title": "还没有博客",
+    "description": "有新内容时会出现在这里。",
+    "searchTitle": "没有找到匹配的博客",
+    "searchDescription": "换个标题或标签试试。"
+  },
   "edit": {
     "notAuthorized": {
       "title": "无权限编辑",

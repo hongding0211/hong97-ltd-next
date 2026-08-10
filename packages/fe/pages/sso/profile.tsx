@@ -38,17 +38,7 @@ import { uploadFile2Oss } from '@utils/oss'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { enUS, zhCN } from 'date-fns/locale'
-import {
-  Ban,
-  CalendarIcon,
-  CheckCircle,
-  Key,
-  Loader2,
-  LogOut,
-  Pencil,
-  Trash2,
-  UserRound,
-} from 'lucide-react'
+import { CheckCircle, Loader2, Pencil } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
@@ -168,37 +158,39 @@ export const Profile: React.FC<IProfileProps> = (props) => {
     logout: state.logout,
   }))
 
-  const uploadAvatar = () => {
+  const uploadAvatar = async () => {
     if (!croppedImgFile.current) {
       return
     }
+
     setUploadLoading(true)
-    uploadFile2Oss(croppedImgFile.current, 'sso', {
-      compress2Webp: true,
-      compress2WebpOpt: {
-        quality: 0.9,
-        maxWidth: 1024,
-      },
-    })
-      .then((p) => {
-        if (!p) {
-          return
-        }
-        return http.patch('PatchProfile', {
-          avatar: p,
+    try {
+      const avatar = await uploadFile2Oss(croppedImgFile.current, 'sso', {
+        compress2Webp: true,
+        compress2WebpOpt: {
+          quality: 0.9,
+          maxWidth: 1024,
+        },
+      })
+
+      if (!avatar) {
+        return
+      }
+
+      const response = await http.patch('PatchProfile', { avatar })
+      if (response.isSuccess) {
+        toast('updateAvatarSuccess', {
+          type: 'success',
         })
-      })
-      .then((r) => {
-        if (r.isSuccess) {
-          toast('updateAvatarSuccess', {
-            type: 'success',
-          })
-          refresh()
-        } else {
-          toast(r.msg)
-        }
-      })
-      .finally(setUploadLoading.bind(null, false))
+        refresh()
+      } else {
+        toast(response.msg)
+      }
+    } catch {
+      // The HTTP and upload helpers already surface request failures.
+    } finally {
+      setUploadLoading(false)
+    }
   }
 
   const handleSelectAvatar = () => {
@@ -311,21 +303,29 @@ export const Profile: React.FC<IProfileProps> = (props) => {
     }
   }
 
-  const uploadAvatarButton = (
-    <Button
-      size="sm"
-      variant="outline"
-      className="w-full"
-      onClick={handleSelectAvatar}
-      disabled={uploadLoading || profileEditing}
-    >
-      {uploadLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-      ) : (
-        <UserRound className="w-4 h-4" />
-      )}
-      {t('updateAvatar')}
-    </Button>
+  const renderEditableAvatar = (width: number, buttonPosition: string) => (
+    <div className="relative mb-8" style={{ width, height: width }}>
+      <Avatar user={user} width={width} />
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={cn(
+          'absolute h-8 w-8 rounded-full bg-neutral-900 p-0 text-white shadow-sm hover:bg-neutral-700 hover:text-white dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300 dark:hover:text-neutral-900',
+          buttonPosition,
+        )}
+        onClick={handleSelectAvatar}
+        disabled={uploadLoading || profileEditing}
+        aria-label={t('updateAvatar')}
+        title={t('updateAvatar')}
+      >
+        {uploadLoading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Pencil className="h-3.5 w-3.5" />
+        )}
+      </Button>
+    </div>
   )
 
   const editProfileButton = (
@@ -336,7 +336,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={() => setProfileEditing(true)}
       disabled={uploadLoading || profileEditing}
     >
-      <Pencil className="w-4 h-4" />
       {t('editProfile')}
     </Button>
   )
@@ -349,7 +348,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={setShowModifyPassword.bind(null, true)}
       disabled={uploadLoading || profileEditing}
     >
-      <Key className="w-4 h-4" />
       {t('changePassword')}
     </Button>
   ) : null
@@ -362,7 +360,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={handleLogout}
       disabled={uploadLoading || profileEditing || deleteAccountLoading}
     >
-      <LogOut className="w-4 h-4" />
       {t('logout')}
     </Button>
   )
@@ -375,7 +372,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={() => setShowDeleteAccount(true)}
       disabled={uploadLoading || profileEditing || deleteAccountLoading}
     >
-      <Trash2 className="w-4 h-4" />
       {t('deleteAccount')}
     </Button>
   )
@@ -387,11 +383,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={handleApplyEditing}
       disabled={profileApplying}
     >
-      {profileApplying ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <CheckCircle className="w-4 h-4" />
-      )}
+      {profileApplying && <Loader2 className="w-4 h-4 animate-spin" />}
       {t('apply')}
     </Button>
   )
@@ -404,7 +396,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
       onClick={handleCancelEditing}
       disabled={profileApplying}
     >
-      <Ban className="w-4 h-4" />
       {t('cancel')}
     </Button>
   )
@@ -454,7 +445,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
         {/* 桌面端 */}
         <div className="max-w-[600px] mx-auto justify-between hidden md:flex mt-[40px]">
           <div className="flex flex-col items-center">
-            <Avatar user={user} className="mb-8" width={240} />
+            {renderEditableAvatar(240, 'bottom-5 right-5')}
             <div className="text-2xl font-semibold">@{user?.profile.name}</div>
             <div
               onClick={handleCopyUserId}
@@ -464,7 +455,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
             </div>
             <div className="flex flex-col w-full gap-y-4 mt-8">
               {editProfileButton}
-              {uploadAvatarButton}
               {changePasswordButton}
               {deleteAccountButton}
               {!sourceConfig.hideLogout && logoutButton}
@@ -518,7 +508,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
                             !birthday && 'text-muted-foreground',
                           )}
                         >
-                          <CalendarIcon />
                           {birthday ? (
                             time.format(birthday)
                           ) : (
@@ -584,7 +573,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
         {/* 移动端 */}
         <div className="flex mx-8 mt-8 flex-col items-center md:hidden">
-          <Avatar user={user} className="mb-8" width={180} />
+          {renderEditableAvatar(180, 'bottom-2.5 right-2.5')}
           <div className="text-2xl font-semibold">@{user?.profile.name}</div>
           <div
             onClick={handleCopyUserId}
@@ -641,7 +630,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
                               !birthday && 'text-muted-foreground',
                             )}
                           >
-                            <CalendarIcon />
                             {birthday ? (
                               time.format(birthday)
                             ) : (
@@ -710,7 +698,6 @@ export const Profile: React.FC<IProfileProps> = (props) => {
             ) : (
               <>
                 {editProfileButton}
-                {uploadAvatarButton}
                 {changePasswordButton}
                 {deleteAccountButton}
                 {!sourceConfig.hideLogout && logoutButton}
@@ -759,10 +746,8 @@ export const Profile: React.FC<IProfileProps> = (props) => {
                   }}
                   disabled={deleteAccountLoading}
                 >
-                  {deleteAccountLoading ? (
+                  {deleteAccountLoading && (
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
                   )}
                   {t('deleteAccountConfirm')}
                 </Button>

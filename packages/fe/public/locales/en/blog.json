@@ -14,6 +14,12 @@
   "blogNotFound": "Blog not found",
   "search": "Search by title or tags",
   "newBlog": "New blog",
+  "empty": {
+    "title": "No posts yet",
+    "description": "New posts will appear here.",
+    "searchTitle": "No matching posts",
+    "searchDescription": "Try a different title or tag."
+  },
   "edit": {
     "notAuthorized": {
       "title": "Not authorized to edit",

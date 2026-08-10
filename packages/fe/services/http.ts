@@ -9,7 +9,9 @@ import { BASE_URL, PATHS } from './urls'
 
 export interface HttpOptions {
   locale?: string
+  silentAuthError?: boolean
   ignoreUnauthorized?: boolean
+  ignoreForbidden?: boolean
   serverSideCtx?: GetServerSidePropsContext
   enableOnlyWithAuthInServerSide?: boolean
 }
@@ -166,7 +168,7 @@ class Http {
       .catch((err: AxiosError<any>) => {
         /** Lost login session */
         if (err.response?.status === 401) {
-          if (!opts?.ignoreUnauthorized) {
+          if (!opts?.silentAuthError && !opts?.ignoreUnauthorized) {
             toast('unauthorized', {
               type: 'error',
             })
@@ -174,7 +176,11 @@ class Http {
           return Promise.reject(err)
         }
         if (err.response?.status === 403) {
-          if (err.response?.data?.message) {
+          if (
+            !opts?.silentAuthError &&
+            !opts?.ignoreForbidden &&
+            err.response?.data?.message
+          ) {
             toast(err.response.data.message, {
               type: 'error',
             })

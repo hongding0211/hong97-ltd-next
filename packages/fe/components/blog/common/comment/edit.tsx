@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
-import { Forward, Loader } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React, { useState } from 'react'
 
@@ -69,11 +69,7 @@ export const CommentEdit: React.FC<CommentEditProps> = (props) => {
         </div>
       </div>
       <Button onClick={handleSubmit} disabled={loading}>
-        {loading ? (
-          <Loader className="w-4 h-4 animate-spin" />
-        ) : (
-          <Forward className="w-4 h-4" />
-        )}
+        {loading && <Loader className="w-4 h-4 animate-spin" />}
         {t('sendComment')}
       </Button>
     </div>

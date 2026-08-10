@@ -70,6 +70,7 @@
     "api-tokens": {
       "title": "API Tokens",
       "subTitle": "Manage permanent API access tokens",
+      "noPermission": "You do not have permission to access this page",
       "description": "Permanent bearer tokens for scripts or third-party clients. Tokens are shown only once after creation, so store them safely.",
       "create": "Create",
       "namePlaceholder": "Token name, e.g. CLI or Zapier",
