@@ -17,6 +17,7 @@ export type PermissionAPIS = {
       page?: number
       pageSize?: number
       search?: string
+      scope?: 'granted' | 'available'
     },
     undefined,
     typeof PermissionUsersResponseDto

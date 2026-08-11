@@ -29,4 +29,34 @@ describe('UserService', () => {
     expect(query.skip).toHaveBeenCalledWith(20)
     expect(query.limit).toHaveBeenCalledWith(20)
   })
+
+  it('can limit search to granted users', async () => {
+    const query = {
+      select: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([]),
+    }
+    const userModel = {
+      find: jest.fn(() => query),
+      countDocuments: jest.fn().mockResolvedValue(0),
+    }
+    const service = new UserService(userModel as any)
+
+    await service.searchPublicUsers('ali', 1, 20, {
+      includeUserIds: ['user-1'],
+    })
+
+    expect(userModel.find).toHaveBeenCalledWith({
+      $and: [
+        {
+          $or: [
+            { userId: { $regex: 'ali', $options: 'i' } },
+            { 'profile.name': { $regex: 'ali', $options: 'i' } },
+          ],
+        },
+        { userId: { $in: ['user-1'] } },
+      ],
+    })
+  })
 })

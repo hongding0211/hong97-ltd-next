@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer'
 import {
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -51,6 +52,10 @@ export class PermissionUsersQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string
+
+  @IsOptional()
+  @IsIn(['granted', 'available'])
+  scope?: 'granted' | 'available' = 'granted'
 }
 
 export class PermissionUserResponseDto extends UserResponseDto {

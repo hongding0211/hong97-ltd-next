@@ -98,23 +98,24 @@ export class PermissionsService {
     this.assertConfigured(permissionKey)
     const page = query.page ?? 1
     const pageSize = Math.min(query.pageSize ?? 20, 50)
+    const scope = query.scope ?? 'granted'
+    const grantedUserIds = await this.permissionGrantModel.distinct('userId', {
+      permissionKey,
+    })
     const { users, total } = await this.userService.searchPublicUsers(
       query.search,
       page,
       pageSize,
-    )
-    const grantedUserIds = new Set(
-      await this.permissionGrantModel.distinct('userId', {
-        permissionKey,
-        userId: { $in: users.map((user) => user.userId) },
-      }),
+      scope === 'granted'
+        ? { includeUserIds: grantedUserIds }
+        : { excludeUserIds: grantedUserIds },
     )
 
     return {
       permissionKey,
       data: users.map((user) => ({
         ...user,
-        granted: grantedUserIds.has(user.userId),
+        granted: scope === 'granted',
       })),
       total,
       page,

@@ -68,17 +68,31 @@ export class UserService {
     search: string | undefined,
     page: number,
     pageSize: number,
+    options?: {
+      includeUserIds?: string[]
+      excludeUserIds?: string[]
+    },
   ): Promise<{ users: UserResponseDto[]; total: number }> {
     const trimmedSearch = search?.trim()
     const escapedSearch = trimmedSearch?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const filter = escapedSearch
-      ? {
-          $or: [
-            { userId: { $regex: escapedSearch, $options: 'i' } },
-            { 'profile.name': { $regex: escapedSearch, $options: 'i' } },
-          ],
-        }
-      : {}
+    const filters: Record<string, unknown>[] = []
+
+    if (escapedSearch) {
+      filters.push({
+        $or: [
+          { userId: { $regex: escapedSearch, $options: 'i' } },
+          { 'profile.name': { $regex: escapedSearch, $options: 'i' } },
+        ],
+      })
+    }
+    if (options?.includeUserIds) {
+      filters.push({ userId: { $in: options.includeUserIds } })
+    }
+    if (options?.excludeUserIds?.length) {
+      filters.push({ userId: { $nin: options.excludeUserIds } })
+    }
+
+    const filter = filters.length > 1 ? { $and: filters } : filters[0] ?? {}
 
     const [users, total] = await Promise.all([
       this.userModel

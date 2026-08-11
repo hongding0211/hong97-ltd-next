@@ -75,12 +75,9 @@ describe('PermissionsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException)
   })
 
-  it('returns one searchable page and marks grants on that page', async () => {
+  it('returns one searchable page of granted users', async () => {
     userService.searchPublicUsers.mockResolvedValue({
-      users: [
-        { userId: 'user-1', profile: { name: 'Alice' } },
-        { userId: 'user-2', profile: { name: 'Bob' } },
-      ],
+      users: [{ userId: 'user-2', profile: { name: 'Bob' } }],
       total: 24,
     })
     permissionGrantModel.distinct.mockResolvedValueOnce(['user-2'])
@@ -93,15 +90,40 @@ describe('PermissionsService', () => {
       }),
     ).resolves.toEqual({
       permissionKey: 'alpha',
-      data: [
-        { userId: 'user-1', profile: { name: 'Alice' }, granted: false },
-        { userId: 'user-2', profile: { name: 'Bob' }, granted: true },
-      ],
+      data: [{ userId: 'user-2', profile: { name: 'Bob' }, granted: true }],
       total: 24,
       page: 2,
       pageSize: 20,
     })
-    expect(userService.searchPublicUsers).toHaveBeenCalledWith('us', 2, 20)
+    expect(userService.searchPublicUsers).toHaveBeenCalledWith('us', 2, 20, {
+      includeUserIds: ['user-2'],
+    })
+  })
+
+  it('returns ungranted users for the add flow', async () => {
+    permissionGrantModel.distinct.mockResolvedValueOnce(['user-2'])
+    userService.searchPublicUsers.mockResolvedValue({
+      users: [{ userId: 'user-1', profile: { name: 'Alice' } }],
+      total: 1,
+    })
+
+    await expect(
+      service.listPermissionUsers('alpha', {
+        page: 1,
+        pageSize: 20,
+        search: 'ali',
+        scope: 'available',
+      }),
+    ).resolves.toEqual({
+      permissionKey: 'alpha',
+      data: [{ userId: 'user-1', profile: { name: 'Alice' }, granted: false }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+    })
+    expect(userService.searchPublicUsers).toHaveBeenCalledWith('ali', 1, 20, {
+      excludeUserIds: ['user-2'],
+    })
   })
 
   it('uses an aggregate count for the permission point list', async () => {
