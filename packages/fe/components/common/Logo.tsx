@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 
-type LogoVariant = 'auto' | 'default' | 'pride'
+type LogoVariant = 'auto' | 'default' | 'development' | 'pride'
 
 interface ILogo {
   width?: number
@@ -29,6 +29,10 @@ function resolveLogoVariant(
     return variant
   }
 
+  if (process.env.NODE_ENV === 'development') {
+    return 'development'
+  }
+
   const month = new Date().getMonth()
   if (month === 5) {
     return 'pride'
@@ -46,6 +50,9 @@ const Logo: React.FC<ILogo> = ({
   const w = width
   const h = (57 / 32) * width
   const resolvedVariant = resolveLogoVariant(variant)
+  const logoId = React.useId().replaceAll(':', '')
+  const clipPathId = `hong97-${resolvedVariant}-logo-clip-${logoId}`
+  const developmentPatternId = `hong97-development-logo-pattern-${logoId}`
 
   const content = (
     <svg
@@ -55,14 +62,37 @@ const Logo: React.FC<ILogo> = ({
       viewBox="0 0 32 57"
       className={className}
     >
-      {resolvedVariant === 'pride' ? (
+      {resolvedVariant === 'development' ? (
         <>
           <defs>
-            <clipPath id="hong97-pride-logo-clip">
+            <clipPath id={clipPathId}>
+              <path d={LOGO_PATH} />
+            </clipPath>
+            <pattern
+              id={developmentPatternId}
+              width="12"
+              height="12"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(-35)"
+            >
+              <rect width="6" height="12" fill="#facc15" />
+              <rect x="6" width="6" height="12" fill="#171717" />
+            </pattern>
+          </defs>
+          <path
+            d={LOGO_PATH}
+            clipPath={`url(#${clipPathId})`}
+            fill={`url(#${developmentPatternId})`}
+          />
+        </>
+      ) : resolvedVariant === 'pride' ? (
+        <>
+          <defs>
+            <clipPath id={clipPathId}>
               <path d={LOGO_PATH} />
             </clipPath>
           </defs>
-          <g clipPath="url(#hong97-pride-logo-clip)">
+          <g clipPath={`url(#${clipPathId})`}>
             {PRIDE_STRIPES.map((color, index) => (
               <rect
                 key={color}
