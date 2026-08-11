@@ -737,20 +737,18 @@ export const Profile: React.FC<IProfileProps> = (props) => {
               <AlertDialogCancel disabled={deleteAccountLoading}>
                 {t('cancel')}
               </AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <Button
-                  variant="destructive"
-                  onClick={(event) => {
-                    event.preventDefault()
-                    void handleDeleteAccount()
-                  }}
-                  disabled={deleteAccountLoading}
-                >
-                  {deleteAccountLoading && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  )}
-                  {t('deleteAccountConfirm')}
-                </Button>
+              <AlertDialogAction
+                className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
+                onClick={(event) => {
+                  event.preventDefault()
+                  void handleDeleteAccount()
+                }}
+                disabled={deleteAccountLoading}
+              >
+                {deleteAccountLoading && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                {t('deleteAccountConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
