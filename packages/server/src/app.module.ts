@@ -17,6 +17,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { BarkModule } from './modules/bark/bark.module'
 import { BlogModule } from './modules/blog/blog.module'
 import { OssModule } from './modules/oss/oss.module'
+import { PermissionsModule } from './modules/permissions/permissions.module'
 import { PushModule } from './modules/push/push.module'
 import { ShortLinkModule } from './modules/shortlink/shortlink.module'
 import { TrashModule } from './modules/trash/trash.module'
@@ -83,6 +84,7 @@ import { WalkcalcModule } from './modules/walkcalc/walkcalc.module'
     BarkModule,
     /** General Modules */
     AuthModule,
+    PermissionsModule,
     OssModule,
     PushModule,
     BlogModule,

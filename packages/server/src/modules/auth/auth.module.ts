@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { JwtModule } from '@nestjs/jwt'
 import { MongooseModule } from '@nestjs/mongoose'
+import { PermissionsModule } from '../permissions/permissions.module'
 import { PushDevice, PushDeviceSchema } from '../push/schema/push-device.schema'
 import { User, UserSchema } from '../user/schema/user.schema'
 import {
@@ -24,6 +25,7 @@ import {
 
 @Module({
   imports: [
+    PermissionsModule,
     MongooseModule.forFeature([
       { name: ApiToken.name, schema: ApiTokenSchema },
       { name: User.name, schema: UserSchema },

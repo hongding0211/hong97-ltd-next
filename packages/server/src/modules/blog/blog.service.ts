@@ -510,7 +510,7 @@ export class BlogService {
       throw new GeneralException('blog.commentNotFound')
     }
 
-    const isAdmin = this.authService.isAdmin(userId ?? '-1')
+    const { isAdmin } = await this.authService.isAdmin(userId ?? '-1')
 
     if (!isAdmin && comment.userId !== userId) {
       throw new GeneralException('blog.commentNotAuthor')

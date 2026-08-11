@@ -83,6 +83,19 @@
       "empty": "还没有 API Token",
       "createdAt": "创建",
       "lastUsedAt": "最后使用"
+    },
+    "permissions": {
+      "title": "权限",
+      "subTitle": "配置权限点的用户白名单",
+      "noPermission": "您没有权限访问该页面",
+      "empty": "生产环境还没有配置权限点",
+      "users": "已授权用户",
+      "noUsers": "还没有授权用户",
+      "selectUser": "选择用户",
+      "grant": "授权",
+      "revoke": "移除",
+      "grantSuccess": "权限已授予",
+      "revokeSuccess": "权限已移除"
     }
   }
 }

@@ -1,6 +1,7 @@
 import { AuthAPIS } from './auth/types'
 import { BlogAPIS } from './blog/types'
 import { OssAPIS } from './oss/types'
+import { PermissionAPIS } from './permissions/types'
 import { ShortLinkAPIS } from './shortlink/types'
 import { TrashAPIS } from './trash/types'
 import { UCPAPIS } from './ucp/types'
@@ -29,6 +30,7 @@ export type HttpResponse<K extends keyof APIs> = {
 
 export type APIs = AuthAPIS &
   OssAPIS &
+  PermissionAPIS &
   BlogAPIS &
   UCPAPIS &
   TrashAPIS &

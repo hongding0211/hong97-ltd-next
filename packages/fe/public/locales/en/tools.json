@@ -83,6 +83,19 @@
       "empty": "No API tokens yet",
       "createdAt": "Created",
       "lastUsedAt": "Last used"
+    },
+    "permissions": {
+      "title": "Permissions",
+      "subTitle": "Manage user allowlists for permission points",
+      "noPermission": "You do not have permission to access this page",
+      "empty": "No permission points are configured in this environment",
+      "users": "Granted users",
+      "noUsers": "No users have access yet",
+      "selectUser": "Select a user",
+      "grant": "Grant",
+      "revoke": "Remove",
+      "grantSuccess": "Permission granted",
+      "revokeSuccess": "Permission removed"
     }
   }
 }

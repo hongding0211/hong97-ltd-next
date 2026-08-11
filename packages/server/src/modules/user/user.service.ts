@@ -54,4 +54,13 @@ export class UserService {
       .limit(limit)
     return users.map((user) => this.mapUserToResponse(user))
   }
+
+  async listPublicUsers(limit = 100): Promise<UserResponseDto[]> {
+    const users = await this.userModel
+      .find()
+      .select({ userId: 1, profile: 1 })
+      .sort({ 'profile.name': 1 })
+      .limit(limit)
+    return users.map((user) => this.mapUserToResponse(user))
+  }
 }

@@ -241,6 +241,41 @@ describe('BlogService read queries', () => {
     }
   })
 
+  it('prevents a non-admin user from deleting another user comment', async () => {
+    const blog = {
+      comments: [{ commentId: 'comment-1', userId: 'author-1' }],
+      save: jest.fn(),
+    }
+    model.findOne.mockResolvedValue(blog)
+    authService.isAdmin.mockResolvedValue({ isAdmin: false })
+
+    await expect(
+      service.deleteComment(
+        { blogId: 'post-1', commentId: 'comment-1' },
+        'user-2',
+      ),
+    ).rejects.toMatchObject({ message: 'blog.commentNotAuthor' })
+    expect(blog.save).not.toHaveBeenCalled()
+  })
+
+  it('allows an admin user to delete another user comment', async () => {
+    const blog = {
+      comments: [{ commentId: 'comment-1', userId: 'author-1' }],
+      save: jest.fn(async () => undefined),
+    }
+    model.findOne.mockResolvedValue(blog)
+    authService.isAdmin.mockResolvedValue({ isAdmin: true })
+
+    await expect(
+      service.deleteComment(
+        { blogId: 'post-1', commentId: 'comment-1' },
+        'root-user',
+      ),
+    ).resolves.toEqual({ blogId: 'post-1', commentId: 'comment-1' })
+    expect(blog.comments).toEqual([])
+    expect(blog.save).toHaveBeenCalledTimes(1)
+  })
+
   it('persists all supplied fields when creating a blog', async () => {
     const save = jest.fn().mockResolvedValue(undefined)
     const blogModel = jest.fn().mockImplementation((data) => ({

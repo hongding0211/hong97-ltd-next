@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -15,6 +16,13 @@ import {
 import type { Request, Response } from 'express'
 import { RootOnly } from '../../decorators/root-only.decorator'
 import { UserId } from '../../decorators/user-id.decorator'
+import {
+  PERMISSION_MATCH_HEADER,
+  REQUIRED_PERMISSIONS_HEADER,
+  parsePermissionHeader,
+  parsePermissionMatch,
+} from '../permissions/permission.constants'
+import { PermissionsService } from '../permissions/permissions.service'
 import { AuthService } from './auth.service'
 import { CreateApiTokenDto, DeleteApiTokenParamsDto } from './dto/api-token.dto'
 import { AppleNativeLoginDto } from './dto/apple-native-login.dto'
@@ -26,7 +34,10 @@ import { UpdateProfileDto } from './dto/update-profile.dto'
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.OK)
@@ -76,7 +87,16 @@ export class AuthController {
 
   @Get('info')
   @HttpCode(HttpStatus.OK)
-  async info(@UserId() userId: string) {
+  async info(
+    @UserId() userId: string,
+    @Headers(REQUIRED_PERMISSIONS_HEADER) requiredPermissions?: string,
+    @Headers(PERMISSION_MATCH_HEADER) permissionMatch?: string,
+  ) {
+    await this.permissionsService.assertUserHasPermissions(
+      userId,
+      parsePermissionHeader(requiredPermissions),
+      parsePermissionMatch(permissionMatch),
+    )
     return this.authService.info(userId)
   }
 
