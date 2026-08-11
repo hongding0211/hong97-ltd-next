@@ -72,8 +72,17 @@ function About() {
               <Link className="underline hover:opacity-70" href="/blog">
                 {t('blog')}
               </Link>
-              <Link className="underline hover:opacity-70" href="/trash">
+              <Link
+                className="relative underline hover:opacity-70"
+                href="/trash"
+              >
                 {t('trash')}
+                <span
+                  aria-hidden="true"
+                  className="absolute top-px right-[-6px] text-[6px] font-semibold leading-none tracking-[-0.02em] no-underline"
+                >
+                  TM
+                </span>
               </Link>
               <Link
                 className="underline hover:opacity-70"
