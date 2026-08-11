@@ -7,7 +7,11 @@ import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { UserService } from '../user/user.service'
-import { PermissionPointResponseDto } from './dto/permission.dto'
+import {
+  PermissionPointResponseDto,
+  PermissionUsersQueryDto,
+  PermissionUsersResponseDto,
+} from './dto/permission.dto'
 import { PermissionMatch } from './permission.constants'
 import {
   PermissionGrant,
@@ -70,29 +74,52 @@ export class PermissionsService {
 
   async listPermissionPoints(): Promise<PermissionPointResponseDto[]> {
     const keys = this.configuredKeys()
-    const grants = await this.permissionGrantModel
-      .find({ permissionKey: { $in: keys } })
-      .lean()
-    const users = await this.userService.findUsersByIds(
-      grants.map((grant) => grant.userId),
+    const grantCounts = await this.permissionGrantModel.aggregate<{
+      _id: string
+      count: number
+    }>([
+      { $match: { permissionKey: { $in: keys } } },
+      { $group: { _id: '$permissionKey', count: { $sum: 1 } } },
+    ])
+    const counts = new Map(
+      grantCounts.map((grantCount) => [grantCount._id, grantCount.count]),
     )
-    const usersById = new Map(users.map((user) => [user.userId, user]))
 
     return keys.map((key) => ({
       key,
-      grants: grants
-        .filter((grant) => grant.permissionKey === key)
-        .map((grant) => ({
-          userId: grant.userId,
-          profile: usersById.get(grant.userId)?.profile,
-          createdAt: (grant as PermissionGrantDocument & { createdAt?: Date })
-            .createdAt,
-        })),
+      grantCount: counts.get(key) ?? 0,
     }))
   }
 
-  async listUsers() {
-    return this.userService.listPublicUsers(100)
+  async listPermissionUsers(
+    permissionKey: string,
+    query: PermissionUsersQueryDto,
+  ): Promise<PermissionUsersResponseDto> {
+    this.assertConfigured(permissionKey)
+    const page = query.page ?? 1
+    const pageSize = Math.min(query.pageSize ?? 20, 50)
+    const { users, total } = await this.userService.searchPublicUsers(
+      query.search,
+      page,
+      pageSize,
+    )
+    const grantedUserIds = new Set(
+      await this.permissionGrantModel.distinct('userId', {
+        permissionKey,
+        userId: { $in: users.map((user) => user.userId) },
+      }),
+    )
+
+    return {
+      permissionKey,
+      data: users.map((user) => ({
+        ...user,
+        granted: grantedUserIds.has(user.userId),
+      })),
+      total,
+      page,
+      pageSize,
+    }
   }
 
   async addGrant(permissionKey: string, userId: string, createdBy: string) {

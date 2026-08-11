@@ -63,4 +63,36 @@ export class UserService {
       .limit(limit)
     return users.map((user) => this.mapUserToResponse(user))
   }
+
+  async searchPublicUsers(
+    search: string | undefined,
+    page: number,
+    pageSize: number,
+  ): Promise<{ users: UserResponseDto[]; total: number }> {
+    const trimmedSearch = search?.trim()
+    const escapedSearch = trimmedSearch?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const filter = escapedSearch
+      ? {
+          $or: [
+            { userId: { $regex: escapedSearch, $options: 'i' } },
+            { 'profile.name': { $regex: escapedSearch, $options: 'i' } },
+          ],
+        }
+      : {}
+
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select({ userId: 1, profile: 1 })
+        .sort({ 'profile.name': 1, userId: 1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize),
+      this.userModel.countDocuments(filter),
+    ])
+
+    return {
+      users: users.map((user) => this.mapUserToResponse(user)),
+      total,
+    }
+  }
 }

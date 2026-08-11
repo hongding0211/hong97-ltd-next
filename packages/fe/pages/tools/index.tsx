@@ -1,5 +1,4 @@
 import AppLayout from '@components/app-layout/AppLayout'
-import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { ChevronRight } from 'lucide-react'
 import { GetStaticPropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -23,7 +22,6 @@ const ITEMS = [
   },
   {
     key: 'permissions',
-    rootOnly: true,
   },
 ]
 
@@ -56,8 +54,6 @@ const Item: React.FC<{
 
 function Tools() {
   const { t } = useTranslation('tools')
-  const { user } = useGeneralContext()
-  const items = ITEMS.filter((item) => !item.rootOnly || user?.isAdmin)
 
   return (
     <>
@@ -80,10 +76,10 @@ function Tools() {
       </Head>
       <AppLayout>
         <div className="max-w-[500px] mx-auto sm:mt-6 flex-col">
-          {items.map((item, index) => (
+          {ITEMS.map((item, index) => (
             <React.Fragment key={item.key}>
               <Item itemKey={item.key} />
-              {index !== items.length - 1 && (
+              {index !== ITEMS.length - 1 && (
                 <div className="w-full h-[0.5px] my-3 bg-neutral-300 dark:bg-neutral-700" />
               )}
             </React.Fragment>

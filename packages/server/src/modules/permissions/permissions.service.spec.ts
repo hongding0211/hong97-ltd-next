@@ -4,14 +4,26 @@ import { PermissionsService } from './permissions.service'
 describe('PermissionsService', () => {
   let grantedKeys: string[]
   let service: PermissionsService
+  let permissionGrantModel: {
+    aggregate: jest.Mock
+    distinct: jest.Mock
+  }
+  let userService: {
+    searchPublicUsers: jest.Mock
+  }
 
   beforeEach(() => {
     grantedKeys = []
+    permissionGrantModel = {
+      aggregate: jest.fn().mockResolvedValue([]),
+      distinct: jest.fn(async () => grantedKeys),
+    }
+    userService = {
+      searchPublicUsers: jest.fn(),
+    }
     service = new PermissionsService(
-      {
-        distinct: jest.fn(async () => grantedKeys),
-      } as any,
-      {} as any,
+      permissionGrantModel as any,
+      userService as any,
       {
         get: jest.fn((key: string) => {
           if (key === 'permissions.keys') {
@@ -61,5 +73,45 @@ describe('PermissionsService', () => {
     await expect(
       service.assertUserHasPermissions('user-1', ['alpha']),
     ).rejects.toBeInstanceOf(ForbiddenException)
+  })
+
+  it('returns one searchable page and marks grants on that page', async () => {
+    userService.searchPublicUsers.mockResolvedValue({
+      users: [
+        { userId: 'user-1', profile: { name: 'Alice' } },
+        { userId: 'user-2', profile: { name: 'Bob' } },
+      ],
+      total: 24,
+    })
+    permissionGrantModel.distinct.mockResolvedValueOnce(['user-2'])
+
+    await expect(
+      service.listPermissionUsers('alpha', {
+        page: 2,
+        pageSize: 20,
+        search: 'us',
+      }),
+    ).resolves.toEqual({
+      permissionKey: 'alpha',
+      data: [
+        { userId: 'user-1', profile: { name: 'Alice' }, granted: false },
+        { userId: 'user-2', profile: { name: 'Bob' }, granted: true },
+      ],
+      total: 24,
+      page: 2,
+      pageSize: 20,
+    })
+    expect(userService.searchPublicUsers).toHaveBeenCalledWith('us', 2, 20)
+  })
+
+  it('uses an aggregate count for the permission point list', async () => {
+    permissionGrantModel.aggregate.mockResolvedValue([
+      { _id: 'alpha', count: 2 },
+    ])
+
+    await expect(service.listPermissionPoints()).resolves.toEqual([
+      { key: 'alpha', grantCount: 2 },
+      { key: 'beta', grantCount: 0 },
+    ])
   })
 })

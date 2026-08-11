@@ -1,6 +1,7 @@
 import {
   CreatePermissionGrantDto,
   PermissionManagementResponseDto,
+  PermissionUsersResponseDto,
 } from '@server/modules/permissions/dto/permission.dto'
 import { API } from '../types'
 
@@ -9,6 +10,16 @@ export type PermissionAPIS = {
     undefined,
     undefined,
     typeof PermissionManagementResponseDto
+  >
+  GetPermissionUsers: API<
+    {
+      permissionKey: string
+      page?: number
+      pageSize?: number
+      search?: string
+    },
+    undefined,
+    typeof PermissionUsersResponseDto
   >
   PostPermissionGrant: API<
     { permissionKey: string },

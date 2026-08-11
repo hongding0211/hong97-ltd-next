@@ -79,7 +79,7 @@ function About() {
                 {t('trash')}
                 <span
                   aria-hidden="true"
-                  className="absolute top-px right-[-6px] text-[6px] font-semibold leading-none tracking-[-0.02em] no-underline"
+                  className="absolute right-[-8px] top-[2px] text-[6px] font-semibold leading-none tracking-[-0.02em] no-underline"
                 >
                   TM
                 </span>

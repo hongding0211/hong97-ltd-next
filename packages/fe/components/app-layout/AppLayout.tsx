@@ -129,7 +129,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
                   {m.badge && (
                     <span
                       aria-hidden="true"
-                      className="absolute right-[-11px] top-[-2px] text-[7px] font-semibold leading-none tracking-[-0.02em]"
+                      className="absolute right-[-10px] top-0 text-[7px] font-semibold leading-none tracking-[-0.02em]"
                     >
                       {m.badge}
                     </span>

@@ -1,7 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common'
 import { RootOnly } from '../../decorators/root-only.decorator'
 import { UserId } from '../../decorators/user-id.decorator'
-import { CreatePermissionGrantDto } from './dto/permission.dto'
+import {
+  CreatePermissionGrantDto,
+  PermissionUsersQueryDto,
+} from './dto/permission.dto'
 import { PermissionsService } from './permissions.service'
 
 @Controller('permissions')
@@ -11,11 +22,15 @@ export class PermissionsController {
 
   @Get()
   async list() {
-    const [points, users] = await Promise.all([
-      this.permissionsService.listPermissionPoints(),
-      this.permissionsService.listUsers(),
-    ])
-    return { points, users }
+    return { points: await this.permissionsService.listPermissionPoints() }
+  }
+
+  @Get(':permissionKey/users')
+  async listUsers(
+    @Param('permissionKey') permissionKey: string,
+    @Query() query: PermissionUsersQueryDto,
+  ) {
+    return this.permissionsService.listPermissionUsers(permissionKey, query)
   }
 
   @Post(':permissionKey/grants')
