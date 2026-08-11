@@ -28,6 +28,21 @@ interface TrashItemProps {
   isAdmin?: boolean
 }
 
+const PHOTO_SWIPE_LONG_EDGE = 2560
+
+function getPhotoSwipeDimensions(width: number, height: number) {
+  const longEdge = Math.max(width, height)
+  if (longEdge <= 0) {
+    return { width: PHOTO_SWIPE_LONG_EDGE, height: PHOTO_SWIPE_LONG_EDGE }
+  }
+
+  const scale = PHOTO_SWIPE_LONG_EDGE / longEdge
+  return {
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
+  }
+}
+
 // 图片骨架屏组件
 const ImageSkeleton = () => (
   <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded-md absolute" />
@@ -43,6 +58,8 @@ const ImageWithSkeleton: React.FC<{
   galleryId: string
   idx: number
 }> = ({ src, originSrc, alt, className, onClick, galleryId, idx }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [shouldLoad, setShouldLoad] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -52,18 +69,30 @@ const ImageWithSkeleton: React.FC<{
   } | null>(null)
 
   useEffect(() => {
-    const i = new Image()
-    i.src = originSrc
-    i.onload = () => {
-      setImgMeta({
-        width: i.width,
-        height: i.height,
-      })
+    const container = containerRef.current
+    if (!container || shouldLoad) return
+
+    if (!('IntersectionObserver' in window)) {
+      setShouldLoad(true)
+      return
     }
-  }, [originSrc])
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setShouldLoad(true)
+        observer.disconnect()
+      },
+      { threshold: 0 },
+    )
+    observer.observe(container)
+
+    return () => observer.disconnect()
+  }, [shouldLoad])
 
   return (
     <div
+      ref={containerRef}
       className={`aspect-square relative ${
         onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''
       }`}
@@ -80,13 +109,22 @@ const ImageWithSkeleton: React.FC<{
         className="cursor-pointer"
       >
         <img
-          src={src}
+          src={shouldLoad ? src : undefined}
           alt={alt}
           className={`${className} ${
             loading ? 'opacity-0' : 'opacity-100'
           } transition-opacity duration-200`}
           loading="lazy"
-          onLoad={() => setLoading(false)}
+          decoding="async"
+          onLoad={(event) => {
+            setImgMeta(
+              getPhotoSwipeDimensions(
+                event.currentTarget.naturalWidth,
+                event.currentTarget.naturalHeight,
+              ),
+            )
+            setLoading(false)
+          }}
           onError={() => {
             setLoading(false)
             setError(true)
@@ -265,7 +303,7 @@ export function TrashItem({
                 <ImageWithSkeleton
                   idx={index}
                   galleryId={galleryId}
-                  key={index}
+                  key={`${media.imageUrl}-${index}`}
                   src={getCompressImage(media.imageUrl, 180)}
                   originSrc={media.imageUrl}
                   alt={`Media ${index + 1}`}
