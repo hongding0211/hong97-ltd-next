@@ -168,7 +168,7 @@ export default function Blog(props: BlogProps) {
               <Link
                 href={getLocalizedHref('/blog/edit')}
                 locale={false}
-                className="rounded-full flex items-center gap-x-1.5 bg-neutral-100 dark:bg-neutral-800 p-2 px-3 cursor-pointer"
+                className="flex cursor-pointer items-center gap-x-1.5 rounded-full bg-neutral-100 p-2 px-3 no-underline hover:no-underline dark:bg-neutral-800"
               >
                 <Pencil className="w-2.5 h-2.5" />
                 <span className="text-xs">{tBlog('newBlog')}</span>
