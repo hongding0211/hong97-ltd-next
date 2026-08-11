@@ -44,6 +44,15 @@ function App(props: CustomAppProps) {
     NProgress.configure({ showSpinner: false })
   }, [])
 
+  /** Prevent iOS focus zoom only inside Garage configuration routes. */
+  useEffect(() => {
+    const className = 'garage-config-form-scope'
+    const isGarageConfigRoute = router.pathname.startsWith('/tools/')
+
+    document.body.classList.toggle(className, isGarageConfigRoute)
+    return () => document.body.classList.remove(className)
+  }, [router.pathname])
+
   /** Router events for loading bar */
   useEffect(() => {
     const handleStart = () => NProgress.start()

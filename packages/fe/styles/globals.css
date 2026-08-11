@@ -40,6 +40,16 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+/* iOS zooms focused form controls below 16px. Scope the fix to Garage only,
+   including controls rendered in Dialog/Drawer portals under body. */
+@media (max-width: 767px) {
+  body.garage-config-form-scope input,
+  body.garage-config-form-scope textarea,
+  body.garage-config-form-scope select {
+    font-size: 16px;
+  }
+}
+
 .light,
 html {
   background-color: white;
