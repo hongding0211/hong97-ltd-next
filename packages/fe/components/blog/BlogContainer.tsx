@@ -385,6 +385,11 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
   const hasToc = effectiveTocItems.length > 0
   const showMobileToc =
     hasToc && !isCoverVisualVisible && !isCommentSectionVisible
+  const mobileTocExitStep = 24
+  const mobileTocLastItemDelay =
+    Math.max(0, effectiveTocItems.length - 1) * mobileTocExitStep
+  const mobileTocPanelExitDelay = 70 + mobileTocLastItemDelay
+  const mobileTocTitleExitDelay = 30 + mobileTocLastItemDelay
 
   useEffect(() => {
     const coverVisual = coverVisualRef.current
@@ -669,18 +674,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           <div
             aria-hidden={!isMobileTocOpen}
             className={cn(
-              'fixed inset-0 z-40 min-[800px]:hidden transition-opacity duration-200 ease-out',
-              isMobileTocOpen
-                ? 'pointer-events-auto opacity-100'
-                : 'pointer-events-none opacity-0',
+              'fixed inset-0 z-40 min-[800px]:hidden',
+              isMobileTocOpen ? 'pointer-events-auto' : 'pointer-events-none',
             )}
             onClick={() => setIsMobileTocOpen(false)}
           >
             <div
-              className={cn(
-                'fixed inset-x-0 bottom-0 overflow-visible',
-                'transition-opacity duration-200 ease-out',
-              )}
+              className="fixed inset-x-0 bottom-0 overflow-visible"
               onClick={(event) => event.stopPropagation()}
             >
               <div
@@ -689,16 +689,32 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   'pointer-events-none absolute inset-x-0 -top-24 bottom-0',
                   'bg-white/85 backdrop-blur-xl backdrop-saturate-50 dark:bg-neutral-950/85',
                   '[mask-image:linear-gradient(to_bottom,transparent_0,black_96px,black_100%)]',
+                  'transition-opacity ease-out',
+                  isMobileTocOpen
+                    ? 'duration-300'
+                    : '[transition-duration:400ms]',
+                  isMobileTocOpen ? 'opacity-100' : 'opacity-0',
                 )}
+                style={{
+                  transitionDelay: isMobileTocOpen
+                    ? '0ms'
+                    : `${mobileTocPanelExitDelay}ms`,
+                }}
               />
               <div
                 className={cn(
                   'relative flex w-full flex-col items-start overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+5rem)] pt-5',
-                  'transition-all duration-300 ease-out',
+                  'transition-transform ease-out',
                   isMobileTocOpen
-                    ? 'translate-y-0 opacity-100'
-                    : 'translate-y-2 opacity-0',
+                    ? 'duration-300'
+                    : '[transition-duration:400ms]',
+                  isMobileTocOpen ? 'translate-y-0' : 'translate-y-2',
                 )}
+                style={{
+                  transitionDelay: isMobileTocOpen
+                    ? '0ms'
+                    : `${mobileTocPanelExitDelay}ms`,
+                }}
               >
                 <button
                   type="button"
@@ -708,12 +724,19 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                   }}
                   className={cn(
                     'mb-4 max-w-full truncate text-left text-xs font-medium uppercase leading-5 text-neutral-500 dark:text-neutral-400',
-                    'transition-all duration-300 ease-out',
+                    'transition-all ease-out',
+                    isMobileTocOpen
+                      ? 'duration-300'
+                      : '[transition-duration:400ms]',
                     isMobileTocOpen
                       ? 'translate-y-0 opacity-100'
                       : 'translate-y-1 opacity-0',
                   )}
-                  style={{ transitionDelay: isMobileTocOpen ? '40ms' : '0ms' }}
+                  style={{
+                    transitionDelay: isMobileTocOpen
+                      ? '40ms'
+                      : `${mobileTocTitleExitDelay}ms`,
+                  }}
                 >
                   {meta.blogTitle}
                 </button>
@@ -727,6 +750,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                         key={item.id}
                         className={cn(
                           'transition-all duration-300 ease-out',
+                          !isMobileTocOpen && '[transition-duration:400ms]',
                           isMobileTocOpen
                             ? 'translate-y-0 opacity-100'
                             : 'translate-y-1 opacity-0',
@@ -736,7 +760,8 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
                             ? `${70 + index * 18}ms`
                             : `${Math.max(
                                 0,
-                                (effectiveTocItems.length - index - 1) * 8,
+                                (effectiveTocItems.length - index - 1) *
+                                  mobileTocExitStep,
                               )}ms`,
                         }}
                       >

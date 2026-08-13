@@ -64,9 +64,11 @@ export const CommentEdit: React.FC<CommentEditProps> = (props) => {
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
-        <div className="absolute bottom-2.5 right-2.5 text-xs text-neutral-500">
-          {content.length} / 500
-        </div>
+        {content.length > 500 && (
+          <div className="absolute bottom-2.5 right-2.5 text-xs font-medium text-red-500">
+            {content.length}
+          </div>
+        )}
       </div>
       <Button onClick={handleSubmit} disabled={loading}>
         {loading && <Loader className="w-4 h-4 animate-spin" />}

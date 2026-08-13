@@ -1,11 +1,11 @@
 {
-  "typeComment": "在这里留下你的评论吧",
-  "sendComment": "发布",
+  "typeComment": "在听到……哔？后留言",
+  "sendComment": "留言",
   "emptyComment": "评论不能为空",
   "commentTooLong": "评论不能超过500字",
   "comment": "评论",
   "sendCommentSuccess": "发布成功",
-  "allComments": "所有评论",
+  "allComments": "留言（{{count}}）",
   "deleteComment": {
     "text": "删除",
     "confirmTitle": "确定删除这条评论吗？"

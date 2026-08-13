@@ -1,5 +1,4 @@
 import { Textarea } from '@/components/ui/textarea'
-import { useLogin } from '@hooks/useLogin'
 import { emitter } from '@utils/emitter'
 import { useTranslation } from 'next-i18next'
 import React, { useState } from 'react'
@@ -18,7 +17,6 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
 }) => {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
-  const { isLogin } = useLogin()
   const { t } = useTranslation('trash')
 
   const handleSubmit = async () => {
@@ -42,9 +40,6 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
       <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder={
-          isLogin ? t('comment.placeholder') : t('comment.anonymousPlaceholder')
-        }
         rows={2}
         disabled={disabled || loading}
         className="text-sm resize-none pr-20"

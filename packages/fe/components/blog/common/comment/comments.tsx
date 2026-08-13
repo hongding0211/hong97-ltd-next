@@ -116,9 +116,9 @@ export const Comments: React.FC<CommentsProps> = (props) => {
 
   return (
     <div className="px-3 py-1.5 pb-3 rounded-md bg-neutral-100 dark:bg-neutral-900 mt-10">
-      <div className="text-sm mt-2 mb-6 font-semibold">{`${t('allComments')}(${
-        comments.length
-      })`}</div>
+      <div className="text-sm mt-2 mb-6 font-semibold">
+        {t('allComments', { count: comments.length })}
+      </div>
       <div className="flex flex-col">
         {comments.map((c, i) => (
           <div key={c.commentId}>
