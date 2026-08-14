@@ -8,6 +8,8 @@ import OSS from 'ali-oss'
 import dayjs from 'dayjs'
 import { RequestUploadDto } from './dto/request-upload'
 
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
 @Injectable()
 export class OssService {
   private oss: OSS
@@ -48,12 +50,13 @@ export class OssService {
     this.validateApp(app, this.isRootUser(userId))
 
     const { path, name } = this.genFilePath(fileName, app)
+    const uploadContentType = contentType || 'application/octet-stream'
 
     if (!this.isRootUser(userId)) {
       return this.standardUploadResponse({
         path,
         name,
-        contentType: contentType || 'application/octet-stream',
+        contentType: uploadContentType,
         fileSize,
       })
     }
@@ -63,12 +66,16 @@ export class OssService {
         .signatureUrl(path, {
           method: 'PUT',
           process: compress ? `image/quality,q_${quality}` : undefined,
-          'Content-Type': contentType,
+          'Content-Type': uploadContentType,
         })
         .replace('http', 'https'),
       filePath: this.oss.generateObjectUrl(path).replace('http', 'https'),
       fileName: name,
       uploadMethod: 'PUT' as const,
+      headers: {
+        'Content-Type': uploadContentType,
+        'Cache-Control': IMMUTABLE_CACHE_CONTROL,
+      },
     }
   }
 
@@ -104,6 +111,7 @@ export class OssService {
         { bucket },
         ['eq', '$key', path],
         ['eq', '$Content-Type', contentType],
+        ['eq', '$Cache-Control', IMMUTABLE_CACHE_CONTROL],
         ['eq', '$success_action_status', '200'],
         ['content-length-range', 1, maxBytes],
       ],
@@ -121,6 +129,7 @@ export class OssService {
         OSSAccessKeyId: signature.OSSAccessKeyId,
         Signature: signature.Signature,
         'Content-Type': contentType,
+        'Cache-Control': IMMUTABLE_CACHE_CONTROL,
         success_action_status: '200',
       },
     }

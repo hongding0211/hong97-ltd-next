@@ -44,6 +44,9 @@ describe('OssService', () => {
     expect(result.filePath).toContain('/sso/202608/avatar_')
     expect(result.fields?.key).toMatch(/^sso\/202608\/avatar_[^.]+\.png$/)
     expect(result.fields?.['Content-Type']).toBe('image/png')
+    expect(result.fields?.['Cache-Control']).toBe(
+      'public, max-age=31536000, immutable',
+    )
 
     const policy = JSON.parse(
       Buffer.from(result.fields?.policy ?? '', 'base64').toString('utf8'),
@@ -54,6 +57,11 @@ describe('OssService', () => {
       20 * 1024 * 1024,
     ])
     expect(policy.conditions).toContainEqual(['eq', '$key', result.fields?.key])
+    expect(policy.conditions).toContainEqual([
+      'eq',
+      '$Cache-Control',
+      'public, max-age=31536000, immutable',
+    ])
   })
 
   it('rejects an oversized standard upload before signing', async () => {
@@ -77,7 +85,14 @@ describe('OssService', () => {
     )
 
     expect(result.uploadMethod).toBe('PUT')
+    if (result.uploadMethod !== 'PUT') {
+      throw new Error('Expected a PUT upload response')
+    }
     expect('fields' in result).toBe(false)
+    expect(result.headers).toEqual({
+      'Content-Type': 'application/octet-stream',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    })
     expect(result.filePath).toContain('/blog/202608/cover_')
   })
 

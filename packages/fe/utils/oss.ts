@@ -15,6 +15,7 @@ export type ImageUrlMeta = {
 }
 
 const IMAGE_META_MAX_EDGE = 100
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 const bytesToBase64Url = (bytes: Uint8Array) => {
   let value = ''
@@ -104,6 +105,7 @@ const uploadViaDevProxy = async (
   file: File,
   method: UploadMethod,
   fields?: Record<string, string>,
+  headers?: Record<string, string>,
 ) => {
   await axiosInstance.post('/api/dev/oss-upload', file, {
     headers: {
@@ -117,6 +119,13 @@ const uploadViaDevProxy = async (
             ),
           }
         : {}),
+      ...(headers
+        ? {
+            'X-OSS-Upload-Headers': btoa(
+              unescape(encodeURIComponent(JSON.stringify(headers))),
+            ),
+          }
+        : {}),
     },
   })
 }
@@ -126,9 +135,10 @@ const uploadFile = async (
   file: File,
   method: UploadMethod,
   fields?: Record<string, string>,
+  headers?: Record<string, string>,
 ) => {
   if (process.env.NODE_ENV === 'development') {
-    await uploadViaDevProxy(url, file, method, fields)
+    await uploadViaDevProxy(url, file, method, fields, headers)
     return
   }
 
@@ -141,8 +151,9 @@ const uploadFile = async (
     await axiosInstance.post(url, formData)
   } else {
     await axiosInstance.put(url, file, {
-      headers: {
+      headers: headers ?? {
         'Content-Type': file.type || 'application/octet-stream',
+        'Cache-Control': IMMUTABLE_CACHE_CONTROL,
       },
     })
   }
@@ -244,6 +255,7 @@ export async function uploadFile2Oss(
       filePath,
       uploadMethod = 'PUT',
       fields,
+      headers,
     } = preUpload.data
 
     if (!preUpload.isSuccess || !filePath) {
@@ -254,7 +266,7 @@ export async function uploadFile2Oss(
       type: file.type,
       lastModified: file.lastModified,
     })
-    await uploadFile(url, uploadFileValue, uploadMethod, fields)
+    await uploadFile(url, uploadFileValue, uploadMethod, fields, headers)
 
     return imageMeta ? appendImageUrlMeta(filePath, imageMeta) : filePath
   } catch {

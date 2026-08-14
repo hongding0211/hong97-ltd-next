@@ -39,4 +39,5 @@ export class RequestUploadResponseDto {
   fileName: string
   uploadMethod: 'POST' | 'PUT'
   fields?: Record<string, string>
+  headers?: Record<string, string>
 }

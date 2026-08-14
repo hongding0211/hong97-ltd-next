@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 export const config = {
   api: {
@@ -60,6 +61,11 @@ export default async function handler(
     ? uploadFieldsHeader[0]
     : uploadFieldsHeader
 
+  const uploadHeadersHeader = request.headers['x-oss-upload-headers']
+  const uploadHeadersValue = Array.isArray(uploadHeadersHeader)
+    ? uploadHeadersHeader[0]
+    : uploadHeadersHeader
+
   try {
     const uploadUrl = new URL(uploadUrlValue)
     if (
@@ -88,9 +94,23 @@ export default async function handler(
 
       return fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-        },
+        headers: (() => {
+          const parsedHeaders = uploadHeadersValue
+            ? JSON.parse(
+                Buffer.from(uploadHeadersValue, 'base64').toString('utf8'),
+              )
+            : {}
+          return {
+            'Content-Type':
+              typeof parsedHeaders['Content-Type'] === 'string'
+                ? parsedHeaders['Content-Type']
+                : 'application/octet-stream',
+            'Cache-Control':
+              typeof parsedHeaders['Cache-Control'] === 'string'
+                ? parsedHeaders['Cache-Control']
+                : IMMUTABLE_CACHE_CONTROL,
+          }
+        })(),
         body,
       })
     })()
