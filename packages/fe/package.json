@@ -79,6 +79,7 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "thumbhash": "^0.1.1",
     "vaul": "^1.1.2",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.28",
