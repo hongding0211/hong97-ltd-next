@@ -25,6 +25,7 @@ export function ThumbHashImage({
   className,
 }: ThumbHashImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
   const imageMeta = getImageUrlMeta(src)!
   const loaded = loadedSrc === src
@@ -44,6 +45,13 @@ export function ThumbHashImage({
     context.putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0)
   }, [imageMeta.thumbHash, showThumbHash])
 
+  useEffect(() => {
+    const image = imageRef.current
+    if (shouldLoad && image?.complete && image.naturalWidth > 0) {
+      setLoadedSrc(src)
+    }
+  }, [shouldLoad, src])
+
   return (
     <>
       {showThumbHash && (
@@ -56,6 +64,7 @@ export function ThumbHashImage({
         />
       )}
       <img
+        ref={imageRef}
         src={shouldLoad ? src : undefined}
         width={imageMeta.width}
         height={imageMeta.height}

@@ -154,7 +154,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
         setShouldLoad(true)
         observer.disconnect()
       },
-      { threshold: 0 },
+      { threshold: 0, rootMargin: '320px 0px' },
     )
     observer.observe(gallery)
 

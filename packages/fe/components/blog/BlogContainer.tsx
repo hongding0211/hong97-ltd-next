@@ -1,6 +1,5 @@
 import { GridPattern } from '@/components/ui/grid-pattern'
 import { cn } from '@/lib/utils'
-import { ThumbHashImage } from '@components/common/thumbhash-image'
 import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
@@ -503,11 +502,11 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             className="pointer-events-none absolute inset-0"
           />
           {meta?.coverImg ? (
-            <ThumbHashImage
+            <img
               src={meta.coverImg}
               alt={meta.blogTitle}
-              shouldLoad
-              showThumbHash
+              fetchPriority="high"
+              decoding="async"
               className="absolute left-0 top-0 h-full w-full rounded-sm object-cover sm:rounded-none"
             />
           ) : (
