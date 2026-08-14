@@ -9,7 +9,7 @@ import {
 import { useLogin } from '@hooks/useLogin'
 import { http } from '@services/http'
 import { TrashResponseDto } from '@services/trash/types'
-import { getCompressImage } from '@utils/oss'
+import { getCompressImage, getImageUrlMeta } from '@utils/oss'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { Heart } from 'lucide-react'
@@ -17,6 +17,7 @@ import { useTranslation } from 'next-i18next'
 import photoswipe from 'photoswipe'
 import PhotoSwipeLightbox from 'photoswipe/lightbox'
 import { useEffect, useRef, useState } from 'react'
+import { thumbHashToRGBA } from 'thumbhash'
 import { CommentTrashForm } from './CommentTrashForm'
 import { TrashCommentAction, TrashComments } from './TrashComments'
 
@@ -28,28 +29,13 @@ interface TrashItemProps {
   isAdmin?: boolean
 }
 
-const PHOTO_SWIPE_LONG_EDGE = 2560
-
-function getPhotoSwipeDimensions(width: number, height: number) {
-  const longEdge = Math.max(width, height)
-  if (longEdge <= 0) {
-    return { width: PHOTO_SWIPE_LONG_EDGE, height: PHOTO_SWIPE_LONG_EDGE }
-  }
-
-  const scale = PHOTO_SWIPE_LONG_EDGE / longEdge
-  return {
-    width: Math.round(width * scale),
-    height: Math.round(height * scale),
-  }
+const base64UrlToBytes = (value: string) => {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0))
 }
 
-// 图片骨架屏组件
-const ImageSkeleton = () => (
-  <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 animate-pulse rounded-md absolute" />
-)
-
-// 带骨架屏的图片组件
-const ImageWithSkeleton: React.FC<{
+const ImageWithThumbHash: React.FC<{
   src: string
   originSrc: string
   alt: string
@@ -59,14 +45,24 @@ const ImageWithSkeleton: React.FC<{
   idx: number
 }> = ({ src, originSrc, alt, className, onClick, galleryId, idx }) => {
   const containerRef = useRef<HTMLDivElement>(null)
+  const thumbHashCanvasRef = useRef<HTMLCanvasElement>(null)
   const [shouldLoad, setShouldLoad] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const imageMeta = getImageUrlMeta(originSrc)!
 
-  const [imgMeta, setImgMeta] = useState<{
-    width: number
-    height: number
-  } | null>(null)
+  useEffect(() => {
+    const canvas = thumbHashCanvasRef.current
+    const context = canvas?.getContext('2d')
+    if (!canvas || !context) return
+
+    const { w, h, rgba } = thumbHashToRGBA(
+      base64UrlToBytes(imageMeta.thumbHash),
+    )
+    canvas.width = w
+    canvas.height = h
+    context.putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0)
+  }, [imageMeta.thumbHash])
 
   useEffect(() => {
     const container = containerRef.current
@@ -93,20 +89,25 @@ const ImageWithSkeleton: React.FC<{
   return (
     <div
       ref={containerRef}
-      className={`aspect-square relative ${
+      className={`aspect-square relative overflow-hidden rounded-md ${
         onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''
       }`}
       onClick={onClick}
     >
-      {loading && <ImageSkeleton />}
+      <canvas
+        ref={thumbHashCanvasRef}
+        className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity duration-200 ${
+          loading ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
       <a
         data-pswp-src={originSrc}
-        data-pswp-width={imgMeta?.width}
-        data-pswp-height={imgMeta?.height}
+        data-pswp-width={imageMeta.width}
+        data-pswp-height={imageMeta.height}
         key={galleryId + '-' + idx}
         target="_blank"
         rel="noreferrer"
-        className="cursor-pointer"
+        className="block h-full w-full cursor-pointer"
       >
         <img
           src={shouldLoad ? src : undefined}
@@ -116,15 +117,7 @@ const ImageWithSkeleton: React.FC<{
           } transition-opacity duration-200`}
           loading="lazy"
           decoding="async"
-          onLoad={(event) => {
-            setImgMeta(
-              getPhotoSwipeDimensions(
-                event.currentTarget.naturalWidth,
-                event.currentTarget.naturalHeight,
-              ),
-            )
-            setLoading(false)
-          }}
+          onLoad={() => setLoading(false)}
           onError={() => {
             setLoading(false)
             setError(true)
@@ -300,7 +293,7 @@ export function TrashItem({
           <div className="pswp-gallery" id={galleryId}>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 gap-x-1.5 mr-12">
               {item.media.map((media, index) => (
-                <ImageWithSkeleton
+                <ImageWithThumbHash
                   idx={index}
                   galleryId={galleryId}
                   key={`${media.imageUrl}-${index}`}
