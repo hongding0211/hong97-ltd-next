@@ -83,7 +83,11 @@ export function useImagePreview(): UseImagePreviewReturn {
             onClick={(e) => e.stopPropagation()}
           >
             {reorderedImages.length > 0 && (
-              <ImagesV2 images={reorderedImages} autoLoop={false} />
+              <ImagesV2
+                images={reorderedImages}
+                autoLoop={false}
+                optimizeLoading={false}
+              />
             )}
           </div>
         </div>

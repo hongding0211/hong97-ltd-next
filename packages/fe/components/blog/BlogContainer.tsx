@@ -1,6 +1,6 @@
 import { GridPattern } from '@/components/ui/grid-pattern'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { ThumbHashImage } from '@components/common/thumbhash-image'
 import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
 import { useLogin } from '@hooks/useLogin'
 import { CommentsResponseDto } from '@server/modules/blog/dto/comment.dto'
@@ -503,14 +503,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             className="pointer-events-none absolute inset-0"
           />
           {meta?.coverImg ? (
-            <>
-              <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
-              {/* biome-ignore lint/a11y/useAltText: <explanation> */}
-              <img
-                src={meta.coverImg}
-                className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
-              />
-            </>
+            <ThumbHashImage
+              src={meta.coverImg}
+              alt={meta.blogTitle}
+              shouldLoad
+              showThumbHash
+              className="absolute left-0 top-0 h-full w-full rounded-sm object-cover sm:rounded-none"
+            />
           ) : (
             <div
               className={cn(
