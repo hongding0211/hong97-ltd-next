@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024
 
 export const config = {
   api: {
@@ -49,6 +49,17 @@ export default async function handler(
     return
   }
 
+  const uploadMethodHeader = request.headers['x-oss-upload-method']
+  const uploadMethodValue = Array.isArray(uploadMethodHeader)
+    ? uploadMethodHeader[0]
+    : uploadMethodHeader
+  const uploadMethod = uploadMethodValue === 'POST' ? 'POST' : 'PUT'
+
+  const uploadFieldsHeader = request.headers['x-oss-upload-fields']
+  const uploadFieldsValue = Array.isArray(uploadFieldsHeader)
+    ? uploadFieldsHeader[0]
+    : uploadFieldsHeader
+
   try {
     const uploadUrl = new URL(uploadUrlValue)
     if (
@@ -60,13 +71,29 @@ export default async function handler(
     }
 
     const body = await readBody(request)
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-      },
-      body,
-    })
+    const uploadResponse = await (async () => {
+      if (uploadMethod === 'POST') {
+        const fields = uploadFieldsValue
+          ? JSON.parse(
+              Buffer.from(uploadFieldsValue, 'base64').toString('utf8'),
+            )
+          : {}
+        const formData = new FormData()
+        Object.entries(fields).forEach(([key, value]) => {
+          formData.append(key, String(value))
+        })
+        formData.append('file', new Blob([body]))
+        return fetch(uploadUrl, { method: 'POST', body: formData })
+      }
+
+      return fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
+        body,
+      })
+    })()
 
     if (!uploadResponse.ok) {
       response.status(502).end()

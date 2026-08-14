@@ -5,28 +5,54 @@ import { toast } from './toast'
 
 const axiosInstance = axios.create()
 
-const uploadViaDevProxy = async (url: string, file: File) => {
+type UploadMethod = 'POST' | 'PUT'
+
+const uploadViaDevProxy = async (
+  url: string,
+  file: File,
+  method: UploadMethod,
+  fields?: Record<string, string>,
+) => {
   await axiosInstance.post('/api/dev/oss-upload', file, {
     headers: {
       'Content-Type': 'application/octet-stream',
       'X-OSS-Upload-URL': url,
+      'X-OSS-Upload-Method': method,
+      ...(fields
+        ? {
+            'X-OSS-Upload-Fields': btoa(
+              unescape(encodeURIComponent(JSON.stringify(fields))),
+            ),
+          }
+        : {}),
     },
   })
 }
 
-const uploadFile = async (url: string, file: File) => {
-  try {
+const uploadFile = async (
+  url: string,
+  file: File,
+  method: UploadMethod,
+  fields?: Record<string, string>,
+) => {
+  if (process.env.NODE_ENV === 'development') {
+    await uploadViaDevProxy(url, file, method, fields)
+    return
+  }
+
+  if (method === 'POST') {
+    const formData = new FormData()
+    Object.entries(fields ?? {}).forEach(([key, value]) => {
+      formData.append(key, value)
+    })
+    formData.append('file', file)
+    await axiosInstance.post(url, formData)
+  } else {
     await axiosInstance.put(url, file, {
       headers: {
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': file.type || 'application/octet-stream',
       },
     })
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'development') {
-      throw error
-    }
-
-    await uploadViaDevProxy(url, file)
   }
 }
 
@@ -102,23 +128,28 @@ export async function uploadFile2Oss(
     }
     const preUpload = await http.post('PostRequestUpload', {
       fileName: file.name,
-      contentType: 'application/octet-stream',
+      contentType: file.type || 'application/octet-stream',
+      fileSize: file.size,
       app: app ?? 'general',
     })
 
-    const { url, fileName, filePath } = preUpload.data
+    const {
+      url,
+      fileName,
+      filePath,
+      uploadMethod = 'PUT',
+      fields,
+    } = preUpload.data
 
     if (!preUpload.isSuccess || !filePath) {
       throw new Error()
     }
 
-    await uploadFile(
-      url,
-      new File([file], fileName, {
-        type: file.type,
-        lastModified: file.lastModified,
-      }),
-    )
+    const uploadFileValue = new File([file], fileName, {
+      type: file.type,
+      lastModified: file.lastModified,
+    })
+    await uploadFile(url, uploadFileValue, uploadMethod, fields)
 
     return filePath
   } catch {

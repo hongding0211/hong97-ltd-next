@@ -3,6 +3,13 @@ import { ThrottlerGuard } from '@nestjs/throttler'
 
 @Injectable()
 export class CustomThrottleGuard extends ThrottlerGuard {
+  protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest()
+    return (
+      request?.path === '/oss/requestUpload' && request?.user?.isRoot === true
+    )
+  }
+
   protected async getTracker(req: Record<string, any>): Promise<string> {
     if (req?.user?.id) {
       return req?.user?.id

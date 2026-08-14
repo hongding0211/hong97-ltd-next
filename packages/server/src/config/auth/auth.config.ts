@@ -44,11 +44,11 @@ export default registerAs('auth', () => ({
     '/auth/apple/native',
     '/auth/github',
     '/auth/github/callback',
-    '/oss/requestUpload',
     '/trash/detail/*',
     '/shortlink/redirect/*',
   ],
   softIgnore: [
+    '/oss/requestUpload',
     '/blog/*',
     '/ucp/config/list',
     '/ucp/config/all',

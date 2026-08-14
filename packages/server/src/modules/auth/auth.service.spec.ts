@@ -709,7 +709,7 @@ describe('AuthGuard token extraction', () => {
         switchToHttp: () => ({ getRequest: () => request }),
       } as any),
     ).resolves.toBe(true)
-    expect(request).toHaveProperty('user', { id: 'user-1' })
+    expect(request).toHaveProperty('user', { id: 'user-1', isRoot: false })
   })
 
   it('rejects refresh-token-only protected requests', async () => {
@@ -782,7 +782,10 @@ describe('AuthGuard token extraction', () => {
     expect(jwtService.verifyAsync).toHaveBeenCalledWith('bearer-access', {
       secret: 'test-secret',
     })
-    expect(request).toHaveProperty('user', { id: 'bearer-access-user' })
+    expect(request).toHaveProperty('user', {
+      id: 'bearer-access-user',
+      isRoot: false,
+    })
   })
 
   it('authenticates protected requests with a bearer API token', async () => {
@@ -811,6 +814,9 @@ describe('AuthGuard token extraction', () => {
       } as any),
     ).resolves.toBe(true)
     expect(authService.validateApiToken).toHaveBeenCalledWith('h97_valid-token')
-    expect(request).toHaveProperty('user', { id: 'user-from-api-token' })
+    expect(request).toHaveProperty('user', {
+      id: 'user-from-api-token',
+      isRoot: false,
+    })
   })
 })

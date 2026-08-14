@@ -4,6 +4,12 @@ class TestThrottleGuard extends CustomThrottleGuard {
   readTracker(req: Record<string, any>) {
     return this.getTracker(req)
   }
+
+  readShouldSkip(req: Record<string, any>) {
+    return this.shouldSkip({
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as any)
+  }
 }
 
 describe('CustomThrottleGuard', () => {
@@ -35,5 +41,20 @@ describe('CustomThrottleGuard', () => {
         ip: '127.0.0.1',
       }),
     ).resolves.toBe('203.0.113.3')
+  })
+
+  it('skips the upload throttle only for root requests', async () => {
+    await expect(
+      guard.readShouldSkip({
+        path: '/oss/requestUpload',
+        user: { id: 'root-user', isRoot: true },
+      }),
+    ).resolves.toBe(true)
+    await expect(
+      guard.readShouldSkip({
+        path: '/oss/requestUpload',
+        user: { id: 'standard-user', isRoot: false },
+      }),
+    ).resolves.toBe(false)
   })
 })

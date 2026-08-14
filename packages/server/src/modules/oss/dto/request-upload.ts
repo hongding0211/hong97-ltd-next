@@ -1,4 +1,11 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator'
+import {
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator'
 
 export class RequestUploadDto {
   @IsString()
@@ -7,6 +14,11 @@ export class RequestUploadDto {
   @IsString()
   @IsOptional()
   contentType?: string
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  fileSize?: number
 
   @IsString()
   @IsOptional()
@@ -25,4 +37,6 @@ export class RequestUploadResponseDto {
   url: string
   filePath: string
   fileName: string
+  uploadMethod: 'POST' | 'PUT'
+  fields?: Record<string, string>
 }

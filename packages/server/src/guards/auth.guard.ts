@@ -47,6 +47,7 @@ export class AuthGuard implements CanActivate {
       })
       request.user = {
         id: payload.sub,
+        isRoot: this.isRootUser(payload.sub),
       }
       return true
     } catch {
@@ -54,6 +55,7 @@ export class AuthGuard implements CanActivate {
       if (apiTokenUserId) {
         request.user = {
           id: apiTokenUserId,
+          isRoot: this.isRootUser(apiTokenUserId),
         }
         return true
       }
@@ -84,5 +86,10 @@ export class AuthGuard implements CanActivate {
 
   private matchPathWithGlob(path: string, patterns: string[]): boolean {
     return micromatch.isMatch(path, patterns)
+  }
+
+  private isRootUser(userId: string): boolean {
+    const rootUsers = this.configService.get<string[]>('auth.rootUsers') ?? []
+    return rootUsers.includes(userId)
   }
 }
