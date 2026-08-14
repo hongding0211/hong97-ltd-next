@@ -1,14 +1,14 @@
 import { EmptyState } from '@components/common/EmptyState'
 import { useUser } from '@hooks/useUser'
-import { Loader2, Trash } from 'lucide-react'
+import { Trash } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import AppLayout from '../../components/app-layout/AppLayout'
 import { CreateTrashForm } from '../../components/trash/CreateTrashForm'
-import { TrashItem } from '../../components/trash/TrashItem'
+import { VirtualTrashList } from '../../components/trash/VirtualTrashList'
 import { http } from '../../services/http'
 import {
   PaginationResponseDto,
@@ -20,27 +20,8 @@ interface TrashPageProps {
   initialData: PaginationResponseDto<TrashResponseDto>
 }
 
-const TRASH_TIME_ZONE = 'Asia/Shanghai'
-
-function getTrashYear(timestamp: number) {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: TRASH_TIME_ZONE,
-    year: 'numeric',
-  }).format(new Date(timestamp))
-}
-
-function formatTrashYear(timestamp: number, locale: string) {
-  return new Intl.DateTimeFormat(
-    locale.startsWith('cn') || locale.startsWith('zh') ? 'zh-CN' : 'en-US',
-    {
-      timeZone: TRASH_TIME_ZONE,
-      year: 'numeric',
-    },
-  ).format(new Date(timestamp))
-}
-
 export default function TrashPage({ initialData }: TrashPageProps) {
-  const { t, i18n } = useTranslation('trash')
+  const { t } = useTranslation('trash')
 
   const [items, setItems] = useState<TrashResponseDto[]>(initialData.data)
   const [loading, setLoading] = useState(false)
@@ -52,8 +33,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
   const user = useUser()
 
   const isAdmin = user?.isAdmin ?? false
-  const currentYear = getTrashYear(Date.now())
-
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
 
@@ -76,21 +55,6 @@ export default function TrashPage({ initialData }: TrashPageProps) {
       setLoading(false)
     }
   }, [loading, hasMore, page, items.length])
-
-  // 监听滚动事件，触底加载
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 1000
-      ) {
-        loadMore()
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [loadMore])
 
   const handleCreateSuccess = async () => {
     // 重新加载第一页数据，不刷新页面
@@ -171,40 +135,16 @@ export default function TrashPage({ initialData }: TrashPageProps) {
               }
             />
           ) : (
-            <div>
-              {items.map((item, index) => {
-                const year = getTrashYear(item.timestamp)
-                const previousYear =
-                  index > 0
-                    ? getTrashYear(items[index - 1].timestamp)
-                    : undefined
-
-                return (
-                  <Fragment key={item._id}>
-                    {year !== previousYear && (
-                      <h2 className="pt-6 pb-1 text-2xl font-semibold text-neutral-800 dark:text-neutral-200">
-                        {year === currentYear
-                          ? t('dateGroups.thisYear')
-                          : formatTrashYear(item.timestamp, i18n.language)}
-                      </h2>
-                    )}
-                    <TrashItem
-                      item={item}
-                      onDelete={handleDelete}
-                      onLikeUpdate={handleLikeUpdate}
-                      onCommentUpdate={handleCommentUpdate}
-                      isAdmin={isAdmin}
-                    />
-                  </Fragment>
-                )
-              })}
-
-              {loading && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-neutral-500" />
-                </div>
-              )}
-            </div>
+            <VirtualTrashList
+              items={items}
+              hasMore={hasMore}
+              loading={loading}
+              isAdmin={isAdmin}
+              loadMore={loadMore}
+              onDelete={handleDelete}
+              onLikeUpdate={handleLikeUpdate}
+              onCommentUpdate={handleCommentUpdate}
+            />
           )}
         </div>
       </AppLayout>

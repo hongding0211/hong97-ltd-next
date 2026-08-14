@@ -28,6 +28,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-toggle": "^1.1.10",
     "@react-spring/web": "^9.5.5",
+    "@tanstack/react-virtual": "3.14.9",
     "@tiptap/extension-code-block-lowlight": "^3.14.0",
     "@tiptap/extension-collaboration": "^3.14.0",
     "@tiptap/extension-drag-handle": "^3.14.0",

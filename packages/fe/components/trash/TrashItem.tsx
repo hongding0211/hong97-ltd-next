@@ -27,6 +27,7 @@ interface TrashItemProps {
   onLikeUpdate?: (itemId: string, newItem: TrashResponseDto) => void
   onCommentUpdate?: (itemId: string, newItem: TrashResponseDto) => void
   isAdmin?: boolean
+  isLast?: boolean
 }
 
 const base64UrlToBytes = (value: string) => {
@@ -139,6 +140,7 @@ export function TrashItem({
   onLikeUpdate,
   onCommentUpdate,
   isAdmin = false,
+  isLast = false,
 }: TrashItemProps) {
   const { t } = useTranslation('trash')
   const { t: tCommon } = useTranslation('common')
@@ -279,7 +281,13 @@ export function TrashItem({
   }, [galleryId])
 
   return (
-    <div className="border-b-[0.5px] border-neutral-200/80 py-4 last:border-b-0 dark:border-neutral-800/80">
+    <div
+      className={`py-4 ${
+        isLast
+          ? ''
+          : 'border-b-[0.5px] border-neutral-200/80 dark:border-neutral-800/80'
+      }`}
+    >
       <div className="space-y-2">
         {/* 内容 */}
         {item.content && (
