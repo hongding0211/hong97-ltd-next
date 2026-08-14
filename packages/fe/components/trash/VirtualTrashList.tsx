@@ -49,6 +49,7 @@ export function VirtualTrashList({
 }: VirtualTrashListProps) {
   const { t, i18n } = useTranslation('trash')
   const listRef = useRef<HTMLDivElement>(null)
+  const loadedImageUrlsRef = useRef(new Set<string>())
   const [scrollMargin, setScrollMargin] = useState(0)
   const currentYear = getTrashYear(Date.now())
   const rowCount = items.length + (hasMore ? 1 : 0)
@@ -138,6 +139,7 @@ export function VirtualTrashList({
                   onCommentUpdate={onCommentUpdate}
                   isAdmin={isAdmin}
                   isLast={virtualRow.index === items.length - 1}
+                  loadedImageUrls={loadedImageUrlsRef.current}
                 />
               </>
             ) : (

@@ -28,6 +28,7 @@ interface TrashItemProps {
   onCommentUpdate?: (itemId: string, newItem: TrashResponseDto) => void
   isAdmin?: boolean
   isLast?: boolean
+  loadedImageUrls: Set<string>
 }
 
 const base64UrlToBytes = (value: string) => {
@@ -44,10 +45,21 @@ const ImageWithThumbHash: React.FC<{
   onClick?: () => void
   galleryId: string
   idx: number
-}> = ({ src, originSrc, alt, className, onClick, galleryId, idx }) => {
+  loadedImageUrls: Set<string>
+}> = ({
+  src,
+  originSrc,
+  alt,
+  className,
+  onClick,
+  galleryId,
+  idx,
+  loadedImageUrls,
+}) => {
+  const hasLoadedBefore = useRef(loadedImageUrls.has(src)).current
   const containerRef = useRef<HTMLDivElement>(null)
   const thumbHashCanvasRef = useRef<HTMLCanvasElement>(null)
-  const [shouldLoad, setShouldLoad] = useState(false)
+  const [shouldLoad, setShouldLoad] = useState(hasLoadedBefore)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const imageMeta = getImageUrlMeta(originSrc)!
@@ -97,9 +109,9 @@ const ImageWithThumbHash: React.FC<{
     >
       <canvas
         ref={thumbHashCanvasRef}
-        className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity duration-200 ${
-          loading ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity ${
+          hasLoadedBefore ? 'duration-0' : 'duration-200'
+        } ${loading ? 'opacity-100' : 'opacity-0'}`}
       />
       <a
         data-pswp-src={originSrc}
@@ -115,10 +127,15 @@ const ImageWithThumbHash: React.FC<{
           alt={alt}
           className={`${className} ${
             loading ? 'opacity-0' : 'opacity-100'
-          } transition-opacity duration-200`}
+          } transition-opacity ${
+            hasLoadedBefore ? 'duration-0' : 'duration-200'
+          }`}
           loading="lazy"
           decoding="async"
-          onLoad={() => setLoading(false)}
+          onLoad={() => {
+            loadedImageUrls.add(src)
+            setLoading(false)
+          }}
           onError={() => {
             setLoading(false)
             setError(true)
@@ -141,6 +158,7 @@ export function TrashItem({
   onCommentUpdate,
   isAdmin = false,
   isLast = false,
+  loadedImageUrls,
 }: TrashItemProps) {
   const { t } = useTranslation('trash')
   const { t: tCommon } = useTranslation('common')
@@ -309,6 +327,7 @@ export function TrashItem({
                   originSrc={media.imageUrl}
                   alt={`Media ${index + 1}`}
                   className="w-full h-full object-cover rounded-md bg-neutral-100 dark:bg-neutral-800"
+                  loadedImageUrls={loadedImageUrls}
                 />
               ))}
             </div>
