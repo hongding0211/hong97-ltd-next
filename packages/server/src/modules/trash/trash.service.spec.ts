@@ -4,6 +4,7 @@ describe('TrashService comment threads', () => {
   let model: any
   let userService: any
   let barkService: any
+  let authService: any
   let service: TrashService
 
   const createComment = (commentId: string, parentCommentId?: string): any => ({
@@ -41,7 +42,10 @@ describe('TrashService comment threads', () => {
     barkService = {
       push: jest.fn(),
     }
-    service = new TrashService(model, userService, barkService)
+    authService = {
+      isAdmin: jest.fn().mockResolvedValue({ isAdmin: false }),
+    }
+    service = new TrashService(model, userService, barkService, authService)
   })
 
   it('normalizes a reply to another reply onto the root thread', async () => {
@@ -144,5 +148,28 @@ describe('TrashService comment threads', () => {
     await expect(
       service.deleteComment({ trashId: 'trash-1', commentId: 'root-1' }),
     ).rejects.toMatchObject({ message: 'trash.commentNotAuthor' })
+  })
+
+  it.each([
+    ['root comment', 'root-1'],
+    ['child comment', 'reply-1'],
+  ])('allows an admin user to delete another user %s', async (_, commentId) => {
+    const root = createComment('root-1')
+    const reply = createComment('reply-1', 'root-1')
+    const trash = createTrash([root, reply])
+    model.findById.mockResolvedValue(trash)
+    authService.isAdmin.mockResolvedValue({ isAdmin: true })
+
+    await expect(
+      service.deleteComment({ trashId: 'trash-1', commentId }, 'root-user'),
+    ).resolves.toEqual(expect.objectContaining({ comments: expect.any(Array) }))
+
+    if (commentId === 'root-1') {
+      expect(root.deleted).toBe(true)
+      expect(trash.comments).toContain(reply)
+    } else {
+      expect(trash.comments).toEqual([root])
+    }
+    expect(trash.save).toHaveBeenCalledTimes(1)
   })
 })

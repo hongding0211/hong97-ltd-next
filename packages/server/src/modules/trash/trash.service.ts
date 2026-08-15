@@ -6,6 +6,7 @@ import { GeneralException } from 'src/exceptions/general-exceptions'
 import { truncate } from 'src/utils/truncate'
 import { v4 as uuidv4 } from 'uuid'
 import { PaginationResponseDto } from '../../dtos/pagination.dto'
+import { AuthService } from '../auth/auth.service'
 import { BarkService } from '../bark/bark.service'
 import { UserService } from '../user/user.service'
 import { CommentTrashDto } from './dto/comment-trash.dto'
@@ -25,6 +26,7 @@ export class TrashService {
     @InjectModel(Trash.name) private trashModel: Model<TrashDocument>,
     private userService: UserService,
     private barkService: BarkService,
+    private authService: AuthService,
   ) {}
 
   async create(createTrashDto: CreateTrashDto): Promise<TrashResponseDto> {
@@ -238,8 +240,9 @@ export class TrashService {
 
     const comment = trash.comments[commentIndex]
 
-    // 只有已登录的评论作者可以删除自己的评论
-    if (!userId || comment.userId !== userId) {
+    const { isAdmin } = await this.authService.isAdmin(userId ?? '-1')
+
+    if (!isAdmin && (!userId || comment.userId !== userId)) {
       throw new GeneralException('trash.commentNotAuthor')
     }
 

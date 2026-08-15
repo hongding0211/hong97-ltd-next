@@ -398,6 +398,7 @@ export function TrashItem({
         {/* 评论区域 */}
         <TrashComments
           comments={comments}
+          isAdmin={isAdmin}
           onAction={handleCommentAction}
           onReply={(content, parentCommentId) =>
             handleComment(content, parentCommentId)

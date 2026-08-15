@@ -29,6 +29,7 @@ export type TrashCommentAction = 'delete'
 
 interface TrashCommentsProps {
   comments: TrashComment[]
+  isAdmin?: boolean
   onAction?: (commentId: string, action: TrashCommentAction) => void
   onReply?: (content: string, parentCommentId: string) => Promise<boolean>
 }
@@ -37,6 +38,7 @@ const TrashCommentItem: React.FC<
   TrashComment & {
     onDelete?: (commentId: string) => void
     onReply?: (commentId: string) => void
+    isAdmin?: boolean
   }
 > = (props) => {
   const {
@@ -48,13 +50,15 @@ const TrashCommentItem: React.FC<
     commentId,
     deleted,
     replyToName,
+    isAdmin = false,
   } = props
   const [showDialog, setShowDialog] = useState(false)
   const [pressed, setPressed] = useState(false)
   const { user: currentUser } = useLogin()
   const { t } = useTranslation('trash')
   const { t: tCommon } = useTranslation('common')
-  const showDelete = !deleted && userId && currentUser?.userId === userId
+  const showDelete =
+    !deleted && (isAdmin || (!!userId && currentUser?.userId === userId))
 
   return (
     <>
@@ -132,7 +136,7 @@ const TrashCommentItem: React.FC<
 }
 
 export const TrashComments: React.FC<TrashCommentsProps> = (props) => {
-  const { comments, onAction, onReply } = props
+  const { comments, isAdmin = false, onAction, onReply } = props
   const { t } = useTranslation('trash')
   const [showAll, setShowAll] = useState(false)
   const [replyingToId, setReplyingToId] = useState<string>()
@@ -210,6 +214,7 @@ export const TrashComments: React.FC<TrashCommentsProps> = (props) => {
             <div key={comment.commentId} className="text-sm">
               <TrashCommentItem
                 {...comment}
+                isAdmin={isAdmin}
                 onReply={(commentId) =>
                   setReplyingToId((current) =>
                     current === commentId ? undefined : commentId,
@@ -225,6 +230,7 @@ export const TrashComments: React.FC<TrashCommentsProps> = (props) => {
                     <div key={reply.commentId}>
                       <TrashCommentItem
                         {...reply}
+                        isAdmin={isAdmin}
                         onReply={(commentId) =>
                           setReplyingToId((current) =>
                             current === commentId ? undefined : commentId,
