@@ -1,5 +1,6 @@
 {
   "commentLimitReached": "Comment limit reached (maximum 50 comments)",
+  "threadReplyLimitReached": "Reply limit reached (maximum 100 replies per thread)",
   "trashNotFound": "Post not found",
   "commentNotFound": "Comment not found",
   "commentNotAuthor": "You can only delete your own comments"

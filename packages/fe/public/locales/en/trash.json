@@ -49,8 +49,11 @@
     "publishing": "Sending...",
     "success": "Comment posted successfully",
     "failed": "Failed to post comment",
+    "deleted": "Comment deleted",
     "expand": "Show more ({{count}})",
     "collapse": "Show less",
+    "expandReplies": "Show more replies ({{count}})",
+    "collapseReplies": "Show less",
     "limitExceeded": "Comment limit reached (maximum 50 comments)",
     "delete": {
       "text": "Delete",

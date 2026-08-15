@@ -1,6 +1,7 @@
 {
   "blogNotFound": "博客不存在",
   "commentTooLong": "评论不能超过500字",
+  "threadReplyLimitReached": "回复数量已达上限（每个讨论最多100条）",
   "commentNotAuthor": "你不是该评论的发布者",
   "commentNotFound": "评论不存在"
 }

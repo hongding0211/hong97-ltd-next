@@ -6,6 +6,14 @@
   "comment": "评论",
   "sendCommentSuccess": "发布成功",
   "allComments": "留言（{{count}}）",
+  "reply": {
+    "text": "回复",
+    "send": "回复",
+    "sending": "回复中...",
+    "deleted": "评论已删除",
+    "expand": "展开更多回复（{{count}}）",
+    "collapse": "收起回复"
+  },
   "deleteComment": {
     "text": "删除",
     "confirmTitle": "确定删除这条评论吗？"

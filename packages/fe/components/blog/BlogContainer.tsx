@@ -661,7 +661,12 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             </div>
             <div ref={commentSectionRef} className="flex flex-col mt-12">
               <CommentEdit blogId={meta.blogId} onSubmit={fetchComments} />
-              <Comments comments={comments} onAction={handleCommentAction} />
+              <Comments
+                blogId={meta.blogId}
+                comments={comments}
+                onAction={handleCommentAction}
+                onCommentSubmit={fetchComments}
+              />
             </div>
           </MdxLayout>
           {hasToc && (

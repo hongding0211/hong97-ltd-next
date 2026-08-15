@@ -233,11 +233,12 @@ export function TrashItem({
     }
   }
 
-  const handleComment = async (content: string) => {
+  const handleComment = async (content: string, parentCommentId?: string) => {
     try {
       const response = await http.post('PostCommentTrash', {
         trashId: item._id,
         content,
+        parentCommentId,
         anonymous: !isLogin,
       })
 
@@ -245,12 +246,14 @@ export function TrashItem({
         setComments(response.data.comments)
         onCommentUpdate?.(item._id, response.data)
         toast(t('comment.success'), { type: 'success' })
-      } else {
-        toast(response.msg || t('comment.failed'), { type: 'error' })
+        return true
       }
+      toast(response.msg || t('comment.failed'), { type: 'error' })
+      return false
     } catch (error) {
       console.error('Comment error:', error)
       toast(t('comment.failed'), { type: 'error' })
+      return false
     }
   }
 
@@ -387,14 +390,19 @@ export function TrashItem({
         {/* 评论表单 */}
         {showCommentForm && (
           <CommentTrashForm
-            trashId={item._id}
             onComment={handleComment}
             onCommentSuccess={() => setShowCommentForm(false)}
           />
         )}
 
         {/* 评论区域 */}
-        <TrashComments comments={comments} onAction={handleCommentAction} />
+        <TrashComments
+          comments={comments}
+          onAction={handleCommentAction}
+          onReply={(content, parentCommentId) =>
+            handleComment(content, parentCommentId)
+          }
+        />
       </div>
 
       {/* 删除确认对话框 */}

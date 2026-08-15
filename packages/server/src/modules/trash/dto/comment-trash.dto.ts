@@ -8,6 +8,10 @@ export class CommentTrashDto {
   content: string
 
   @IsOptional()
+  @IsString()
+  parentCommentId?: string
+
+  @IsOptional()
   @IsBoolean()
   anonymous?: boolean
 }

@@ -31,11 +31,14 @@ export class Trash {
   @Prop({ required: false, default: [] })
   comments: {
     commentId?: string
+    parentCommentId?: string
+    replyToCommentId?: string
     userId?: string
     anonymous: boolean
     name?: string
     time: number
     content: string
+    deleted?: boolean
   }[]
 
   createdAt: Date

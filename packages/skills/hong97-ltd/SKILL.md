@@ -246,6 +246,19 @@ curl -X POST \
   https://hong97.ltd/api/trash/comment/append
 ```
 
+Reply to a comment by passing its `commentId` as `parentCommentId`. Replies to
+replies are normalized onto the same root thread, so Trash threads have only one
+reply level. A post supports up to 50 root comments and each thread supports up
+to 100 replies. Comment responses expose `replyToName` for the actual comment
+being answered.
+
+```bash
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"trashId":"665000000000000000000000","content":"reply","parentCommentId":"comment-id","anonymous":true}' \
+  https://hong97.ltd/api/trash/comment/append
+```
+
 Use cookies or an API token for optional-auth routes when user-specific fields such as `isLiked` should reflect the current user.
 
 ## Blog
@@ -308,6 +321,12 @@ curl -X POST -H 'Content-Type: application/json' \
   -d '{"blogId":"my-blog-id","content":"nice post","anonymous":true}' \
   https://hong97.ltd/api/blog/comment
 ```
+
+Reply to a Blog comment by passing its `commentId` as `parentCommentId` in the
+same request. Replies to replies are normalized onto the root thread, and each
+thread supports at most 100 replies. Blog comments and replies retain the
+500-character content limit. Comment responses expose `replyToName` for the
+actual comment being answered.
 
 Root/admin authoring with an API token:
 

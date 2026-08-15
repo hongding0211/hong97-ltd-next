@@ -6,6 +6,14 @@
   "comment": "Comment",
   "sendCommentSuccess": "Send success",
   "allComments": "Messages ({{count}})",
+  "reply": {
+    "text": "Reply",
+    "send": "Reply",
+    "sending": "Replying...",
+    "deleted": "Comment deleted",
+    "expand": "Show more replies ({{count}})",
+    "collapse": "Show less"
+  },
   "deleteComment": {
     "text": "Delete",
     "confirmTitle": "Confirm delete this comment?"

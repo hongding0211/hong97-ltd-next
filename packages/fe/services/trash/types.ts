@@ -13,11 +13,15 @@ export interface CreateTrashDto {
 
 export interface TrashComment {
   commentId: string
+  parentCommentId?: string
+  replyToCommentId?: string
+  replyToName?: string
   userId?: string
   anonymous: boolean
   name?: string
   time: number
   content: string
+  deleted?: boolean
 }
 
 export interface TrashResponseDto {
@@ -46,6 +50,7 @@ export interface LikeTrashDto {
 export interface CommentTrashDto {
   trashId: string
   content: string
+  parentCommentId?: string
   anonymous?: boolean
 }
 

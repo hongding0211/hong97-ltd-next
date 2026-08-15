@@ -4,8 +4,7 @@ import { useTranslation } from 'next-i18next'
 import React, { useState } from 'react'
 
 interface CommentTrashFormProps {
-  trashId: string
-  onComment: (content: string) => Promise<void>
+  onComment: (content: string) => Promise<boolean>
   disabled?: boolean
   onCommentSuccess?: () => void
 }
@@ -24,7 +23,8 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
 
     setLoading(true)
     try {
-      await onComment(content.trim())
+      const succeeded = await onComment(content.trim())
+      if (!succeeded) return
       setContent('')
       onCommentSuccess?.()
       emitter.emit('trashCommentSent')
@@ -38,6 +38,7 @@ export const CommentTrashForm: React.FC<CommentTrashFormProps> = ({
   return (
     <div className="mt-3 space-y-2 relative">
       <Textarea
+        autoFocus
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={2}

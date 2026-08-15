@@ -28,6 +28,8 @@ import { MetaDto, MetaResponseDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto, ViewResponseDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
 
+const MAX_BLOG_THREAD_REPLIES = 100
+
 type BlogMetaRead = Pick<
   Blog,
   | 'blogId'
@@ -268,7 +270,7 @@ export class BlogService {
   }
 
   async comment(commentDto: CommentDto, userId?: string) {
-    const { content, anonymous, blogId } = commentDto
+    const { content, anonymous, blogId, parentCommentId } = commentDto
 
     if (content.length > 500) {
       throw new GeneralException('blog.commentTooLong')
@@ -278,6 +280,38 @@ export class BlogService {
 
     if (!blog) {
       throw new GeneralException('blog.blogNotFound')
+    }
+
+    let rootCommentId: string | undefined
+    let replyToCommentId: string | undefined
+
+    if (parentCommentId) {
+      const targetComment = blog.comments.find(
+        (comment) => comment.commentId === parentCommentId,
+      )
+
+      if (!targetComment) {
+        throw new GeneralException('blog.commentNotFound')
+      }
+
+      rootCommentId = targetComment.parentCommentId ?? targetComment.commentId
+      replyToCommentId = targetComment.commentId
+      const rootComment = blog.comments.find(
+        (comment) =>
+          comment.commentId === rootCommentId && !comment.parentCommentId,
+      )
+
+      if (!rootComment) {
+        throw new GeneralException('blog.commentNotFound')
+      }
+
+      const replyCount = blog.comments.filter(
+        (comment) => comment.parentCommentId === rootCommentId,
+      ).length
+
+      if (replyCount >= MAX_BLOG_THREAD_REPLIES) {
+        throw new GeneralException('blog.threadReplyLimitReached')
+      }
     }
 
     const commentId = uuidv4()
@@ -297,6 +331,8 @@ export class BlogService {
 
     blog.comments.push({
       commentId,
+      parentCommentId: rootCommentId,
+      replyToCommentId,
       userId: anonymous ? undefined : userId,
       anonymous: !!anonymous,
       name,
@@ -326,6 +362,9 @@ export class BlogService {
     const _comments = blog.comments ?? []
 
     const res: CommentsResponseDto['comments'] = []
+    const commentsById = new Map(
+      _comments.map((comment) => [comment.commentId, comment]),
+    )
 
     const users = await this.userService.findUsersByIds(
       _comments.filter((c) => c.userId).map((c) => c.userId!),
@@ -342,6 +381,12 @@ export class BlogService {
       })()
       res.push({
         ...elem,
+        replyToName: (() => {
+          const target = commentsById.get(
+            elem.replyToCommentId ?? elem.parentCommentId,
+          )
+          return target?.deleted ? undefined : target?.name
+        })(),
         user,
       })
     }
@@ -512,11 +557,23 @@ export class BlogService {
 
     const { isAdmin } = await this.authService.isAdmin(userId ?? '-1')
 
-    if (!isAdmin && comment.userId !== userId) {
+    if (!isAdmin && (!userId || comment.userId !== userId)) {
       throw new GeneralException('blog.commentNotAuthor')
     }
 
-    blog.comments = blog.comments.filter((c) => c.commentId !== commentId)
+    const hasReplies = blog.comments.some(
+      (candidate) => candidate.parentCommentId === comment.commentId,
+    )
+
+    if (!comment.parentCommentId && hasReplies) {
+      comment.userId = undefined
+      comment.anonymous = true
+      comment.name = undefined
+      comment.content = ''
+      comment.deleted = true
+    } else {
+      blog.comments = blog.comments.filter((c) => c.commentId !== commentId)
+    }
 
     await blog.save()
 

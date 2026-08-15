@@ -27,11 +27,14 @@ export class Blog {
   @Prop({ required: true })
   comments: {
     commentId?: string
+    parentCommentId?: string
+    replyToCommentId?: string
     userId?: string
     anonymous: boolean
     name?: string
     time: number
     content: string
+    deleted?: boolean
   }[]
 
   @Prop({ required: false })

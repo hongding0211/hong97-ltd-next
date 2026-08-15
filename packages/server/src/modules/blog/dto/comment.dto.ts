@@ -8,6 +8,10 @@ export class CommentDto {
   @IsString()
   content: string
 
+  @IsString()
+  @IsOptional()
+  parentCommentId?: string
+
   @IsBoolean()
   @IsOptional()
   anonymous?: boolean
@@ -15,11 +19,15 @@ export class CommentDto {
 
 export class CommentResponseDto {
   commentId?: string
+  parentCommentId?: string
+  replyToCommentId?: string
+  replyToName?: string
   userId?: string
   anonymous: boolean
   name?: string
   time: number
   content: string
+  deleted?: boolean
 }
 
 export class CommentsDto {

@@ -3,6 +3,7 @@ import { BlogService } from './blog.service'
 describe('BlogService read queries', () => {
   let model: any
   let authService: any
+  let userService: any
   let blogViewDedupeService: any
   let service: BlogService
 
@@ -27,12 +28,16 @@ describe('BlogService read queries', () => {
     authService = {
       isAdmin: jest.fn(),
     }
+    userService = {
+      findUserById: jest.fn(),
+      findUsersByIds: jest.fn().mockResolvedValue([]),
+    }
     blogViewDedupeService = {
       claim: jest.fn(),
     }
     service = new BlogService(
       model,
-      {} as any,
+      userService,
       authService,
       {
         push: jest.fn(),
@@ -274,6 +279,161 @@ describe('BlogService read queries', () => {
     ).resolves.toEqual({ blogId: 'post-1', commentId: 'comment-1' })
     expect(blog.comments).toEqual([])
     expect(blog.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('normalizes a reply to another reply onto the root thread', async () => {
+    const blog = {
+      title: 'Post 1',
+      comments: [
+        { commentId: 'root-1', content: 'Root' },
+        {
+          commentId: 'reply-1',
+          parentCommentId: 'root-1',
+          content: 'Reply',
+        },
+      ],
+      save: jest.fn(async () => undefined),
+    }
+    model.findOne.mockResolvedValue(blog)
+
+    await service.comment({
+      blogId: 'post-1',
+      content: 'Nested reply',
+      parentCommentId: 'reply-1',
+      anonymous: true,
+    })
+
+    expect(blog.comments.at(-1)).toEqual(
+      expect.objectContaining({
+        content: 'Nested reply',
+        parentCommentId: 'root-1',
+        replyToCommentId: 'reply-1',
+      }),
+    )
+    expect(blog.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns the actual reply target name separately from the root thread', async () => {
+    model.findOne.mockResolvedValue({
+      comments: [
+        {
+          commentId: 'root-1',
+          name: 'Root author',
+          content: 'Root',
+        },
+        {
+          commentId: 'reply-1',
+          parentCommentId: 'root-1',
+          replyToCommentId: 'root-1',
+          name: 'Reply author',
+          content: 'Reply',
+        },
+        {
+          commentId: 'reply-2',
+          parentCommentId: 'root-1',
+          replyToCommentId: 'reply-1',
+          name: 'Nested reply author',
+          content: 'Nested reply',
+        },
+      ],
+    })
+
+    const result = await service.comments({ blogId: 'post-1' })
+
+    expect(result.comments[0]).toEqual(
+      expect.objectContaining({
+        commentId: 'reply-2',
+        parentCommentId: 'root-1',
+        replyToName: 'Reply author',
+      }),
+    )
+    expect(result.comments[1]).toEqual(
+      expect.objectContaining({
+        commentId: 'reply-1',
+        replyToName: 'Root author',
+      }),
+    )
+  })
+
+  it('rejects the 101st reply in a blog comment thread', async () => {
+    const replies = Array.from({ length: 100 }, (_, index) => ({
+      commentId: `reply-${index}`,
+      parentCommentId: 'root-1',
+      content: `Reply ${index}`,
+    }))
+    model.findOne.mockResolvedValue({
+      title: 'Post 1',
+      comments: [{ commentId: 'root-1', content: 'Root' }, ...replies],
+      save: jest.fn(),
+    })
+
+    await expect(
+      service.comment({
+        blogId: 'post-1',
+        content: 'One too many',
+        parentCommentId: 'root-1',
+        anonymous: true,
+      }),
+    ).rejects.toMatchObject({ message: 'blog.threadReplyLimitReached' })
+  })
+
+  it('keeps a deleted root as an anonymous tombstone when replies exist', async () => {
+    const root = {
+      commentId: 'root-1',
+      userId: 'author-1',
+      anonymous: false,
+      name: 'Author',
+      content: 'Root',
+    }
+    const blog = {
+      comments: [
+        root,
+        {
+          commentId: 'reply-1',
+          parentCommentId: 'root-1',
+          content: 'Reply',
+        },
+      ],
+      save: jest.fn(async () => undefined),
+    }
+    model.findOne.mockResolvedValue(blog)
+    authService.isAdmin.mockResolvedValue({ isAdmin: false })
+
+    await service.deleteComment(
+      { blogId: 'post-1', commentId: 'root-1' },
+      'author-1',
+    )
+
+    expect(blog.comments).toHaveLength(2)
+    expect(root).toEqual(
+      expect.objectContaining({
+        anonymous: true,
+        content: '',
+        deleted: true,
+      }),
+    )
+    expect(root.userId).toBeUndefined()
+    expect(root.name).toBeUndefined()
+  })
+
+  it('does not allow an unauthenticated user to delete anonymous comments', async () => {
+    const blog = {
+      comments: [
+        {
+          commentId: 'comment-1',
+          userId: undefined,
+          anonymous: true,
+        },
+      ],
+      save: jest.fn(),
+    }
+    model.findOne.mockResolvedValue(blog)
+    authService.isAdmin.mockResolvedValue({ isAdmin: false })
+
+    await expect(
+      service.deleteComment({ blogId: 'post-1', commentId: 'comment-1' }),
+    ).rejects.toMatchObject({ message: 'blog.commentNotAuthor' })
+    expect(blog.save).not.toHaveBeenCalled()
   })
 
   it('persists all supplied fields when creating a blog', async () => {

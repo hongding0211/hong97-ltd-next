@@ -16,6 +16,9 @@ import { QueryTrashDto } from './dto/query-trash.dto'
 import { TrashResponseDto } from './dto/trash-response.dto'
 import { Trash, TrashDocument } from './schema/trash.schema'
 
+const MAX_ROOT_COMMENTS = 50
+const MAX_THREAD_REPLIES = 100
+
 @Injectable()
 export class TrashService {
   constructor(
@@ -126,7 +129,7 @@ export class TrashService {
     commentDto: CommentTrashDto,
     userId?: string,
   ): Promise<TrashResponseDto> {
-    const { trashId, content, anonymous } = commentDto
+    const { trashId, content, anonymous, parentCommentId } = commentDto
 
     const trash = await this.trashModel.findById(trashId)
 
@@ -134,8 +137,44 @@ export class TrashService {
       throw new GeneralException('trash.trashNotFound')
     }
 
-    if (trash.comments.length >= 50) {
-      throw new GeneralException('trash.commentLimitReached')
+    let rootCommentId: string | undefined
+    let replyToCommentId: string | undefined
+
+    if (parentCommentId) {
+      const targetComment = trash.comments.find(
+        (comment) => comment.commentId === parentCommentId,
+      )
+
+      if (!targetComment) {
+        throw new GeneralException('trash.commentNotFound')
+      }
+
+      rootCommentId = targetComment.parentCommentId ?? targetComment.commentId
+      replyToCommentId = targetComment.commentId
+      const rootComment = trash.comments.find(
+        (comment) =>
+          comment.commentId === rootCommentId && !comment.parentCommentId,
+      )
+
+      if (!rootComment) {
+        throw new GeneralException('trash.commentNotFound')
+      }
+
+      const replyCount = trash.comments.filter(
+        (comment) => comment.parentCommentId === rootCommentId,
+      ).length
+
+      if (replyCount >= MAX_THREAD_REPLIES) {
+        throw new GeneralException('trash.threadReplyLimitReached')
+      }
+    } else {
+      const rootCommentCount = trash.comments.filter(
+        (comment) => !comment.parentCommentId,
+      ).length
+
+      if (rootCommentCount >= MAX_ROOT_COMMENTS) {
+        throw new GeneralException('trash.commentLimitReached')
+      }
     }
 
     const commentId = uuidv4()
@@ -155,6 +194,8 @@ export class TrashService {
 
     const comment = {
       commentId,
+      parentCommentId: rootCommentId,
+      replyToCommentId,
       userId: anonymous ? undefined : userId,
       anonymous: !!anonymous,
       name,
@@ -197,12 +238,24 @@ export class TrashService {
 
     const comment = trash.comments[commentIndex]
 
-    // 只有评论作者可以删除自己的评论
-    if (comment.userId !== userId) {
+    // 只有已登录的评论作者可以删除自己的评论
+    if (!userId || comment.userId !== userId) {
       throw new GeneralException('trash.commentNotAuthor')
     }
 
-    trash.comments.splice(commentIndex, 1)
+    const hasReplies = trash.comments.some(
+      (candidate) => candidate.parentCommentId === comment.commentId,
+    )
+
+    if (!comment.parentCommentId && hasReplies) {
+      comment.userId = undefined
+      comment.anonymous = true
+      comment.name = undefined
+      comment.content = ''
+      comment.deleted = true
+    } else {
+      trash.comments.splice(commentIndex, 1)
+    }
     await trash.save()
 
     return this.toResponseDto(trash, userId)
@@ -215,6 +268,9 @@ export class TrashService {
     const isLiked = userId
       ? trash.likeHistory.some((like) => like.userId === userId)
       : false
+    const commentsById = new Map(
+      trash.comments.map((comment) => [comment.commentId, comment]),
+    )
 
     return {
       _id: trash._id.toString(),
@@ -226,11 +282,20 @@ export class TrashService {
       isLiked,
       comments: trash.comments.map((comment) => ({
         commentId: comment.commentId || '',
+        parentCommentId: comment.parentCommentId,
+        replyToCommentId: comment.replyToCommentId,
+        replyToName: (() => {
+          const target = commentsById.get(
+            comment.replyToCommentId ?? comment.parentCommentId,
+          )
+          return target?.deleted ? undefined : target?.name
+        })(),
         userId: comment.userId,
         anonymous: comment.anonymous,
         name: comment.name,
         time: comment.time,
         content: comment.content,
+        deleted: comment.deleted,
       })),
       createdAt: trash.createdAt,
       updatedAt: trash.updatedAt,
