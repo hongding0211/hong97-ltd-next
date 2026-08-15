@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#fff"/>
+  <defs>
+    <clipPath id="logo">
+      <path d="M14.933 29.867v3.731c1.639-2.188 4.268-3.639 7.267-3.717 2.55-.14 5.048.75 6.902 2.458 1.855 1.708 2.903 4.083 2.898 6.566v1.975c0 8.449-7.047 15.298-15.74 15.298l6.441-8.235c-3.178.083-6.027-1.395-7.768-3.717v4.485H0V35.707l14.933-5.84zM0 0l14.933 12.645v2.29a9.422 9.422 0 110 11.019v3.913L0 28.559V0z"/>
+    </clipPath>
+  </defs>
+  <g transform="translate(18 7) scale(.875)" clip-path="url(#logo)">
+    <path fill="#e40303" d="M0 0h32v9.5H0z"/>
+    <path fill="#ff8c00" d="M0 9.5h32V19H0z"/>
+    <path fill="#ffed00" d="M0 19h32v9.5H0z"/>
+    <path fill="#008026" d="M0 28.5h32V38H0z"/>
+    <path fill="#24408e" d="M0 38h32v9.5H0z"/>
+    <path fill="#732982" d="M0 47.5h32V57H0z"/>
+  </g>
+</svg>

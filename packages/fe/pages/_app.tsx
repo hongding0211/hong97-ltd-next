@@ -1,6 +1,7 @@
 import { UserResponseDto } from '@server/modules/user/dto/user.response.dto'
 import { appWithTranslation, useTranslation } from 'next-i18next'
 import type { AppContext, AppProps } from 'next/app'
+import Head from 'next/head'
 import React, { useEffect } from 'react'
 
 import { http } from '@services/http'
@@ -8,6 +9,7 @@ import { useTheme } from 'next-themes'
 import NProgress from 'nprogress'
 import 'photoswipe/style.css'
 import { Toaster } from 'sonner'
+import { resolveLogoVariant } from '../components/common/Logo'
 import { GeneralProvider } from '../components/hoc/general-context/GeneralProvider'
 import '../styles/code.css'
 import '../styles/globals.css'
@@ -36,6 +38,7 @@ function Child(props: AppProps) {
 
 function App(props: CustomAppProps) {
   const { router, user } = props
+  const logoVariant = resolveLogoVariant('auto')
 
   const { t } = useTranslation('toast')
 
@@ -83,9 +86,18 @@ function App(props: CustomAppProps) {
   }, [t])
 
   return (
-    <GeneralProvider router={router} prefetchedUser={user}>
-      <Child {...props} />
-    </GeneralProvider>
+    <>
+      <Head>
+        <link
+          rel="icon"
+          href={`/favicon-${logoVariant}.svg`}
+          type="image/svg+xml"
+        />
+      </Head>
+      <GeneralProvider router={router} prefetchedUser={user}>
+        <Child {...props} />
+      </GeneralProvider>
+    </>
   )
 }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 
-type LogoVariant = 'auto' | 'default' | 'development' | 'pride'
+export type LogoVariant = 'auto' | 'default' | 'development' | 'pride'
 
 interface ILogo {
   width?: number
@@ -22,7 +22,7 @@ const PRIDE_STRIPES = [
   '#732982',
 ]
 
-function resolveLogoVariant(
+export function resolveLogoVariant(
   variant: LogoVariant,
 ): Exclude<LogoVariant, 'auto'> {
   if (variant !== 'auto') {
