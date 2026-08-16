@@ -209,8 +209,18 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.isComposing || event.keyCode === 229) {
+        return
+      }
+
+      const consumeKeyDown = () => {
         event.preventDefault()
+        event.stopPropagation()
+        event.stopImmediatePropagation()
+      }
+
+      if (event.key === 'Escape') {
+        consumeKeyDown()
         dismissedKeyRef.current = slashMatchKey
         setSlashMatch(null)
         return
@@ -221,19 +231,22 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       }
 
       if (event.key === 'ArrowDown') {
-        event.preventDefault()
+        consumeKeyDown()
         setSelectedIndex((index) => (index + 1) % itemCount)
       } else if (event.key === 'ArrowUp') {
-        event.preventDefault()
+        consumeKeyDown()
         setSelectedIndex((index) => (index - 1 + itemCount) % itemCount)
       } else if (event.key === 'Enter' && selectedItem) {
-        event.preventDefault()
+        consumeKeyDown()
         runItem(selectedItem)
       }
     }
 
-    editor.view.dom.addEventListener('keydown', handleKeyDown)
-    return () => editor.view.dom.removeEventListener('keydown', handleKeyDown)
+    // ProseMirror listens on the same element, so intercept menu keys before
+    // its Enter handler can turn the slash command into a new paragraph.
+    editor.view.dom.addEventListener('keydown', handleKeyDown, true)
+    return () =>
+      editor.view.dom.removeEventListener('keydown', handleKeyDown, true)
   }, [editor, itemCount, runItem, selectedItem, slashMatchKey])
 
   if (
