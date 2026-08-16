@@ -64,7 +64,26 @@
     },
     "startEdit": "Start editing your blog here...",
     "uploadImg": "Upload image",
-    "imgCaptionPlaceholder": "Type image caption here"
+    "imgCaptionPlaceholder": "Type image caption here",
+    "formatting": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "inlineCode": "Inline code",
+      "insertBlock": "Insert content",
+      "backToFormatting": "Back to formatting",
+      "alignLeft": "Align left",
+      "alignCenter": "Align center",
+      "alignRight": "Align right",
+      "link": "Link",
+      "linkText": "Display text",
+      "linkTextPlaceholder": "Display text (optional)",
+      "linkUrl": "Link URL",
+      "linkUrlPlaceholder": "Paste or type a link",
+      "applyLink": "Apply link",
+      "removeLink": "Remove link",
+      "cancelLink": "Cancel"
+    }
   },
   "lastUpdate": "Update at"
 }

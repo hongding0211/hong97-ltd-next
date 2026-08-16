@@ -13,6 +13,12 @@ import React, { useRef, useState } from 'react'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
 import { ReactMdxNode } from './editor/react-mdx-node'
+import { SelectionToolbar } from './editor/selection-toolbar'
+import { SlashCommandMenu } from './editor/slash-command-menu'
+import {
+  AlignedHeadingExtension,
+  TextAlignmentExtension,
+} from './editor/text-alignment-extension'
 
 const lowlight = createLowlight(all)
 
@@ -59,12 +65,16 @@ const Content: React.FC<IContent> = (props) => {
           class: 'tiptap-drop-cursor',
         },
         paragraph: false, // we use custom EmptyLineParagraphExtension instead
+        heading: false, // we use AlignedHeadingExtension to persist alignment
         hardBreak: false, // we use custom EmptyLineParagraphExtension instead
         link: {
           autolink: false,
           shouldAutoLink: () => false,
           protocols: ['https', 'http'],
           linkOnPaste: false,
+          openOnClick: false,
+          enableClickSelection: true,
+          defaultProtocol: 'https',
         },
       }),
       Markdown.configure({
@@ -90,6 +100,8 @@ const Content: React.FC<IContent> = (props) => {
       EmptyLineParagraphExtension.configure({
         HTMLAttributes: {},
       }),
+      AlignedHeadingExtension,
+      TextAlignmentExtension,
       ReactMdxNode,
     ],
     immediatelyRender: false,
@@ -106,6 +118,8 @@ const Content: React.FC<IContent> = (props) => {
 
   return (
     <>
+      {editor && <SelectionToolbar editor={editor} />}
+      {editor && <SlashCommandMenu editor={editor} />}
       <DragHandle editor={editor}>
         <DndHandler />
       </DragHandle>

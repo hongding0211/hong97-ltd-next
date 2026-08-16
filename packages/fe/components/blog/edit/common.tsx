@@ -5,6 +5,7 @@ import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { addHeadingAnchors } from '@utils/blog-toc'
 import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
+import { remarkUnderline } from '@utils/remark-underline'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import cx from 'classnames'
@@ -360,6 +361,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       serialize(anchoredContent, {
         mdxOptions: {
           development: process.env.NODE_ENV === 'development',
+          remarkPlugins: [remarkUnderline],
           rehypePlugins: [rehypeHighlight],
         },
       }).then(setPreviewContent)

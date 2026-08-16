@@ -72,14 +72,19 @@ export function addHeadingAnchors(markdown: string) {
         return line
       }
 
-      const match = line.match(/^(#{1,4})\s+(.+)$/)
+      const markdownMatch = line.match(/^(#{1,4})\s+(.+)$/)
+      const alignedHtmlMatch = line.match(
+        /^<h([1-4])\s+align="(center|right)">(.+)<\/h\1>$/i,
+      )
 
-      if (!match) {
+      if (!markdownMatch && !alignedHtmlMatch) {
         return line
       }
 
-      const [, marks, rawTitle] = match
-      const level = marks.length as RawBlogTocItem['level']
+      const level = (
+        markdownMatch ? markdownMatch[1].length : Number(alignedHtmlMatch?.[1])
+      ) as RawBlogTocItem['level']
+      const rawTitle = markdownMatch?.[2] || alignedHtmlMatch?.[3] || ''
       const title = stripMarkdown(rawTitle)
       const baseSlug =
         slugifyBlogHeading(title) || `heading-${tocItems.length + 1}`
@@ -89,7 +94,11 @@ export function addHeadingAnchors(markdown: string) {
       usedSlugs.set(baseSlug, usedCount + 1)
       tocItems.push({ id, title, level })
 
-      return `<h${level} id="${id}">${rawTitle}</h${level}>`
+      const alignAttribute = alignedHtmlMatch
+        ? ` align="${alignedHtmlMatch[2].toLowerCase()}"`
+        : ''
+
+      return `<h${level} id="${id}"${alignAttribute}>${rawTitle}</h${level}>`
     })
     .join('\n')
 

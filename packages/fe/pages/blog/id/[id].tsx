@@ -6,6 +6,7 @@ import { useUser } from '@hooks/useUser'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { BlogTocItem, addHeadingAnchors } from '@utils/blog-toc'
+import { remarkUnderline } from '@utils/remark-underline'
 import { Meh } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
@@ -109,6 +110,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   const source = await serialize(anchoredContent, {
     mdxOptions: {
+      remarkPlugins: [remarkUnderline],
       rehypePlugins: [rehypeHighlight],
     },
   })

@@ -64,7 +64,26 @@
     },
     "startEdit": "在这里开始创作你的博客...",
     "uploadImg": "上传图片",
-    "imgCaptionPlaceholder": "输入图片说明"
+    "imgCaptionPlaceholder": "输入图片说明",
+    "formatting": {
+      "bold": "加粗",
+      "italic": "斜体",
+      "underline": "下划线",
+      "inlineCode": "行内代码",
+      "insertBlock": "插入内容",
+      "backToFormatting": "返回格式工具",
+      "alignLeft": "左对齐",
+      "alignCenter": "居中对齐",
+      "alignRight": "右对齐",
+      "link": "链接",
+      "linkText": "显示文字",
+      "linkTextPlaceholder": "显示文字（可选）",
+      "linkUrl": "链接地址",
+      "linkUrlPlaceholder": "粘贴或输入链接",
+      "applyLink": "应用链接",
+      "removeLink": "移除链接",
+      "cancelLink": "取消"
+    }
   },
   "lastUpdate": "编辑于"
 }
