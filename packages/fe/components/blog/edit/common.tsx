@@ -59,6 +59,18 @@ interface IBlogCommon {
   }) => Promise<void>
 }
 
+interface DraftSnapshot {
+  title: string
+  coverImg: string
+  keywords: string[]
+  content: string
+}
+
+interface SaveDraftOptions {
+  quiet?: boolean
+  manageLoading?: boolean
+}
+
 const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const { meta, content: initialContent, onRefreshMeta, onCreateNew } = props
 
@@ -74,12 +86,25 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
   const [keywords, setKeywords] = useState<string[]>(meta?.keywords || [])
 
+  const draftRef = useRef<DraftSnapshot>({
+    title,
+    coverImg,
+    keywords,
+    content,
+  })
+  draftRef.current = { title, coverImg, keywords, content }
+
   const { content: anchoredContent, tocItems } = useMemo(
     () => addHeadingAnchors(content),
     [content],
   )
 
-  const blogIdRef = useRef('')
+  const blogIdRef = useRef(meta?.blogId || '')
+  blogIdRef.current = meta?.blogId || ''
+
+  const hydratedBlogIdRef = useRef(meta?.blogId)
+
+  const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true))
 
   const uid = useId()
 
@@ -87,74 +112,114 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   const router = useRouter()
 
-  const handleSave = useCallback(
-    async (quiet?: boolean) => {
-      if (actionLoading) {
-        return
-      }
-      try {
-        setActionLoading('save')
-        if (!meta) {
-          if (!title) {
-            toast(t('blog.failToCreateBlogDue2EmptyTitle'), {
-              type: 'error',
+  const saveDraft = useCallback(
+    (
+      snapshot: DraftSnapshot,
+      { quiet = false, manageLoading = true }: SaveDraftOptions = {},
+    ): Promise<boolean> => {
+      const save = async () => {
+        if (manageLoading) {
+          setActionLoading('save')
+        }
+        try {
+          if (!blogIdRef.current) {
+            if (!snapshot.title) {
+              toast(t('blog.failToCreateBlogDue2EmptyTitle'), {
+                type: 'error',
+              })
+              return false
+            }
+            await onCreateNew?.({
+              title: snapshot.title,
+              coverImg: snapshot.coverImg,
+              keywords: snapshot.keywords,
+              content: snapshot.content,
             })
-            return
+            return true
           }
-          await onCreateNew?.({
-            title,
-            coverImg,
-            keywords,
-            content,
-          })
-        } else {
-          const [res0, res1] = await Promise.all([
+
+          const blogId = blogIdRef.current
+          const [metaResponse, contentResponse] = await Promise.all([
             http.put('PutBlogMeta', {
-              blogId: meta.blogId,
-              blogTitle: title,
-              keywords,
+              blogId,
+              blogTitle: snapshot.title,
+              coverImg: snapshot.coverImg,
+              keywords: snapshot.keywords,
             }),
             http.post('PostBlogContent', {
-              blogId: meta.blogId,
-              content,
+              blogId,
+              content: snapshot.content,
             }),
           ])
-          if (res0?.isSuccess && res1?.isSuccess && !quiet) {
+          const saved = metaResponse?.isSuccess && contentResponse?.isSuccess
+
+          if (!saved) {
+            return false
+          }
+          if (!quiet) {
             toast(t('blog.saveSuccess'), { type: 'success' })
           }
           await onRefreshMeta?.()
+          return true
+        } catch {
+          return false
+        } finally {
+          if (manageLoading) {
+            setActionLoading((loading) => (loading === 'save' ? null : loading))
+          }
         }
-      } finally {
-        setActionLoading(null)
       }
+
+      const queuedSave = saveQueueRef.current.then(save, save)
+      saveQueueRef.current = queuedSave
+      return queuedSave
     },
-    [
-      actionLoading,
-      onRefreshMeta,
-      onCreateNew,
-      meta,
-      title,
-      coverImg,
-      keywords,
-      t,
-      content,
-    ],
+    [onCreateNew, onRefreshMeta, t],
   )
 
+  const saveDraftRef = useRef(saveDraft)
+  saveDraftRef.current = saveDraft
+
+  const debouncedSaveDraft = useRef(
+    debounce(() => {
+      if (!blogIdRef.current) {
+        return
+      }
+      void saveDraftRef.current(draftRef.current, { quiet: true })
+    }, 10000),
+  )
+
+  const handleSave = useCallback(async () => {
+    debouncedSaveDraft.current.cancel()
+    await saveDraft(draftRef.current)
+  }, [saveDraft])
+
   const handlePublish = useCallback(async () => {
+    if (!meta?.blogId) {
+      return
+    }
+    debouncedSaveDraft.current.cancel()
     setActionLoading('publish')
     try {
-      await handleSave(true)
-      await http.put('PutBlogMeta', {
-        blogId: meta?.blogId,
+      const saved = await saveDraft(draftRef.current, {
+        quiet: true,
+        manageLoading: false,
+      })
+      if (!saved) {
+        return
+      }
+      const response = await http.put('PutBlogMeta', {
+        blogId: meta.blogId,
         hasPublished: true,
         time: Date.now(),
       })
-      await onRefreshMeta?.()
+      if (response?.isSuccess) {
+        await onRefreshMeta?.()
+      }
     } finally {
       setActionLoading(null)
     }
-  }, [onRefreshMeta, meta, handleSave])
+  }, [onRefreshMeta, meta?.blogId, saveDraft])
 
   const handleHiddenChange = useCallback(async () => {
     setActionLoading('hidden')
@@ -218,17 +283,17 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
           return
         }
         setCoverImg(p)
+        draftRef.current = { ...draftRef.current, coverImg: p }
 
         if (meta) {
-          const res = await http.put('PutBlogMeta', {
-            blogId: meta.blogId,
-            coverImg: p,
+          const saved = await saveDraft(draftRef.current, {
+            quiet: true,
+            manageLoading: false,
           })
 
-          if (!res.isSuccess) {
+          if (!saved) {
             toast(t('blog.failToUpdateCover'), { type: 'error' })
           }
-          await onRefreshMeta?.()
         }
       } finally {
         setActionLoading(null)
@@ -237,53 +302,58 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     document.body.appendChild(input)
     input.click()
     document.body.removeChild(input)
-  }, [uid, actionLoading, onRefreshMeta, t, meta])
+  }, [uid, actionLoading, saveDraft, t, meta])
 
   const handleRemoveCover = useCallback(async () => {
     try {
       setActionLoading('coverRemove')
+      setCoverImg('')
+      draftRef.current = { ...draftRef.current, coverImg: '' }
       if (!meta) {
-        setCoverImg('')
-      } else {
-        await http.put('PutBlogMeta', {
-          blogId: meta.blogId,
-          coverImg: '',
-        })
-        await onRefreshMeta?.()
+        return
       }
+      await saveDraft(draftRef.current, {
+        quiet: true,
+        manageLoading: false,
+      })
     } finally {
       setActionLoading(null)
     }
-  }, [meta, onRefreshMeta])
-
-  const debouncedSaveContent = useRef(
-    debounce(async (val: string) => {
-      if (!blogIdRef.current) {
-        return
-      }
-      try {
-        setActionLoading('save')
-        await http.post('PostBlogContent', {
-          blogId: blogIdRef.current,
-          content: val,
-        })
-        await onRefreshMeta?.()
-      } finally {
-        setActionLoading(null)
-      }
-    }, 10000),
-  )
+  }, [meta, saveDraft])
 
   const handleValueChange = useCallback((val: string) => {
     setContent(val)
-    debouncedSaveContent.current(val)
+    draftRef.current = { ...draftRef.current, content: val }
+    debouncedSaveDraft.current()
+  }, [])
+
+  const handleTitleChange = useCallback((val: string) => {
+    setTitle(val)
+    draftRef.current = { ...draftRef.current, title: val }
+    debouncedSaveDraft.current()
+  }, [])
+
+  const handleKeywordsChange = useCallback((val: string[]) => {
+    setKeywords(val)
+    draftRef.current = { ...draftRef.current, keywords: val }
+    debouncedSaveDraft.current()
   }, [])
 
   useEffect(() => {
+    if (!meta?.blogId || hydratedBlogIdRef.current === meta.blogId) {
+      return
+    }
+    hydratedBlogIdRef.current = meta.blogId
     setTitle(meta?.blogTitle || '')
     setCoverImg(meta?.coverImg || '')
     setKeywords(meta?.keywords || [])
   }, [meta])
+
+  useEffect(() => {
+    return () => {
+      debouncedSaveDraft.current.cancel()
+    }
+  }, [])
 
   useEffect(() => {
     if (mode === 'preview') {
@@ -299,20 +369,13 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     }
   }, [mode, anchoredContent])
 
-  useEffect(() => {
-    if (!meta?.blogId) {
-      return
-    }
-    blogIdRef.current = meta.blogId
-  }, [meta?.blogId])
-
   return (
     <>
       <Actions
         meta={meta}
         mode={mode}
         onPublish={handlePublish}
-        onSave={() => handleSave(false)}
+        onSave={handleSave}
         onHiddenChange={handleHiddenChange}
         onPinnedChange={handlePinnedChange}
         onDelete={handleDelete}
@@ -346,7 +409,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
           <MdxLayout>
             <Input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
               placeholder={t('edit.titlePlaceholder')}
               spellCheck="false"
               className="mb-2 text-black dark:text-white text-4xl font-semibold border-0 !bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -358,7 +421,10 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
                 </span>
               </figcaption>
             )}
-            <Keywords keywords={keywords} onKeywordsChange={setKeywords} />
+            <Keywords
+              keywords={keywords}
+              onKeywordsChange={handleKeywordsChange}
+            />
             <div className="overflow-x-hidden pt-2">
               <Content value={content} onValueChange={handleValueChange} />
             </div>
