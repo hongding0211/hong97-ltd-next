@@ -18,7 +18,7 @@ import { GetStaticPropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 const Item: React.FC<{
   file: File
@@ -68,6 +68,7 @@ const Item: React.FC<{
 
 function OSS({ locale }: { locale: string }) {
   const [files, setFiles] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [uploadedFiles, setUploadedFiles] = useState<
     {
@@ -84,27 +85,31 @@ function OSS({ locale }: { locale: string }) {
   const { fallbackComponent } = useLogin()
 
   const handleSelect = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.multiple = true
-    input.onchange = () => {
-      const _files = input.files
-      if (_files) {
-        const _filesArray = Array.from(_files)
-          .filter((e) => !files.map((x) => x.name).includes(e.name))
-          .filter((e) => {
-            if (e.size > 20 * 1024 * 1024) {
-              toast('fileTooLarge', {
-                type: 'error',
-              })
-              return false
-            }
-            return true
-          })
-        setFiles([...files, ..._filesArray])
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget
+    const selectedFiles = Array.from(input.files || [])
+    input.value = ''
+
+    const filesToAdd = selectedFiles.filter((file) => {
+      if (file.size > 20 * 1024 * 1024) {
+        toast('fileTooLarge', {
+          type: 'error',
+        })
+        return false
       }
-    }
-    input.click()
+      return true
+    })
+
+    setFiles((currentFiles) => {
+      const currentNames = new Set(currentFiles.map((file) => file.name))
+      return [
+        ...currentFiles,
+        ...filesToAdd.filter((file) => !currentNames.has(file.name)),
+      ]
+    })
   }
 
   const handleUpload = async () => {
@@ -160,6 +165,13 @@ function OSS({ locale }: { locale: string }) {
         />
       </Head>
       <AppLayout simplifiedFooter authRequired>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+        />
         <div className="max-w-[768px] mx-auto md:mt-2 flex-col">
           <Breadcrumb>
             <BreadcrumbList>

@@ -14,14 +14,7 @@ import { useTranslation } from 'next-i18next'
 import { MDXRemote } from 'next-mdx-remote'
 import { serialize } from 'next-mdx-remote/serialize'
 import { useRouter } from 'next/router'
-import React, {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import rehypeHighlight from 'rehype-highlight'
 import { customComponents } from '../../../mdx-components'
 import MdxLayout from '../mdx-layout'
@@ -106,8 +99,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const hydratedBlogIdRef = useRef(meta?.blogId)
 
   const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true))
-
-  const uid = useId()
+  const coverFileInputRef = useRef<HTMLInputElement>(null)
 
   const { t } = useTranslation('blog')
 
@@ -263,22 +255,19 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     }
   }, [meta, router, t])
 
-  const handleAddCover = useCallback(() => {
-    if (actionLoading) {
-      return
-    }
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.id = uid
-    input.onchange = async () => {
-      const _file = input.files?.[0]
-      if (!_file) {
+  const handleCoverFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const input = event.currentTarget
+      const selectedFile = input.files?.[0]
+      input.value = ''
+
+      if (!selectedFile) {
         return
       }
+
       setActionLoading('coverChange')
-      const file = await convertImageToWebP(_file, 0.9, 2500)
       try {
+        const file = await convertImageToWebP(selectedFile, 0.9, 2500)
         const p = await uploadFile2Oss(file, 'blog')
         if (!p) {
           return
@@ -299,11 +288,17 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       } finally {
         setActionLoading(null)
       }
+    },
+    [meta, saveDraft, t],
+  )
+
+  const handleAddCover = useCallback(() => {
+    if (actionLoading || !coverFileInputRef.current) {
+      return
     }
-    document.body.appendChild(input)
-    input.click()
-    document.body.removeChild(input)
-  }, [uid, actionLoading, saveDraft, t, meta])
+
+    coverFileInputRef.current.click()
+  }, [actionLoading])
 
   const handleRemoveCover = useCallback(async () => {
     try {
@@ -373,6 +368,13 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   return (
     <>
+      <input
+        ref={coverFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleCoverFileChange}
+        className="hidden"
+      />
       <Actions
         meta={meta}
         mode={mode}

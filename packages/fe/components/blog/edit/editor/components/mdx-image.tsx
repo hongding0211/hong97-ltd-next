@@ -7,7 +7,7 @@ import { toast } from '@utils/toast'
 import cx from 'classnames'
 import { CloudUpload, Loader2, Plus, Repeat, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
-import React, { useEffect, useId, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { ReactMdxComponent } from '../../../react-mdx-types'
 
 interface IMdxImage {
@@ -36,47 +36,52 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
 
   const { t } = useTranslation('blog')
 
-  const uid = useId()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const toastOnSuccessRef = useRef(false)
 
-  const handleUpload = async (toastOnSuccess?: boolean) => {
-    if (loading) {
+  const handleUpload = (toastOnSuccess = false) => {
+    if (loading || !fileInputRef.current) {
       return
     }
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.id = uid
-    input.multiple = true
-    input.onchange = async () => {
-      const _files = Array.from(input.files || [])
-      if (!_files?.length) {
-        toast('blog.uploadFailed', { type: 'error' })
-        return
-      }
-      try {
-        setLoading(true)
-        const compressedImg = await Promise.all(
-          _files.map((f) => convertImageToWebP(f, 0.85, 1920)),
-        )
-        const uploadedFiles = (
-          await Promise.all(compressedImg.map((c) => uploadFile2Oss(c, 'blog')))
-        ).filter(Boolean)
-        onPropsUpdate({
-          ...props,
-          urls: [...url, ...uploadedFiles].join(','),
-        })
-        if (toastOnSuccess) {
-          toast('blog.uploadSuccess', { type: 'success' })
-        }
-      } catch {
-        toast('blog.uploadFailed', { type: 'error' })
-      } finally {
-        setLoading(false)
-      }
+
+    toastOnSuccessRef.current = toastOnSuccess
+    fileInputRef.current.click()
+  }
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const input = event.currentTarget
+    const selectedFiles = Array.from(input.files || [])
+    input.value = ''
+
+    if (!selectedFiles.length) {
+      return
     }
-    document.body.appendChild(input)
-    input.click()
-    document.body.removeChild(input)
+
+    try {
+      setLoading(true)
+      const compressedImg = await Promise.all(
+        selectedFiles.map((file) => convertImageToWebP(file, 0.85, 1920)),
+      )
+      const uploadedFiles = (
+        await Promise.all(
+          compressedImg.map((file) => uploadFile2Oss(file, 'blog')),
+        )
+      ).filter(Boolean)
+      onPropsUpdate({
+        ...props,
+        urls: [...url, ...uploadedFiles].join(','),
+      })
+      if (toastOnSuccessRef.current) {
+        toast('blog.uploadSuccess', { type: 'success' })
+      }
+    } catch {
+      toast('blog.uploadFailed', { type: 'error' })
+    } finally {
+      toastOnSuccessRef.current = false
+      setLoading(false)
+    }
   }
 
   const handleDel = () => {
@@ -93,6 +98,14 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
   if (mode === 'editor') {
     return (
       <>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+        />
         {url.length ? (
           <ImagesV2
             images={url.map((u) => ({
