@@ -1,17 +1,19 @@
 'use client'
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import DragHandle from '@tiptap/extension-drag-handle-react'
 import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { addHeadingAnchors } from '@utils/blog-toc'
+import { toast } from '@utils/toast'
 import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
 import React, { useRef, useState } from 'react'
+import { CodeBlockWithLanguage } from './editor/code-block-extension'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
+import { hasUnexpectedFencedCodeLoss } from './editor/markdown-integrity'
 import { ReactMdxNode } from './editor/react-mdx-node'
 import { SelectionToolbar } from './editor/selection-toolbar'
 import { SlashCommandMenu } from './editor/slash-command-menu'
@@ -49,6 +51,11 @@ const Content: React.FC<IContent> = (props) => {
 
   const [initValue] = useState(value)
 
+  const initializationDeadlineRef = useRef(Number.POSITIVE_INFINITY)
+  const integrityCheckTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const saveBlockedRef = useRef(false)
+  const warningShownRef = useRef(false)
+
   const handleUpdate = useRef(
     debounce((e: EditorEvents['update']) => {
       const md = e.editor.getMarkdown()
@@ -57,6 +64,26 @@ const Content: React.FC<IContent> = (props) => {
   )
 
   const { t } = useTranslation('blog')
+
+  const validateInitialContent = (editor: EditorEvents['update']['editor']) => {
+    if (saveBlockedRef.current) {
+      return false
+    }
+
+    if (!hasUnexpectedFencedCodeLoss(initValue, editor.getMarkdown())) {
+      return true
+    }
+
+    saveBlockedRef.current = true
+    handleUpdate.current.cancel()
+
+    if (!warningShownRef.current) {
+      warningShownRef.current = true
+      toast(t('edit.contentCompatibilityError'), { type: 'error' })
+    }
+
+    return false
+  }
 
   const editor = useEditor({
     extensions: [
@@ -87,7 +114,7 @@ const Content: React.FC<IContent> = (props) => {
           breaks: true,
         },
       }),
-      CodeBlockLowlight.configure({
+      CodeBlockWithLanguage.configure({
         lowlight,
         enableTabIndentation: true,
         tabSize: 2,
@@ -107,11 +134,30 @@ const Content: React.FC<IContent> = (props) => {
     immediatelyRender: false,
     content: initValue,
     contentType: 'markdown',
-    // eslint-disable-next-line react-hooks/refs
-    onCreate: ({ editor }) => syncHeadingIds(editor),
+    onCreate: ({ editor }) => {
+      syncHeadingIds(editor)
+      initializationDeadlineRef.current = Date.now() + 3000
+      integrityCheckTimersRef.current = [0, 250, 1000, 2500].map((delay) =>
+        setTimeout(() => validateInitialContent(editor), delay),
+      )
+    },
     onUpdate: (event) => {
       syncHeadingIds(event.editor)
+
+      if (
+        saveBlockedRef.current ||
+        (Date.now() <= initializationDeadlineRef.current &&
+          !validateInitialContent(event.editor))
+      ) {
+        return
+      }
+
       handleUpdate.current(event)
+    },
+    onDestroy: () => {
+      integrityCheckTimersRef.current.forEach(clearTimeout)
+      integrityCheckTimersRef.current = []
+      handleUpdate.current.cancel()
     },
     autofocus: initValue ? undefined : 'all',
   })

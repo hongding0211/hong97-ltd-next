@@ -6,6 +6,7 @@ import {
   Code2,
   Heading1,
   Heading2,
+  Heading3,
   Image as ImageIcon,
 } from 'lucide-react'
 import type React from 'react'
@@ -79,7 +80,7 @@ const insertTextBlock = (
   if (range.replaceBlock || currentBlockIsEmpty) {
     const chain = editor.chain().focus().deleteRange(range)
     if (typeName === 'heading') {
-      chain.setHeading({ level: attrs.level as 1 | 2 }).run()
+      chain.setHeading({ level: attrs.level as 1 | 2 | 3 }).run()
     } else {
       chain.setCodeBlock().run()
     }
@@ -116,6 +117,15 @@ export const createInsertCommandItems = (): InsertCommandItem[] => {
       Icon: Heading2,
       run: (editor, range) => {
         insertTextBlock(editor, range, 'heading', { level: 2 })
+      },
+    },
+    {
+      id: 'heading-3',
+      label: 'Heading 3',
+      keywords: ['h3', 'heading', 'subtitle'],
+      Icon: Heading3,
+      run: (editor, range) => {
+        insertTextBlock(editor, range, 'heading', { level: 3 })
       },
     },
     {

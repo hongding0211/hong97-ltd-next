@@ -8,7 +8,7 @@ import type { ComponentMapEntry } from './react-mdx-types'
 export const ComponentMap: Record<string, ComponentMapEntry> = {
   img: {
     component: MdxImage,
-    displayName: 'MDX Image',
+    displayName: 'Image',
     defaultProps: {
       urls: '',
       caption: '',

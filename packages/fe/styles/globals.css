@@ -172,61 +172,40 @@ html {
 
 @layer base {
   .prose pre {
-    @apply bg-[#eff1f5] dark:bg-[#24273a] relative pt-8;
+    @apply bg-[#eceff4] dark:bg-[#2e3440] relative;
     font-family: 'Google Sans Code', monospace;
   }
+}
 
-  .prose pre code[class*="language-"]::before {
-    content: attr(class);
-    content: var(--language-label, attr(class));
-    @apply absolute top-0 left-0 pl-4 pt-2 text-[0.65rem] font-medium;
-    @apply text-neutral-400 dark:text-neutral-500;
-    text-transform: uppercase;
-  }
+.prose :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  color: rgb(115 115 115);
+  border-inline-start-color: rgb(212 212 212);
+  font-style: normal;
+  font-weight: 400;
+}
 
-  .prose pre code.language-plaintext::before {
-    content: "Plain Text"
-  }
+.dark
+  .prose
+  :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  color: rgb(163 163 163);
+  border-inline-start-color: rgb(64 64 64);
+}
 
-  .prose pre code.language-typescript::before,
-  .prose pre code.language-ts::before {
-    content: "TypeScript";
-  }
+.prose
+  :where(blockquote a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
 
-  .prose pre code.language-javascript::before,
-  .prose pre code.language-js::before {
-    content: "JavaScript";
-  }
+.prose
+  :where(blockquote strong):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  color: inherit;
+}
 
-  .prose pre code.language-tsx::before {
-    content: "TSX";
-  }
-
-  .prose pre code.language-jsx::before {
-    content: "JSX";
-  }
-
-  .prose pre code.language-css::before {
-    content: "CSS";
-  }
-
-  .prose pre code.language-html::before {
-    content: "HTML";
-  }
-
-  .prose pre code.language-json::before {
-    content: "JSON";
-  }
-
-  .prose pre code.language-bash::before,
-  .prose pre code.language-sh::before {
-    content: "Shell";
-  }
-
-  .prose pre code.language-python::before,
-  .prose pre code.language-py::before {
-    content: "Python";
-  }
+.prose
+  :where(blockquote em):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  font-style: italic;
 }
 
 @theme inline {

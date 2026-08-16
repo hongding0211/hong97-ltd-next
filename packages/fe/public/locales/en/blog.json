@@ -63,6 +63,7 @@
       "cancel": "Cancel"
     },
     "startEdit": "Start editing your blog here...",
+    "contentCompatibilityError": "Some existing content could not be loaded safely. Saving has been stopped; please refresh the page.",
     "uploadImg": "Upload image",
     "imgCaptionPlaceholder": "Type image caption here",
     "formatting": {
@@ -70,6 +71,7 @@
       "italic": "Italic",
       "underline": "Underline",
       "inlineCode": "Inline code",
+      "codeLanguage": "Code language",
       "insertBlock": "Insert content",
       "backToFormatting": "Back to formatting",
       "alignLeft": "Align left",
