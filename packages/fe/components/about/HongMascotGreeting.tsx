@@ -254,6 +254,7 @@ export function HongMascotGreeting() {
   const { locale } = useRouter()
   const queueRef = useRef<Motion[]>([])
   const initializedRef = useRef(false)
+  const copyViewportRef = useRef<HTMLSpanElement>(null)
   const [state, setState] = useState({
     piece: 'H' as Piece,
     motion: 'play' as Motion,
@@ -293,6 +294,39 @@ export function HongMascotGreeting() {
     (index) => copyLibrary[state.motion][index][language],
   )
 
+  useEffect(() => {
+    const viewport = copyViewportRef.current
+    if (!viewport) return
+
+    let animationFrame = 0
+    const followTypedText = () => {
+      cancelAnimationFrame(animationFrame)
+      animationFrame = requestAnimationFrame(() => {
+        viewport.scrollTo({
+          left: Math.max(0, viewport.scrollWidth - viewport.clientWidth),
+          behavior: 'smooth',
+        })
+      })
+    }
+
+    const mutationObserver = new MutationObserver(followTypedText)
+    mutationObserver.observe(viewport, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    })
+
+    const resizeObserver = new ResizeObserver(followTypedText)
+    resizeObserver.observe(viewport)
+    followTypedText()
+
+    return () => {
+      cancelAnimationFrame(animationFrame)
+      mutationObserver.disconnect()
+      resizeObserver.disconnect()
+    }
+  }, [])
+
   return (
     <button
       aria-label={
@@ -306,16 +340,18 @@ export function HongMascotGreeting() {
       <span className={styles.mascotSlot}>
         <HongMascot motion={state.motion} piece={state.piece} />
       </span>
-      <TypingAnimation
-        key={`${state.revision}-${language}`}
-        blinkCursor
-        className="font-bold"
-        cursorStyle="underscore"
-        loop
-        startOnView={false}
-        typeSpeed={80}
-        words={words}
-      />
+      <span className={styles.copyViewport} ref={copyViewportRef}>
+        <TypingAnimation
+          key={`${state.revision}-${language}`}
+          blinkCursor
+          className={cx('font-bold', styles.copy)}
+          cursorStyle="underscore"
+          loop
+          startOnView={false}
+          typeSpeed={100}
+          words={words}
+        />
+      </span>
     </button>
   )
 }
