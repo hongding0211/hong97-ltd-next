@@ -31,7 +31,7 @@ const pieces = {
     viewBox: '0 0 93 119',
     center: { x: 46.5, y: 59.5 },
     face: { x: 46.5, y: 64, scale: 4.3 },
-    offsetY: -15,
+    offsetY: -18,
     scale: 0.94,
   },
   G: {
@@ -281,6 +281,7 @@ export function HongMascotGreeting() {
         className="font-bold"
         cursorStyle="underscore"
         startOnView={false}
+        typeSpeed={60}
         words={[copy]}
       />
     </button>
