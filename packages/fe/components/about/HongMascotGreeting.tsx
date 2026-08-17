@@ -267,7 +267,7 @@ export function HongMascotGreeting() {
       aria-label={
         language === 'cn' ? '切换动作和文字' : 'Change motion and text'
       }
-      className={cx(styles.trigger, 'font-bold text-[2.5rem]')}
+      className={styles.trigger}
       onClick={advance}
       style={{ visibility: state.ready ? 'visible' : 'hidden' }}
       type="button"

@@ -7,7 +7,9 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font: inherit;
+  font-family: inherit;
+  font-size: 2.5rem;
+  font-weight: 700;
   text-align: left;
   touch-action: manipulation;
 }
