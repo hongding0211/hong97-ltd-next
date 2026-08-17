@@ -29,7 +29,7 @@ function About() {
           <div className={cx('mt-[28svh] sm:mt-[35svh]')}>
             <HongMascotGreeting />
 
-            <p className="mt-[2rem]">{t('p1')}</p>
+            <p className="mt-[1rem]">{t('p1')}</p>
 
             <div
               className={cx(
