@@ -10,8 +10,12 @@ interface ILogo {
   variant?: LogoVariant
 }
 
-const LOGO_PATH =
-  'M14.933 29.867v3.731c1.639-2.188 4.268-3.639 7.267-3.717 2.55-.14 5.048.75 6.902 2.458 1.855 1.708 2.903 4.083 2.898 6.566v1.975c0 8.449-7.047 15.298-15.74 15.298l6.441-8.235c-3.178.083-6.027-1.395-7.768-3.717v4.485H0V35.707l14.933-5.84zM0 0l14.933 12.645v2.29a9.422 9.422 0 110 11.019v3.913L0 28.559V0z'
+const LOGO_WIDTH = 173
+const LOGO_HEIGHT = 306
+const TOP_LEFT_PATH = 'M80.5 68.576L0.5 1.07605V153.576L80.5 160.576V68.576Z'
+const BOTTOM_LEFT_PATH = 'M80 160.576L0.5 192.076V261.076H80V208.076V160.576Z'
+const BOTTOM_RIGHT_TAIL_PATH =
+  'M172.254 207.321C172.351 208.402 172.434 209.487 172.5 210.576C175.9 266.921 136.329 301.086 85.9648 302.99L119 260.576L172.254 207.321Z'
 
 const PRIDE_STRIPES = [
   '#e40303',
@@ -21,6 +25,16 @@ const PRIDE_STRIPES = [
   '#24408e',
   '#732982',
 ]
+
+const LogoShape: React.FC<{ fill?: string }> = ({ fill }) => (
+  <>
+    <path d={TOP_LEFT_PATH} fill={fill} />
+    <circle cx="122" cy="110.076" r="50.5" fill={fill} />
+    <path d={BOTTOM_LEFT_PATH} fill={fill} />
+    <circle cx="122" cy="210.076" r="50.5" fill={fill} />
+    <path d={BOTTOM_RIGHT_TAIL_PATH} fill={fill} />
+  </>
+)
 
 export function resolveLogoVariant(
   variant: LogoVariant,
@@ -48,10 +62,9 @@ const Logo: React.FC<ILogo> = ({
   variant = 'auto',
 }) => {
   const w = width
-  const h = (57 / 32) * width
+  const h = (LOGO_HEIGHT / LOGO_WIDTH) * width
   const resolvedVariant = resolveLogoVariant(variant)
   const logoId = React.useId().replaceAll(':', '')
-  const clipPathId = `hong97-${resolvedVariant}-logo-clip-${logoId}`
   const developmentPatternId = `hong97-development-logo-pattern-${logoId}`
 
   const content = (
@@ -59,54 +72,53 @@ const Logo: React.FC<ILogo> = ({
       xmlns="http://www.w3.org/2000/svg"
       width={w}
       height={h}
-      viewBox="0 0 32 57"
+      viewBox={`0 0 ${LOGO_WIDTH} ${LOGO_HEIGHT}`}
       className={className}
     >
       {resolvedVariant === 'development' ? (
         <>
           <defs>
-            <clipPath id={clipPathId}>
-              <path d={LOGO_PATH} />
-            </clipPath>
             <pattern
               id={developmentPatternId}
-              width="12"
-              height="12"
+              width="48"
+              height="48"
               patternUnits="userSpaceOnUse"
               patternTransform="rotate(-35)"
             >
-              <rect width="6" height="12" fill="#facc15" />
-              <rect x="6" width="6" height="12" fill="#171717" />
+              <rect width="24" height="48" fill="#facc15" />
+              <rect x="24" width="24" height="48" fill="#171717" />
             </pattern>
           </defs>
-          <path
-            d={LOGO_PATH}
-            clipPath={`url(#${clipPathId})`}
-            fill={`url(#${developmentPatternId})`}
-          />
+          <LogoShape fill={`url(#${developmentPatternId})`} />
         </>
       ) : resolvedVariant === 'pride' ? (
         <>
           <defs>
-            <clipPath id={clipPathId}>
-              <path d={LOGO_PATH} />
-            </clipPath>
+            <linearGradient
+              id={developmentPatternId}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              {PRIDE_STRIPES.flatMap((color, index) => {
+                const start = index / PRIDE_STRIPES.length
+                const end = (index + 1) / PRIDE_STRIPES.length
+                return [
+                  <stop
+                    key={`${color}-start`}
+                    offset={start}
+                    stopColor={color}
+                  />,
+                  <stop key={`${color}-end`} offset={end} stopColor={color} />,
+                ]
+              })}
+            </linearGradient>
           </defs>
-          <g clipPath={`url(#${clipPathId})`}>
-            {PRIDE_STRIPES.map((color, index) => (
-              <rect
-                key={color}
-                x="0"
-                y={(57 / PRIDE_STRIPES.length) * index}
-                width="32"
-                height={57 / PRIDE_STRIPES.length}
-                fill={color}
-              />
-            ))}
-          </g>
+          <LogoShape fill={`url(#${developmentPatternId})`} />
         </>
       ) : (
-        <path d={LOGO_PATH} />
+        <LogoShape />
       )}
     </svg>
   )
