@@ -347,6 +347,7 @@ export function HongMascotGreeting() {
           className={cx('font-bold', styles.copy)}
           cursorStyle="underscore"
           loop
+          pauseDelay={2000}
           startOnView={false}
           typeSpeed={100}
           words={words}
