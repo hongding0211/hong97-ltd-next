@@ -53,31 +53,61 @@ const copyLibrary: Record<Motion, readonly { en: string; cn: string }[]> = {
     { en: 'Let me think...', cn: '让我想想...' },
     { en: 'One second...', cn: '等我一下...' },
     { en: 'Connecting dots...', cn: '正在理清思路...' },
+    { en: 'Hmm...', cn: '嗯...' },
+    { en: 'Let me check...', cn: '我看看...' },
+    { en: 'Almost there...', cn: '快好了...' },
+    { en: 'Working on it...', cn: '正在处理...' },
+    { en: 'Give me a beat...', cn: '稍等一下...' },
   ],
   wink: [
     { en: 'I see you.', cn: '我懂你的意思。' },
     { en: 'Got it.', cn: '收到。' },
     { en: "We're good.", cn: '没问题。' },
+    { en: 'Say no more.', cn: '懂了。' },
+    { en: 'On it.', cn: '交给我。' },
+    { en: 'You got it.', cn: '包在我身上。' },
+    { en: 'Nice one.', cn: '这主意不错。' },
+    { en: 'Leave it to me.', cn: '放心吧。' },
   ],
   wide: [
     { en: 'Oh?', cn: '哦？' },
     { en: 'Wait, really?', cn: '等等，真的？' },
     { en: "Didn't expect that.", cn: '有点意外。' },
+    { en: 'No way?', cn: '不会吧？' },
+    { en: 'Well, hello.', cn: '哎呀，你好。' },
+    { en: "That's new.", cn: '这倒新鲜。' },
+    { en: 'Plot twist?', cn: '反转了？' },
+    { en: "Now I'm curious.", cn: '有点好奇。' },
   ],
   sleep: [
     { en: 'Quick nap...', cn: '先眯一会...' },
     { en: 'Back in a bit...', cn: '马上回来...' },
     { en: 'Low battery...', cn: '电量不足...' },
+    { en: 'Five more minutes...', cn: '再睡五分钟...' },
+    { en: 'Eyes closed...', cn: '眼睛闭上了...' },
+    { en: 'Do not disturb...', cn: '请勿打扰...' },
+    { en: 'Dreaming...', cn: '做梦中...' },
+    { en: 'Wake me soon...', cn: '记得叫我...' },
   ],
   play: [
     { en: 'Hey!', cn: '你好！' },
     { en: 'Hi, welcome.', cn: '嗨，欢迎来。' },
     { en: 'Good to see you.', cn: '又见面了。' },
+    { en: 'Hello!', cn: '哈喽！' },
+    { en: 'Nice to meet you.', cn: '很高兴见到你。' },
+    { en: 'Welcome!', cn: '欢迎！' },
+    { en: 'Good timing.', cn: '来得正好。' },
+    { en: 'Here we go.', cn: '出发吧。' },
   ],
   orbit: [
     { en: 'Looking around.', cn: '四处看看。' },
     { en: 'One more lap.', cn: '再绕一圈。' },
     { en: 'Still in orbit.', cn: '保持运转。' },
+    { en: 'Taking a look.', cn: '看一圈。' },
+    { en: 'Making the rounds.', cn: '正在巡游。' },
+    { en: 'Still moving.', cn: '继续转动。' },
+    { en: 'Checking the edges.', cn: '看看边缘。' },
+    { en: 'Back around.', cn: '又绕回来了。' },
   ],
 }
 
@@ -100,8 +130,8 @@ function drawMotion(queue: Motion[], previous?: Motion) {
   return queue.shift() as Motion
 }
 
-function randomPhraseIndex(motion: Motion) {
-  return Math.floor(Math.random() * copyLibrary[motion].length)
+function randomPhraseOrder(motion: Motion) {
+  return shuffle(copyLibrary[motion].map((_, index) => index))
 }
 
 function PieceArtwork({ piece }: { piece: Piece }) {
@@ -227,7 +257,7 @@ export function HongMascotGreeting() {
   const [state, setState] = useState({
     piece: 'H' as Piece,
     motion: 'play' as Motion,
-    phraseIndex: 0,
+    phraseOrder: [0],
     revision: 0,
     ready: false,
   })
@@ -240,7 +270,7 @@ export function HongMascotGreeting() {
     setState({
       piece: pieceKeys[Math.floor(Math.random() * pieceKeys.length)],
       motion,
-      phraseIndex: randomPhraseIndex(motion),
+      phraseOrder: randomPhraseOrder(motion),
       revision: 1,
       ready: true,
     })
@@ -252,15 +282,16 @@ export function HongMascotGreeting() {
       return {
         ...current,
         motion,
-        phraseIndex: randomPhraseIndex(motion),
+        phraseOrder: randomPhraseOrder(motion),
         revision: current.revision + 1,
       }
     })
   }
 
   const language = locale === 'cn' ? 'cn' : 'en'
-  const candidate = copyLibrary[state.motion][state.phraseIndex]
-  const copy = candidate[language]
+  const words = state.phraseOrder.map(
+    (index) => copyLibrary[state.motion][index][language],
+  )
 
   return (
     <button
@@ -280,9 +311,10 @@ export function HongMascotGreeting() {
         blinkCursor
         className="font-bold"
         cursorStyle="underscore"
+        loop
         startOnView={false}
         typeSpeed={60}
-        words={[copy]}
+        words={words}
       />
     </button>
   )
