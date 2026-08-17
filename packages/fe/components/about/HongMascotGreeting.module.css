@@ -1,0 +1,258 @@
+.trigger {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+}
+
+.mascotSlot {
+  display: grid;
+  width: 1.08em;
+  height: 1.18em;
+  flex: 0 0 auto;
+  margin-left: -0.22em;
+  margin-right: 0.16em;
+  place-items: center;
+}
+
+.mascot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: #fdc700;
+}
+
+.character,
+.eyePair,
+.thoughtDot,
+.sleepZ {
+  will-change: transform;
+}
+
+.character {
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.body,
+.decor {
+  fill: currentColor;
+}
+
+.face {
+  fill: #000;
+  pointer-events: none;
+}
+
+.eyePair {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 5.4s infinite;
+}
+
+.eye {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.thoughtDot,
+.sleepZ {
+  display: none;
+}
+
+.mascot[data-motion='thinking'] .character {
+  animation: think 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='thinking'] .thoughtDot {
+  display: block;
+  animation: thought-dot 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='thinking'] .thoughtDotTwo {
+  animation-delay: -0.512s;
+}
+
+.mascot[data-motion='wink'] .eyePair {
+  animation: wink-eye 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='wide'] .eyePair {
+  animation: wide-eyes 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='wide'] .character {
+  animation: wide-body 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='sleep'] .character {
+  animation: sleep-rock 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='sleep'] .eyePair {
+  animation: sleepy-eyes 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='sleep'] .sleepZ {
+  display: block;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  animation: sleep-z 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='sleep'] .sleepZTwo {
+  animation-delay: -0.576s;
+}
+
+.mascot[data-motion='sleep'] .sleepZThree {
+  animation-delay: -1.152s;
+}
+
+.mascot[data-motion='play'][data-shape='H'] .character {
+  animation: greet-h 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='play'][data-shape='O'] .character {
+  animation: greet-o 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='play'][data-shape='N'] .character {
+  animation: greet-n 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='play'][data-shape='G'] .character {
+  animation: comma-kick 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='orbit'][data-shape='H'] .character {
+  animation: orbit-nw 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='orbit'][data-shape='O'] .character {
+  animation: orbit-ne 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='orbit'][data-shape='N'] .character {
+  animation: orbit-sw 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.mascot[data-motion='orbit'][data-shape='G'] .character {
+  animation: orbit-se 3.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes blink {
+  0%, 44%, 48%, 100% { scale: 1 1; }
+  46% { scale: 1 0.08; }
+}
+
+@keyframes think {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3.75px, -9px) scale(0.94); }
+}
+
+@keyframes thought-dot {
+  0%, 20%, 100% { opacity: 0; transform: scale(0.3); }
+  46%, 72% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wink-eye {
+  0%, 34%, 52%, 100% { transform: scaleY(1); }
+  41%, 47% { transform: scaleY(0.06); }
+}
+
+@keyframes wide-eyes {
+  0%, 24%, 80%, 100% { transform: scale(1); }
+  42%, 64% { transform: scale(1.22, 1.38); }
+}
+
+@keyframes wide-body {
+  0%, 24%, 80%, 100% { transform: scale(1); }
+  42%, 64% { transform: scale(0.98, 1.025); }
+}
+
+@keyframes sleep-rock {
+  0%, 100% { transform: translateY(0) rotate(-2.8deg); }
+  50% { transform: translateY(3.75px) rotate(2.8deg); }
+}
+
+@keyframes sleepy-eyes {
+  0%, 100% { transform: scaleY(0.28); }
+  48% { transform: scaleY(0.12); }
+}
+
+@keyframes sleep-z {
+  0%, 18%, 100% { opacity: 0; transform: translate(0, 5px) scale(0.72); }
+  38%, 72% { opacity: 1; transform: translate(0, -5px) scale(1); }
+  84% { opacity: 0; transform: translate(5px, -10px) scale(1.08); }
+}
+
+@keyframes greet-h {
+  0%, 14%, 82%, 100% { transform: translate(0, 0) rotate(0); }
+  27% { transform: translate(-9px, -7.2px) rotate(-10deg); }
+  39% { transform: translate(-3.75px, -3.75px) rotate(8deg); }
+  51% { transform: translate(-9px, -3.75px) rotate(-8deg); }
+  65% { transform: translate(-1.875px, -1.875px) rotate(4deg); }
+}
+
+@keyframes greet-o {
+  0%, 18%, 82%, 100% { transform: translateY(0) scale(1); }
+  34% { transform: translateY(-9px) scale(1.06, 0.94); }
+  49% { transform: translateY(3.75px) scale(0.96, 1.04); }
+  64% { transform: translateY(-2.25px) scale(1.025, 0.975); }
+}
+
+@keyframes greet-n {
+  0%, 16%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  30% { transform: translate(3.75px, -10.8px) rotate(8deg); }
+  46% { transform: translate(-2.625px, 3.75px) rotate(-6.4deg); }
+  62% { transform: translate(0, -1.875px) rotate(2.8deg); }
+}
+
+@keyframes comma-kick {
+  0%, 18%, 80%, 100% { transform: rotate(0) translate(0); }
+  36% { transform: rotate(-18deg) translate(3.75px, 3.75px); }
+  52% { transform: rotate(5.2deg) translate(0); }
+}
+
+@keyframes orbit-nw {
+  0%, 16%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  48%, 60% { transform: translate(-22.5px, -22.5px) rotate(-18deg); }
+}
+
+@keyframes orbit-ne {
+  0%, 16%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  48%, 60% { transform: translate(22.5px, -22.5px) rotate(18deg); }
+}
+
+@keyframes orbit-sw {
+  0%, 16%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  48%, 60% { transform: translate(-22.5px, 22.5px) rotate(8deg); }
+}
+
+@keyframes orbit-se {
+  0%, 16%, 84%, 100% { transform: translate(0, 0) rotate(0); }
+  48%, 60% { transform: translate(22.5px, 22.5px) rotate(-18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .character,
+  .eyePair,
+  .thoughtDot,
+  .sleepZ {
+    animation: none !important;
+  }
+}
