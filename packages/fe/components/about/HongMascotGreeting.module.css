@@ -19,11 +19,11 @@
 
 .mascotSlot {
   display: grid;
-  width: 1.08em;
-  height: 1.18em;
+  width: 1.45em;
+  height: 1.55em;
   flex: 0 0 auto;
-  margin-left: -0.22em;
-  margin-right: 0.16em;
+  margin-left: -0.2em;
+  margin-right: 0.38em;
   place-items: center;
 }
 

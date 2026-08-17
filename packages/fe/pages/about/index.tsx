@@ -5,17 +5,12 @@ import Head from 'next/head'
 import React from 'react'
 
 import { ProgressiveBlur } from '@/components/ui/progressive-blur'
-import { useUser } from '@hooks/useUser'
 import Link from 'next/link'
 import { HongMascotGreeting } from '../../components/about/HongMascotGreeting'
 import AppLayout from '../../components/app-layout/AppLayout'
 
 function About() {
   const { t } = useTranslation('about')
-
-  const user = useUser()
-
-  const userName = user?.profile?.name
 
   return (
     <>
@@ -32,7 +27,7 @@ function About() {
           )}
         >
           <div className={cx('mt-[28svh] sm:mt-[35svh]')}>
-            <HongMascotGreeting userName={userName} />
+            <HongMascotGreeting />
 
             <p className="mt-[2rem]">{t('p1')}</p>
 

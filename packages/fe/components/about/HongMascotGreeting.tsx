@@ -50,34 +50,34 @@ const motions: Motion[] = ['thinking', 'wink', 'wide', 'sleep', 'play', 'orbit']
 
 const copyLibrary: Record<Motion, readonly { en: string; cn: string }[]> = {
   thinking: [
-    { en: 'Let me think{name}...', cn: '让我想想{name}...' },
-    { en: 'One second{name}...', cn: '等我一下{name}...' },
-    { en: 'Connecting dots{name}...', cn: '正在理清思路{name}...' },
+    { en: 'Let me think...', cn: '让我想想...' },
+    { en: 'One second...', cn: '等我一下...' },
+    { en: 'Connecting dots...', cn: '正在理清思路...' },
   ],
   wink: [
-    { en: 'I see you{name}.', cn: '我懂你的意思{name}。' },
-    { en: 'Got it{name}.', cn: '收到{name}。' },
-    { en: "We're good{name}.", cn: '没问题{name}。' },
+    { en: 'I see you.', cn: '我懂你的意思。' },
+    { en: 'Got it.', cn: '收到。' },
+    { en: "We're good.", cn: '没问题。' },
   ],
   wide: [
-    { en: 'Oh{name}?', cn: '哦{name}？' },
-    { en: 'Wait, really{name}?', cn: '等等，真的{name}？' },
-    { en: "Didn't expect that{name}.", cn: '有点意外{name}。' },
+    { en: 'Oh?', cn: '哦？' },
+    { en: 'Wait, really?', cn: '等等，真的？' },
+    { en: "Didn't expect that.", cn: '有点意外。' },
   ],
   sleep: [
-    { en: 'Quick nap{name}...', cn: '先眯一会{name}...' },
-    { en: 'Back in a bit{name}...', cn: '马上回来{name}...' },
-    { en: 'Low battery{name}...', cn: '电量不足{name}...' },
+    { en: 'Quick nap...', cn: '先眯一会...' },
+    { en: 'Back in a bit...', cn: '马上回来...' },
+    { en: 'Low battery...', cn: '电量不足...' },
   ],
   play: [
-    { en: 'Hey{name}!', cn: '你好{name}！' },
-    { en: 'Hi, welcome{name}.', cn: '嗨，欢迎来{name}。' },
-    { en: 'Good to see you{name}.', cn: '又见面了{name}。' },
+    { en: 'Hey!', cn: '你好！' },
+    { en: 'Hi, welcome.', cn: '嗨，欢迎来。' },
+    { en: 'Good to see you.', cn: '又见面了。' },
   ],
   orbit: [
-    { en: 'Looking around{name}.', cn: '四处看看{name}。' },
-    { en: 'One more lap{name}.', cn: '再绕一圈{name}。' },
-    { en: 'Still in orbit{name}.', cn: '保持运转{name}。' },
+    { en: 'Looking around.', cn: '四处看看。' },
+    { en: 'One more lap.', cn: '再绕一圈。' },
+    { en: 'Still in orbit.', cn: '保持运转。' },
   ],
 }
 
@@ -220,7 +220,7 @@ function HongMascot({ piece, motion }: { piece: Piece; motion: Motion }) {
   )
 }
 
-export function HongMascotGreeting({ userName }: { userName?: string }) {
+export function HongMascotGreeting() {
   const { locale } = useRouter()
   const queueRef = useRef<Motion[]>([])
   const initializedRef = useRef(false)
@@ -260,19 +260,14 @@ export function HongMascotGreeting({ userName }: { userName?: string }) {
 
   const language = locale === 'cn' ? 'cn' : 'en'
   const candidate = copyLibrary[state.motion][state.phraseIndex]
-  const name = userName ? `${language === 'cn' ? '，' : ', '}${userName}` : ''
-  const copy = candidate[language].replace('{name}', name)
+  const copy = candidate[language]
 
   return (
     <button
       aria-label={
         language === 'cn' ? '切换动作和文字' : 'Change motion and text'
       }
-      className={cx(
-        styles.trigger,
-        'font-bold',
-        userName ? 'text-[2rem]' : 'text-[2.5rem]',
-      )}
+      className={cx(styles.trigger, 'font-bold text-[2.5rem]')}
       onClick={advance}
       style={{ visibility: state.ready ? 'visible' : 'hidden' }}
       type="button"
@@ -281,7 +276,7 @@ export function HongMascotGreeting({ userName }: { userName?: string }) {
         <HongMascot motion={state.motion} piece={state.piece} />
       </span>
       <TypingAnimation
-        key={`${state.revision}-${language}-${userName ?? ''}`}
+        key={`${state.revision}-${language}`}
         blinkCursor
         className="font-bold"
         cursorStyle="underscore"
