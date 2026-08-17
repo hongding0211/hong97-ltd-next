@@ -313,7 +313,7 @@ export function HongMascotGreeting() {
         cursorStyle="underscore"
         loop
         startOnView={false}
-        typeSpeed={60}
+        typeSpeed={80}
         words={words}
       />
     </button>
