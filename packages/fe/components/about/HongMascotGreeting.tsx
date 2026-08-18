@@ -134,6 +134,13 @@ function randomPhraseOrder(motion: Motion) {
   return shuffle(copyLibrary[motion].map((_, index) => index))
 }
 
+function appendUserName(copy: string, userName: string, language: 'cn' | 'en') {
+  const punctuation = copy.match(/[.!?。！？]+$/)?.[0] ?? ''
+  const phrase = punctuation ? copy.slice(0, -punctuation.length) : copy
+  const separator = language === 'cn' ? '，' : ', '
+  return `${phrase}${separator}${userName}${punctuation}`
+}
+
 function PieceArtwork({ piece }: { piece: Piece }) {
   switch (piece) {
     case 'H':
@@ -250,7 +257,7 @@ function HongMascot({ piece, motion }: { piece: Piece; motion: Motion }) {
   )
 }
 
-export function HongMascotGreeting() {
+export function HongMascotGreeting({ userName }: { userName?: string }) {
   const { locale } = useRouter()
   const queueRef = useRef<Motion[]>([])
   const initializedRef = useRef(false)
@@ -290,9 +297,10 @@ export function HongMascotGreeting() {
   }
 
   const language = locale === 'cn' ? 'cn' : 'en'
-  const words = state.phraseOrder.map(
-    (index) => copyLibrary[state.motion][index][language],
-  )
+  const words = state.phraseOrder.map((index) => {
+    const copy = copyLibrary[state.motion][index][language]
+    return userName ? appendUserName(copy, userName, language) : copy
+  })
 
   useEffect(() => {
     const viewport = copyViewportRef.current
@@ -342,7 +350,7 @@ export function HongMascotGreeting() {
       </span>
       <span className={styles.copyViewport} ref={copyViewportRef}>
         <TypingAnimation
-          key={`${state.revision}-${language}`}
+          key={`${state.revision}-${language}-${userName ?? 'anonymous'}`}
           blinkCursor
           className={cx('font-bold', styles.copy)}
           cursorStyle="underscore"
