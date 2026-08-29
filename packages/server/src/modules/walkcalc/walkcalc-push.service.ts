@@ -318,7 +318,12 @@ export class WalkcalcPushService implements OnModuleInit {
         appId: this.appId(),
         recipientId,
         type,
-        payload,
+        payload: {
+          ...payload,
+          schemaVersion: 1,
+          action: 'open_group',
+          notificationType: type,
+        },
       })
       const failed = result.results.filter(
         (item) => item.code !== 'accepted' && item.code !== 'no-destination',

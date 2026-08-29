@@ -80,6 +80,9 @@ describe('WalkcalcPushService', () => {
       { locale: 'cn' } as any,
       entry!,
       {
+        schemaVersion: 1,
+        action: 'open_group',
+        notificationType: 'walkcalc.record.created',
         groupCode: 'AB12',
         groupName: 'Trip',
         actorUserId: 'u1',
@@ -101,6 +104,9 @@ describe('WalkcalcPushService', () => {
         body: 'Alice 替你支付了 ¥50.00（Dinner）',
       },
       data: {
+        schemaVersion: 1,
+        action: 'open_group',
+        notificationType: 'walkcalc.record.created',
         groupCode: 'AB12',
         recordId: 'record-1',
         affectedUserIds: ['u2'],
@@ -188,6 +194,9 @@ describe('WalkcalcPushService', () => {
       expect.objectContaining({
         recipientId: 'u2',
         payload: expect.objectContaining({
+          schemaVersion: 1,
+          action: 'open_group',
+          notificationType: 'walkcalc.record.created',
           titleCn: 'Trip',
           bodyCn: '你支付了 ¥120.00 给 Bob（Dinner）',
           titleEn: 'Trip',
