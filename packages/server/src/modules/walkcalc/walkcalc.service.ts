@@ -778,7 +778,7 @@ export class WalkcalcService {
     groupCode: string,
   ): Promise<WalkcalcSettlementSuggestionDto> {
     await this.loadGroupForMember(groupCode, userId)
-    return this.buildSettlementSuggestion(groupCode)
+    return this.buildSettlementSuggestion(groupCode, undefined, userId)
   }
 
   async resolveSettlements(
@@ -1760,24 +1760,44 @@ export class WalkcalcService {
     const users = await this.userService.findPublicUsersByIds(userIds)
     const userMap = new Map(users.map((user) => [user.userId, user]))
 
-    return participants.map((participant) => {
-      const projection = projectionMap.get(participant.participantId)
-      return {
-        participantId: participant.participantId,
-        kind: participant.kind,
-        userId: participant.userId,
-        tempName: participant.tempName,
-        profile: participant.userId
-          ? userMap.get(participant.userId)?.profile
-          : undefined,
-        balance: formatMoneyAmount(projection?.balanceValue ?? '0'),
-        expenseShare: formatMoneyAmount(projection?.expenseShareValue ?? '0'),
-        paidTotal: formatMoneyAmount(projection?.paidTotalValue ?? '0'),
-        recordCount: projection?.recordCount ?? 0,
-        settlementIn: formatMoneyAmount(projection?.settlementInValue ?? '0'),
-        settlementOut: formatMoneyAmount(projection?.settlementOutValue ?? '0'),
-      }
-    })
+    return participants
+      .sort((left, right) => {
+        const leftBalance = toMoneyValueBigInt(
+          projectionMap.get(left.participantId)?.balanceValue ?? '0',
+        )
+        const rightBalance = toMoneyValueBigInt(
+          projectionMap.get(right.participantId)?.balanceValue ?? '0',
+        )
+        const leftMagnitude = absBigInt(leftBalance)
+        const rightMagnitude = absBigInt(rightBalance)
+        if (leftMagnitude !== rightMagnitude) {
+          return leftMagnitude > rightMagnitude ? -1 : 1
+        }
+        if (left.kind !== right.kind) {
+          return left.kind === 'user' ? -1 : 1
+        }
+        return left.participantId.localeCompare(right.participantId)
+      })
+      .map((participant) => {
+        const projection = projectionMap.get(participant.participantId)
+        return {
+          participantId: participant.participantId,
+          kind: participant.kind,
+          userId: participant.userId,
+          tempName: participant.tempName,
+          profile: participant.userId
+            ? userMap.get(participant.userId)?.profile
+            : undefined,
+          balance: formatMoneyAmount(projection?.balanceValue ?? '0'),
+          expenseShare: formatMoneyAmount(projection?.expenseShareValue ?? '0'),
+          paidTotal: formatMoneyAmount(projection?.paidTotalValue ?? '0'),
+          recordCount: projection?.recordCount ?? 0,
+          settlementIn: formatMoneyAmount(projection?.settlementInValue ?? '0'),
+          settlementOut: formatMoneyAmount(
+            projection?.settlementOutValue ?? '0',
+          ),
+        }
+      })
   }
 
   private mapRecordToDto(record: WalkcalcRecord): WalkcalcRecordDto {
@@ -1807,6 +1827,7 @@ export class WalkcalcService {
   private async buildSettlementSuggestion(
     groupCode: string,
     session?: ClientSession,
+    priorityParticipantId?: string,
   ): Promise<WalkcalcSettlementSuggestionDto> {
     const projections = await this.walkcalcProjectionModel
       .find({ groupCode })
@@ -1818,6 +1839,9 @@ export class WalkcalcService {
         value: toMoneyValueBigInt(projection.balanceValue),
       }))
       .filter((balance) => balance.value !== 0n)
+      .sort((left, right) =>
+        left.participantId.localeCompare(right.participantId),
+      )
 
     if (balances.length > exactSettlementParticipantLimit) {
       throw new GeneralException(
@@ -1830,10 +1854,33 @@ export class WalkcalcService {
       )
     }
 
+    const transfers = this.minimizeSettlementTransfers(balances).sort(
+      (left, right) => {
+        const leftIsPriority =
+          left.fromId === priorityParticipantId ||
+          left.toId === priorityParticipantId
+        const rightIsPriority =
+          right.fromId === priorityParticipantId ||
+          right.toId === priorityParticipantId
+        if (leftIsPriority !== rightIsPriority) {
+          return leftIsPriority ? -1 : 1
+        }
+        const amountComparison =
+          toMoneyValueBigInt(right.amount) - toMoneyValueBigInt(left.amount)
+        if (amountComparison !== 0n) {
+          return amountComparison > 0n ? 1 : -1
+        }
+        const fromComparison = left.fromId.localeCompare(right.fromId)
+        return fromComparison !== 0
+          ? fromComparison
+          : left.toId.localeCompare(right.toId)
+      },
+    )
+
     return {
       groupCode,
       strategy: 'exact',
-      transfers: this.minimizeSettlementTransfers(balances).map((transfer) => ({
+      transfers: transfers.map((transfer) => ({
         ...transfer,
         amount: formatMoneyAmount(transfer.amount),
       })),
