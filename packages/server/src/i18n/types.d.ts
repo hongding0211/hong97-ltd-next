@@ -59,6 +59,8 @@ export type I18nTranslations = {
     groupNotFound: string
     groupNotFoundOrNoAccess: string
     groupOwnerRequired: string
+    groupOwnerCannotBeRemoved: string
+    memberUnsettled: string
     userAlreadyInGroup: string
     tempUserNameExists: string
     forWhomRequired: string

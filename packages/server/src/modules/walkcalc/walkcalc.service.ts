@@ -20,6 +20,7 @@ import {
   WalkcalcGroupDto,
   WalkcalcGroupSummaryDto,
   WalkcalcHomeSummaryDto,
+  WalkcalcParticipantDto,
   WalkcalcParticipantPreviewDto,
   WalkcalcParticipantProjectionDto,
   WalkcalcPublicUserDto,
@@ -135,12 +136,18 @@ export class WalkcalcService {
   }
 
   async homeSummary(userId: string): Promise<WalkcalcHomeSummaryDto> {
-    const projections = await this.walkcalcProjectionModel
-      .find({ userId })
+    const memberships = await this.walkcalcParticipantModel
+      .find(this.activeParticipantFilter({ kind: 'user', userId }))
+      .select({ groupCode: 1 })
       .exec()
     const groupCodes = [
-      ...new Set(projections.map((projection) => projection.groupCode)),
+      ...new Set(memberships.map((membership) => membership.groupCode)),
     ]
+    const projections = groupCodes.length
+      ? await this.walkcalcProjectionModel
+          .find({ userId, groupCode: { $in: groupCodes } })
+          .exec()
+      : []
     const activeGroups = groupCodes.length
       ? await this.walkcalcGroupModel
           .find(this.activeGroupFilter({ code: { $in: groupCodes } }))
@@ -239,22 +246,25 @@ export class WalkcalcService {
     const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadActiveGroup(code, session)
       const existing = await this.walkcalcParticipantModel
-        .exists({ groupCode: code, kind: 'user', userId })
+        .findOne({ groupCode: code, kind: 'user', userId })
         .session(session ?? null)
         .exec()
-      if (existing) {
+      if (existing && existing.isActive !== false) {
         throw new GeneralException('walkcalc.userAlreadyInGroup')
       }
-
-      await this.createParticipantWithProjection(
-        {
-          groupCode: code,
-          participantId: userId,
-          kind: 'user',
-          userId,
-        },
-        session,
-      )
+      if (existing) {
+        await this.reactivateParticipant(existing, session)
+      } else {
+        await this.createParticipantWithProjection(
+          {
+            groupCode: code,
+            participantId: userId,
+            kind: 'user',
+            userId,
+          },
+          session,
+        )
+      }
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
@@ -299,23 +309,25 @@ export class WalkcalcService {
   async addTempUser(userId: string, code: string, name: string) {
     const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadOwnedGroup(code, userId, session)
-      const exists = await this.walkcalcParticipantModel
-        .exists({ groupCode: code, kind: 'tempUser', tempName: name })
+      const existing = await this.walkcalcParticipantModel
+        .findOne({ groupCode: code, kind: 'tempUser', tempName: name })
         .session(session ?? null)
         .exec()
-      if (exists) {
+      if (existing && existing.isActive !== false) {
         throw new GeneralException('walkcalc.tempUserNameExists')
       }
 
-      const participant = await this.createParticipantWithProjection(
-        {
-          groupCode: code,
-          participantId: uuidv4(),
-          kind: 'tempUser',
-          tempName: name,
-        },
-        session,
-      )
+      const participant = existing
+        ? await this.reactivateParticipant(existing, session)
+        : await this.createParticipantWithProjection(
+            {
+              groupCode: code,
+              participantId: uuidv4(),
+              kind: 'tempUser',
+              tempName: name,
+            },
+            session,
+          )
       group.modifiedAt = Date.now()
       await group.save({ session })
       return {
@@ -355,24 +367,35 @@ export class WalkcalcService {
         .session(session ?? null)
         .exec()
       const existingIds = new Set(
-        existingParticipants.map((participant) => participant.userId),
+        existingParticipants
+          .filter((participant) => participant.isActive !== false)
+          .map((participant) => participant.userId),
       )
       const invitedIds = users
         .map((user) => user.userId)
         .filter((targetUserId) => !existingIds.has(targetUserId))
 
+      const existingByUserId = new Map(
+        existingParticipants.map((participant) => [
+          participant.userId,
+          participant,
+        ]),
+      )
       await Promise.all(
-        invitedIds.map((targetUserId) =>
-          this.createParticipantWithProjection(
-            {
-              groupCode: code,
-              participantId: targetUserId,
-              kind: 'user',
-              userId: targetUserId,
-            },
-            session,
-          ),
-        ),
+        invitedIds.map((targetUserId) => {
+          const existing = existingByUserId.get(targetUserId)
+          return existing
+            ? this.reactivateParticipant(existing, session)
+            : this.createParticipantWithProjection(
+                {
+                  groupCode: code,
+                  participantId: targetUserId,
+                  kind: 'user',
+                  userId: targetUserId,
+                },
+                session,
+              )
+        }),
       )
       if (invitedIds.length) {
         group.modifiedAt = Date.now()
@@ -399,6 +422,50 @@ export class WalkcalcService {
     return mutation.result
   }
 
+  async removeMember(
+    userId: string,
+    code: string,
+    participantId: string,
+  ): Promise<{ code: string; participantId: string }> {
+    return this.runInOptionalTransaction(async (session) => {
+      const group = await this.loadOwnedGroup(code, userId, session)
+      if (participantId === group.ownerUserId) {
+        throw new GeneralException('walkcalc.groupOwnerCannotBeRemoved')
+      }
+      const participant = await this.walkcalcParticipantModel
+        .findOne(
+          this.activeParticipantFilter({ groupCode: code, participantId }),
+        )
+        .session(session ?? null)
+        .exec()
+      if (!participant) {
+        throw new GeneralException('walkcalc.invalidParticipant')
+      }
+      const projection = await this.walkcalcProjectionModel
+        .findOne({ groupCode: code, participantId })
+        .session(session ?? null)
+        .exec()
+      if (!projection || toMoneyValueBigInt(projection.balanceValue) !== 0n) {
+        throw new GeneralException('walkcalc.memberUnsettled')
+      }
+
+      const now = Date.now()
+      participant.isActive = false
+      participant.removedAt = now
+      participant.removedBy = userId
+      participant.modifiedAt = now
+      await participant.save({ session })
+      if (participant.userId) {
+        group.archivedUserIds = group.archivedUserIds.filter(
+          (archivedUserId) => archivedUserId !== participant.userId,
+        )
+      }
+      group.modifiedAt = now
+      await group.save({ session })
+      return { code, participantId }
+    })
+  }
+
   async myGroups(
     userId: string,
     query: QueryWalkcalcGroupsDto,
@@ -406,7 +473,7 @@ export class WalkcalcService {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
     const memberships = await this.walkcalcParticipantModel
-      .find({ kind: 'user', userId })
+      .find(this.activeParticipantFilter({ kind: 'user', userId }))
       .select({ groupCode: 1 })
       .exec()
     const groupCodes = memberships.map((membership) => membership.groupCode)
@@ -550,6 +617,7 @@ export class WalkcalcService {
     const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
       const record = await this.loadRecordForGroup(groupCode, recordId, session)
+      await this.assertRecordParticipantsActive(record, session)
       const recordSnapshot = this.snapshotRecord(record)
       await this.applyRecordProjectionEffects(record, -1, session)
       await this.walkcalcRecordModel
@@ -596,6 +664,7 @@ export class WalkcalcService {
         session,
       )
       const previousRecordSnapshot = this.snapshotRecord(previousRecord)
+      await this.assertRecordParticipantsActive(previousRecordSnapshot, session)
       const nextRecord = await this.buildRecordDocument(
         dto,
         userId,
@@ -803,12 +872,25 @@ export class WalkcalcService {
     const now = Date.now()
     const participantDocument = new this.walkcalcParticipantModel({
       ...participant,
+      isActive: true,
       createdAtMs: now,
       modifiedAt: now,
     })
     await participantDocument.save({ session })
     await this.createProjectionForParticipant(participantDocument, session)
     return participantDocument
+  }
+
+  private async reactivateParticipant(
+    participant: WalkcalcParticipantDocument,
+    session?: ClientSession,
+  ): Promise<WalkcalcParticipantDocument> {
+    participant.isActive = true
+    participant.removedAt = undefined
+    participant.removedBy = undefined
+    participant.modifiedAt = Date.now()
+    await participant.save({ session })
+    return participant
   }
 
   private async createProjectionForParticipant(
@@ -838,6 +920,15 @@ export class WalkcalcService {
     return {
       ...(filter ?? {}),
       isDeleted: { $ne: true },
+    }
+  }
+
+  private activeParticipantFilter<T extends Record<string, unknown>>(
+    filter?: T,
+  ) {
+    return {
+      ...(filter ?? {}),
+      isActive: { $ne: false },
     }
   }
 
@@ -881,7 +972,9 @@ export class WalkcalcService {
       throw new GeneralException('walkcalc.groupNotFoundOrNoAccess')
     }
     const membership = await this.walkcalcParticipantModel
-      .exists({ groupCode: code, kind: 'user', userId })
+      .exists(
+        this.activeParticipantFilter({ groupCode: code, kind: 'user', userId }),
+      )
       .session(session ?? null)
       .exec()
     if (!membership) {
@@ -910,7 +1003,7 @@ export class WalkcalcService {
     session?: ClientSession,
   ) {
     const participants = await this.walkcalcParticipantModel
-      .find({ groupCode, kind: 'user' })
+      .find(this.activeParticipantFilter({ groupCode, kind: 'user' }))
       .session(session ?? null)
       .exec()
     return [
@@ -1090,7 +1183,12 @@ export class WalkcalcService {
     session?: ClientSession,
   ) {
     const participants = await this.walkcalcParticipantModel
-      .find({ groupCode, participantId: { $in: participantIds } })
+      .find(
+        this.activeParticipantFilter({
+          groupCode,
+          participantId: { $in: participantIds },
+        }),
+      )
       .session(session ?? null)
       .exec()
     const foundIds = new Set(
@@ -1099,6 +1197,17 @@ export class WalkcalcService {
     if (participantIds.some((participantId) => !foundIds.has(participantId))) {
       throw new GeneralException('walkcalc.invalidParticipant')
     }
+  }
+
+  private async assertRecordParticipantsActive(
+    record: WalkcalcRecord,
+    session?: ClientSession,
+  ) {
+    await this.assertParticipantsExist(
+      record.groupCode,
+      record.involvedParticipantIds,
+      session,
+    )
   }
 
   private async applyRecordProjectionEffects(
@@ -1421,7 +1530,9 @@ export class WalkcalcService {
     const participantPromise: Promise<WalkcalcParticipantDocument[]> =
       groupCodes.length
         ? this.walkcalcParticipantModel
-            .find({ groupCode: { $in: groupCodes } })
+            .find(
+              this.activeParticipantFilter({ groupCode: { $in: groupCodes } }),
+            )
             .exec()
         : Promise.resolve([])
     const unresolvedProjectionPromise: Promise<
@@ -1568,6 +1679,10 @@ export class WalkcalcService {
       undefined,
       session,
     )
+    const removedParticipants = await this.loadRemovedParticipantDtos(
+      group.code,
+      session,
+    )
     return {
       code: group.code,
       name: group.name,
@@ -1581,7 +1696,32 @@ export class WalkcalcService {
       createdAt: group.createdAtMs,
       modifiedAt: group.modifiedAt,
       participants,
+      removedParticipants,
     }
+  }
+
+  private async loadRemovedParticipantDtos(
+    groupCode: string,
+    session?: ClientSession,
+  ): Promise<WalkcalcParticipantDto[]> {
+    const participants = await this.walkcalcParticipantModel
+      .find({ groupCode, isActive: false })
+      .session(session ?? null)
+      .exec()
+    const userIds = participants
+      .map((participant) => participant.userId)
+      .filter((value): value is string => !!value)
+    const users = await this.userService.findPublicUsersByIds(userIds)
+    const userMap = new Map(users.map((user) => [user.userId, user]))
+    return participants.map((participant) => ({
+      participantId: participant.participantId,
+      kind: participant.kind,
+      userId: participant.userId,
+      tempName: participant.tempName,
+      profile: participant.userId
+        ? userMap.get(participant.userId)?.profile
+        : undefined,
+    }))
   }
 
   private normalizedCurrencyCode(currencyCode?: string): string {
@@ -1596,7 +1736,8 @@ export class WalkcalcService {
     participantId?: string,
     session?: ClientSession,
   ): Promise<WalkcalcParticipantProjectionDto[]> {
-    const participantFilter: Record<string, unknown> = { groupCode }
+    const participantFilter: Record<string, unknown> =
+      this.activeParticipantFilter({ groupCode })
     if (participantId) {
       participantFilter.participantId = participantId
     }

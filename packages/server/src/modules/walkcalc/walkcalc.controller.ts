@@ -165,6 +165,16 @@ export class WalkcalcController {
     return this.walkcalcService.inviteUsers(userId, code, dto.userIds)
   }
 
+  @Delete('groups/:code/members/:participantId')
+  @HttpCode(HttpStatus.OK)
+  async removeMember(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Param('participantId') participantId: string,
+  ) {
+    return this.walkcalcService.removeMember(userId, code, participantId)
+  }
+
   @Post('groups/:code/archive')
   @HttpCode(HttpStatus.OK)
   async archiveGroup(@UserId() userId: string, @Param('code') code: string) {

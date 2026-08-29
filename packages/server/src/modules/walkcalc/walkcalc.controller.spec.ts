@@ -26,6 +26,7 @@ describe('WalkcalcController', () => {
             dismissGroup: jest.fn(),
             addTempUser: jest.fn(),
             inviteUsers: jest.fn(),
+            removeMember: jest.fn(),
             archiveGroup: jest.fn(),
             renameGroup: jest.fn(),
             addRecord: jest.fn(),
@@ -86,6 +87,10 @@ describe('WalkcalcController', () => {
     service.getGroup.mockResolvedValue({ code: 'AB12' } as any)
     service.addTempUser.mockResolvedValue({ participantId: 'tmp1' } as any)
     service.inviteUsers.mockResolvedValue({ code: 'AB12', userIds: ['u2'] })
+    service.removeMember.mockResolvedValue({
+      code: 'AB12',
+      participantId: 'u2',
+    })
     service.archiveGroup.mockResolvedValue({ code: 'AB12' })
     service.renameGroup.mockResolvedValue({ code: 'AB12', name: 'Next' })
     service.groupBalances.mockResolvedValue({
@@ -112,6 +117,7 @@ describe('WalkcalcController', () => {
     await controller.getGroup('u1', 'AB12')
     await controller.addTempUser('u1', 'AB12', { name: 'Guest' })
     await controller.inviteUsers('u1', 'AB12', { userIds: ['u2'] })
+    await controller.removeMember('u1', 'AB12', 'u2')
     await controller.archiveGroup('u1', 'AB12')
     await controller.unarchiveGroup('u1', 'AB12')
     await controller.renameGroup('u1', 'AB12', { name: 'Next' })
@@ -126,6 +132,7 @@ describe('WalkcalcController', () => {
     expect(service.getGroup).toHaveBeenCalledWith('u1', 'AB12')
     expect(service.addTempUser).toHaveBeenCalledWith('u1', 'AB12', 'Guest')
     expect(service.inviteUsers).toHaveBeenCalledWith('u1', 'AB12', ['u2'])
+    expect(service.removeMember).toHaveBeenCalledWith('u1', 'AB12', 'u2')
     expect(service.archiveGroup).toHaveBeenCalledWith('u1', 'AB12', true)
     expect(service.archiveGroup).toHaveBeenCalledWith('u1', 'AB12', false)
     expect(service.renameGroup).toHaveBeenCalledWith('u1', 'AB12', 'Next')

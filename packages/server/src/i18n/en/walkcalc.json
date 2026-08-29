@@ -3,6 +3,8 @@
   "groupNotFound": "Group not found",
   "groupNotFoundOrNoAccess": "Group not found or you do not have access",
   "groupOwnerRequired": "You do not own this group",
+  "groupOwnerCannotBeRemoved": "The group owner cannot be removed",
+  "memberUnsettled": "Settle this member's balance before removing them",
   "userAlreadyInGroup": "User is already in this group",
   "tempUserNameExists": "Temporary user name already exists",
   "forWhomRequired": "At least one participant is required",

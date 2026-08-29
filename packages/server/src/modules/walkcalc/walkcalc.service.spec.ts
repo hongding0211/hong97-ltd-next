@@ -299,6 +299,94 @@ describe('WalkcalcService normalized ledger', () => {
     )
   })
 
+  it('soft-removes settled members, freezes related records, and thaws them after re-adding', async () => {
+    const ctx = createContext({
+      groups: [groupDoc()],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+      ],
+      projections: [
+        projection('AB12', 'u1', { recordCount: 1 }),
+        projection('AB12', 'u2', { recordCount: 1 }),
+      ],
+      records: [
+        expenseRecord({
+          recordId: 'related',
+          payerId: 'u2',
+          participantIds: ['u2'],
+          involvedParticipantIds: ['u2'],
+        }),
+        expenseRecord({
+          recordId: 'unrelated',
+          payerId: 'u1',
+          participantIds: ['u1'],
+          involvedParticipantIds: ['u1'],
+        }),
+      ],
+    })
+
+    await expect(ctx.service.removeMember('u1', 'AB12', 'u2')).resolves.toEqual(
+      {
+        code: 'AB12',
+        participantId: 'u2',
+      },
+    )
+    expect(
+      ctx.participantStore.docs.find((doc) => doc.participantId === 'u2'),
+    ).toEqual(expect.objectContaining({ isActive: false, removedBy: 'u1' }))
+    await expect(ctx.service.getGroup('u1', 'AB12')).resolves.toEqual(
+      expect.objectContaining({
+        participants: [expect.objectContaining({ participantId: 'u1' })],
+      }),
+    )
+    await expect(
+      ctx.service.dropRecord('u1', 'AB12', 'related'),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      ctx.service.dropRecord('u1', 'AB12', 'unrelated'),
+    ).resolves.toEqual(expect.objectContaining({ recordId: 'unrelated' }))
+
+    await expect(
+      ctx.service.inviteUsers('u1', 'AB12', ['u2']),
+    ).resolves.toEqual({
+      code: 'AB12',
+      userIds: ['u2'],
+    })
+    await expect(
+      ctx.service.dropRecord('u1', 'AB12', 'related'),
+    ).resolves.toEqual(expect.objectContaining({ recordId: 'related' }))
+  })
+
+  it('only lets the owner remove a non-owner with a settled balance', async () => {
+    const ctx = createSeededGroupContext()
+    projectionDoc(ctx, 'u2').balanceValue = '1'
+
+    await expect(
+      ctx.service.removeMember('u2', 'AB12', 'tmp1'),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      ctx.service.removeMember('u1', 'AB12', 'u1'),
+    ).rejects.toBeInstanceOf(GeneralException)
+    await expect(
+      ctx.service.removeMember('u1', 'AB12', 'u2'),
+    ).rejects.toBeInstanceOf(GeneralException)
+  })
+
+  it('reactivates a removed temporary member with the same participant id', async () => {
+    const ctx = createSeededGroupContext()
+
+    await ctx.service.removeMember('u1', 'AB12', 'tmp1')
+    await expect(
+      ctx.service.addTempUser('u1', 'AB12', 'Guest'),
+    ).resolves.toEqual(
+      expect.objectContaining({ participantId: 'tmp1', tempName: 'Guest' }),
+    )
+    expect(
+      ctx.participantStore.docs.find((doc) => doc.participantId === 'tmp1'),
+    ).toEqual(expect.objectContaining({ isActive: true }))
+  })
+
   it('adds, updates, deletes expenses and keeps projections equal to a rebuild oracle', async () => {
     const ctx = createSeededGroupContext()
 
