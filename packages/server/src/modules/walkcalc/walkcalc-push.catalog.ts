@@ -1,6 +1,9 @@
 import type { NotificationCatalogEntry } from '../push/catalog'
 
+const WALKCALC_NAVIGATION_KEYS = ['schemaVersion', 'action', 'notificationType']
+
 const WALKCALC_GROUP_BASE_KEYS = [
+  ...WALKCALC_NAVIGATION_KEYS,
   'groupCode',
   'groupName',
   'actorUserId',
@@ -233,13 +236,23 @@ export const WALKCALC_PUSH_CATALOG_ENTRIES: NotificationCatalogEntry[] = [
   {
     type: 'walkcalc.sync.requested',
     mode: 'silent',
-    requiredPayloadKeys: ['syncId', 'groupCode', 'updateKind'],
+    requiredPayloadKeys: [
+      ...WALKCALC_NAVIGATION_KEYS,
+      'syncId',
+      'groupCode',
+      'updateKind',
+    ],
     localization: {
       strategy: 'clientLocalized',
       locKey: 'PUSH_WALKCALC_SYNC_REQUESTED',
       locArgs: ['syncId'],
     },
-    dataKeys: ['syncId', 'groupCode', 'updateKind'],
+    dataKeys: [
+      ...WALKCALC_NAVIGATION_KEYS,
+      'syncId',
+      'groupCode',
+      'updateKind',
+    ],
     apns: {
       pushType: 'background',
       priority: '5',
