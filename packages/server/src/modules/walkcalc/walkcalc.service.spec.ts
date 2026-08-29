@@ -299,6 +299,28 @@ describe('WalkcalcService normalized ledger', () => {
     )
   })
 
+  it('orders group balances by descending absolute amount on the backend', async () => {
+    const ctx = createContext({
+      groups: [groupDoc()],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+        tempParticipant('AB12', 'tmp1', 'Guest'),
+      ],
+      projections: [
+        projection('AB12', 'u1', { balanceValue: '100' }),
+        projection('AB12', 'u2', { balanceValue: '-900' }),
+        projection('AB12', 'tmp1', { balanceValue: '500' }),
+      ],
+    })
+
+    const balances = await ctx.service.groupBalances('u1', 'AB12')
+
+    expect(
+      balances.participants.map((participant) => participant.participantId),
+    ).toEqual(['u2', 'tmp1', 'u1'])
+  })
+
   it('soft-removes settled members, freezes related records, and thaws them after re-adding', async () => {
     const ctx = createContext({
       groups: [groupDoc()],
@@ -786,8 +808,8 @@ describe('WalkcalcService normalized ledger', () => {
       groupCode: 'AB12',
       strategy: 'exact',
       transfers: [
-        { fromId: 'u2', toId: 'u1', amount: '30.00' },
         { fromId: 'tmp1', toId: 'u1', amount: '30.00' },
+        { fromId: 'u2', toId: 'u1', amount: '30.00' },
       ],
     })
 
@@ -797,13 +819,13 @@ describe('WalkcalcService normalized ledger', () => {
       expect.objectContaining({
         type: 'settlement',
         amount: '30.00',
-        fromId: 'u2',
+        fromId: 'tmp1',
         toId: 'u1',
       }),
       expect.objectContaining({
         type: 'settlement',
         amount: '30.00',
-        fromId: 'tmp1',
+        fromId: 'u2',
         toId: 'u1',
       }),
     ])
@@ -835,11 +857,36 @@ describe('WalkcalcService normalized ledger', () => {
       group: expect.objectContaining({ code: 'AB12', name: 'Trip' }),
       memberUserIds: ['u1', 'u2'],
       records: [
-        expect.objectContaining({ fromId: 'u2', toId: 'u1' }),
         expect.objectContaining({ fromId: 'tmp1', toId: 'u1' }),
+        expect.objectContaining({ fromId: 'u2', toId: 'u1' }),
       ],
     })
     await expectRebuildMatches(ctx)
+  })
+
+  it('prioritizes settlements involving the current user before amount', async () => {
+    const ctx = createContext({
+      groups: [groupDoc()],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+        userParticipant('AB12', 'u3'),
+        userParticipant('AB12', 'u4'),
+      ],
+      projections: [
+        projection('AB12', 'u1', { balanceValue: '1000' }),
+        projection('AB12', 'u2', { balanceValue: '-1000' }),
+        projection('AB12', 'u3', { balanceValue: '-10000' }),
+        projection('AB12', 'u4', { balanceValue: '10000' }),
+      ],
+    })
+
+    const suggestion = await ctx.service.settlementSuggestion('u1', 'AB12')
+
+    expect(suggestion.transfers).toEqual([
+      { fromId: 'u2', toId: 'u1', amount: '10.00' },
+      { fromId: 'u3', toId: 'u4', amount: '100.00' },
+    ])
   })
 
   it('filters records and participant balance details with accurate totals before pagination', async () => {
