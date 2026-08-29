@@ -3,6 +3,8 @@
   "groupNotFound": "群组不存在",
   "groupNotFoundOrNoAccess": "群组不存在或你无权访问",
   "groupOwnerRequired": "你不是该群组的所有者",
+  "groupOwnerCannotBeRemoved": "不能移除群主",
+  "memberUnsettled": "请先结清该成员的余额，再将其移除",
   "userAlreadyInGroup": "用户已在该群组中",
   "tempUserNameExists": "临时用户名称已存在",
   "forWhomRequired": "至少需要一个参与者",

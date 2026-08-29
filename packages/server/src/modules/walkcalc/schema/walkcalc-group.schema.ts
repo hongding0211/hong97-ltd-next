@@ -54,6 +54,15 @@ export class WalkcalcParticipant {
   @Prop()
   tempName?: string
 
+  @Prop({ required: true, default: true })
+  isActive: boolean
+
+  @Prop()
+  removedAt?: number
+
+  @Prop()
+  removedBy?: string
+
   @Prop({ required: true, default: Date.now })
   createdAtMs: number
 
@@ -178,6 +187,7 @@ WalkcalcParticipantSchema.index(
 )
 WalkcalcParticipantSchema.index({ userId: 1, groupCode: 1 })
 WalkcalcParticipantSchema.index({ groupCode: 1, kind: 1 })
+WalkcalcParticipantSchema.index({ groupCode: 1, isActive: 1 })
 
 WalkcalcRecordSchema.index({ recordId: 1 }, { unique: true })
 WalkcalcRecordSchema.index({ groupCode: 1, createdAt: -1 })

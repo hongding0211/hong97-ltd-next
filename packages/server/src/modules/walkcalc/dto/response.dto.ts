@@ -61,6 +61,7 @@ export interface WalkcalcGroupDto {
   createdAt: number
   modifiedAt: number
   participants: WalkcalcParticipantProjectionDto[]
+  removedParticipants: WalkcalcParticipantDto[]
 }
 
 export interface WalkcalcGroupSummaryDto {
