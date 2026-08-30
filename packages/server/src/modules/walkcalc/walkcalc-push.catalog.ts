@@ -30,6 +30,7 @@ const WALKCALC_RECORD_DATA_KEYS = [
   'recordId',
   'affectedUserIds',
   'amount',
+  'currencyCode',
   'displayNote',
   'payerId',
   'fromId',

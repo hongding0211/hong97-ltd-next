@@ -3,7 +3,7 @@ import { PushNotificationCatalog } from '../push/catalog'
 import { WalkcalcPushService } from './walkcalc-push.service'
 
 describe('WalkcalcPushService', () => {
-  const group = { code: 'AB12', name: 'Trip' }
+  const group = { code: 'AB12', name: 'Trip', currencyCode: 'CNY' }
   const memberUserIds = ['u1', 'u2', 'u3']
   let catalog: PushNotificationCatalog
   let pushService: { sendNotification: jest.Mock }
@@ -94,6 +94,7 @@ describe('WalkcalcPushService', () => {
         bodyCn: 'Alice 替你支付了 ¥50.00（Dinner）',
         recordId: 'record-1',
         affectedUserIds: ['u2'],
+        currencyCode: 'CNY',
       },
     )
 
@@ -110,6 +111,7 @@ describe('WalkcalcPushService', () => {
         groupCode: 'AB12',
         recordId: 'record-1',
         affectedUserIds: ['u2'],
+        currencyCode: 'CNY',
       },
       apns: {
         pushType: 'alert',
@@ -257,6 +259,83 @@ describe('WalkcalcPushService', () => {
         }),
       }),
     )
+  })
+
+  it('formats non-CNY records with their currency and includes it in payload', async () => {
+    await service.notifyRecordCreated({
+      actorUserId: 'u1',
+      group,
+      memberUserIds,
+      records: [
+        {
+          recordId: 'record-usd',
+          type: 'expense',
+          amountValue: '12000',
+          currencyCode: 'usd',
+          payerId: 'u2',
+          participantIds: ['u2', 'u3'],
+          involvedParticipantIds: ['u2', 'u3'],
+          note: 'Dinner',
+        },
+      ],
+    })
+
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u3',
+        payload: expect.objectContaining({
+          bodyCn: 'Alice 替你支付了 USD 60.00（Dinner）',
+          bodyEn: 'Alice paid USD 60.00 for you (Dinner)',
+          amount: '120.00',
+          currencyCode: 'USD',
+        }),
+      }),
+    )
+  })
+
+  it('keeps currencies separate in bulk settlement notifications', async () => {
+    await service.notifyDebtsResolved({
+      actorUserId: 'u1',
+      group,
+      memberUserIds,
+      records: [
+        {
+          recordId: 'settlement-cny',
+          type: 'settlement',
+          amountValue: '8000',
+          currencyCode: 'CNY',
+          fromId: 'u2',
+          toId: 'u3',
+          participantIds: [],
+          involvedParticipantIds: ['u2', 'u3'],
+        },
+        {
+          recordId: 'settlement-eur',
+          type: 'settlement',
+          amountValue: '2000',
+          currencyCode: 'EUR',
+          fromId: 'u2',
+          toId: 'u3',
+          participantIds: [],
+          involvedParticipantIds: ['u2', 'u3'],
+        },
+      ],
+    })
+
+    expect(pushService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: 'u2',
+        payload: expect.objectContaining({
+          bodyCn: '与你有关的结算已完成：¥80.00、EUR 20.00',
+          bodyEn: 'A settlement involving you was completed: ¥80.00, EUR 20.00',
+        }),
+      }),
+    )
+    const payload = pushService.sendNotification.mock.calls.find(
+      ([input]) => input.recipientId === 'u2',
+    )?.[0].payload
+    expect(payload).not.toHaveProperty('amount')
+    expect(payload).not.toHaveProperty('currencyCode')
   })
 
   it('does not throw when push sending fails', async () => {

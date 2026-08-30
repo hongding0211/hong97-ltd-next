@@ -35,7 +35,7 @@ type WalkcalcUpdateKind = WalkcalcGroupUpdateKind | WalkcalcRecordUpdateKind
 
 interface WalkcalcPushContext {
   actorUserId: string
-  group: Pick<WalkcalcGroup, 'code' | 'name'>
+  group: Pick<WalkcalcGroup, 'code' | 'name' | 'currencyCode'>
   memberUserIds: string[]
 }
 
@@ -46,7 +46,12 @@ type WalkcalcPushRecord = Pick<
   Partial<
     Pick<
       WalkcalcRecord,
-      'type' | 'amountValue' | 'category' | 'note' | 'involvedParticipantIds'
+      | 'type'
+      | 'amountValue'
+      | 'currencyCode'
+      | 'category'
+      | 'note'
+      | 'involvedParticipantIds'
     >
   >
 
@@ -373,18 +378,42 @@ export class WalkcalcPushService implements OnModuleInit {
     const record = this.selectRecordForRecipient(context.records, recipientId)
     const bodyCn =
       record?.type === 'settlement'
-        ? await this.settlementBody(record, recipientId, updateKind, 'cn')
-        : await this.expenseBody(record, recipientId, updateKind, 'cn')
+        ? await this.settlementBody(
+            record,
+            recipientId,
+            updateKind,
+            'cn',
+            context.group.currencyCode,
+          )
+        : await this.expenseBody(
+            record,
+            recipientId,
+            updateKind,
+            'cn',
+            context.group.currencyCode,
+          )
     const bodyEn =
       record?.type === 'settlement'
-        ? await this.settlementBody(record, recipientId, updateKind, 'en')
-        : await this.expenseBody(record, recipientId, updateKind, 'en')
+        ? await this.settlementBody(
+            record,
+            recipientId,
+            updateKind,
+            'en',
+            context.group.currencyCode,
+          )
+        : await this.expenseBody(
+            record,
+            recipientId,
+            updateKind,
+            'en',
+            context.group.currencyCode,
+          )
 
     return {
       ...this.localizedTitle(context.group.name),
       bodyCn,
       bodyEn,
-      payload: this.recordDisplayPayload(record),
+      payload: this.recordDisplayPayload(record, context.group.currencyCode),
     }
   }
 
@@ -422,6 +451,7 @@ export class WalkcalcPushService implements OnModuleInit {
     recipientId: string,
     updateKind: WalkcalcRecordUpdateKind,
     locale: 'cn' | 'en',
+    groupCurrencyCode: string,
   ) {
     if (!record?.amountValue) {
       return this.fallbackRecordBody(updateKind, locale)
@@ -438,13 +468,21 @@ export class WalkcalcPushService implements OnModuleInit {
           ? participantList
             ? `你支付了 ${this.currency(
                 record.amountValue,
+                record.currencyCode ?? groupCurrencyCode,
               )} 给 ${participantList}`
-            : `你支付了 ${this.currency(record.amountValue)}`
+            : `你支付了 ${this.currency(
+                record.amountValue,
+                record.currencyCode ?? groupCurrencyCode,
+              )}`
           : participantList
             ? `You paid ${this.currency(
                 record.amountValue,
+                record.currencyCode ?? groupCurrencyCode,
               )} for ${participantList}`
-            : `You paid ${this.currency(record.amountValue)}`
+            : `You paid ${this.currency(
+                record.amountValue,
+                record.currencyCode ?? groupCurrencyCode,
+              )}`
       return this.recordBody(paidText, updateKind, locale, note)
     }
 
@@ -456,8 +494,14 @@ export class WalkcalcPushService implements OnModuleInit {
 
     const paidText =
       locale === 'cn'
-        ? `${payerName} 替你支付了 ${this.currency(share)}`
-        : `${payerName} paid ${this.currency(share)} for you`
+        ? `${payerName} 替你支付了 ${this.currency(
+            share,
+            record.currencyCode ?? groupCurrencyCode,
+          )}`
+        : `${payerName} paid ${this.currency(
+            share,
+            record.currencyCode ?? groupCurrencyCode,
+          )} for you`
     return this.recordBody(paidText, updateKind, locale, note)
   }
 
@@ -466,6 +510,7 @@ export class WalkcalcPushService implements OnModuleInit {
     recipientId: string,
     updateKind: WalkcalcRecordUpdateKind,
     locale: 'cn' | 'en',
+    groupCurrencyCode: string,
   ) {
     if (!record?.amountValue) {
       return this.fallbackSettlementBody(updateKind, locale)
@@ -475,9 +520,13 @@ export class WalkcalcPushService implements OnModuleInit {
       const targetName = await this.participantName(record.toId)
       const paidText =
         locale === 'cn'
-          ? `你转给 ${targetName} ${this.currency(record.amountValue)}`
+          ? `你转给 ${targetName} ${this.currency(
+              record.amountValue,
+              record.currencyCode ?? groupCurrencyCode,
+            )}`
           : `You transferred ${this.currency(
               record.amountValue,
+              record.currencyCode ?? groupCurrencyCode,
             )} to ${targetName}`
       return this.recordBody(paidText, updateKind, locale)
     }
@@ -485,9 +534,13 @@ export class WalkcalcPushService implements OnModuleInit {
       const sourceName = await this.participantName(record.fromId)
       const paidText =
         locale === 'cn'
-          ? `${sourceName} 转给你 ${this.currency(record.amountValue)}`
+          ? `${sourceName} 转给你 ${this.currency(
+              record.amountValue,
+              record.currencyCode ?? groupCurrencyCode,
+            )}`
           : `${sourceName} transferred ${this.currency(
               record.amountValue,
+              record.currencyCode ?? groupCurrencyCode,
             )} to you`
       return this.recordBody(paidText, updateKind, locale)
     }
@@ -499,25 +552,49 @@ export class WalkcalcPushService implements OnModuleInit {
     context: WalkcalcRecordPushContext,
     recipientId: string,
   ): Promise<WalkcalcAlertMessage> {
-    const total = context.records
-      .filter(
-        (record) =>
-          record.fromId === recipientId || record.toId === recipientId,
+    const totals = new Map<string, string>()
+    for (const record of context.records) {
+      if (
+        !record.amountValue ||
+        (record.fromId !== recipientId && record.toId !== recipientId)
+      ) {
+        continue
+      }
+      const currencyCode = this.normalizedCurrencyCode(
+        record.currencyCode ?? context.group.currencyCode,
       )
-      .reduce(
-        (sum, record) =>
-          record.amountValue ? addMoneyValues(sum, record.amountValue) : sum,
-        '0',
+      totals.set(
+        currencyCode,
+        addMoneyValues(totals.get(currencyCode) ?? '0', record.amountValue),
       )
+    }
+    const amounts = [...totals].map(([currencyCode, amount]) => ({
+      currencyCode,
+      amountValue: amount,
+    }))
+    const bodyCnAmount = amounts
+      .map(({ currencyCode, amountValue }) =>
+        this.currency(amountValue, currencyCode),
+      )
+      .join('、')
+    const bodyEnAmount = amounts
+      .map(({ currencyCode, amountValue }) =>
+        this.currency(amountValue, currencyCode),
+      )
+      .join(', ')
+    const singleAmount = amounts.length === 1 ? amounts[0] : undefined
 
     return {
       ...this.localizedTitle(context.group.name),
-      bodyCn: `与你有关的结算已完成：${this.currency(total)}`,
-      bodyEn: `A settlement involving you was completed: ${this.currency(
-        total,
-      )}`,
+      bodyCn: `与你有关的结算已完成：${bodyCnAmount}`,
+      bodyEn: `A settlement involving you was completed: ${bodyEnAmount}`,
       payload: {
-        amount: formatMoneyAmount(total),
+        ...(singleAmount
+          ? {
+              amount: formatMoneyAmount(singleAmount.amountValue),
+              currencyCode: singleAmount.currencyCode,
+            }
+          : {}),
       },
     }
   }
@@ -639,7 +716,10 @@ export class WalkcalcPushService implements OnModuleInit {
     return locale === 'cn' ? `（${note}）` : ` (${note})`
   }
 
-  private recordDisplayPayload(record?: WalkcalcPushRecord) {
+  private recordDisplayPayload(
+    record: WalkcalcPushRecord | undefined,
+    groupCurrencyCode: string,
+  ) {
     return {
       amount: record?.amountValue
         ? formatMoneyAmount(record.amountValue)
@@ -648,11 +728,22 @@ export class WalkcalcPushService implements OnModuleInit {
       payerId: record?.payerId,
       fromId: record?.fromId,
       toId: record?.toId,
+      currencyCode: this.normalizedCurrencyCode(
+        record?.currencyCode ?? groupCurrencyCode,
+      ),
     }
   }
 
-  private currency(value: string) {
-    return `¥${formatMoneyAmount(value)}`
+  private currency(value: string, currencyCode?: string) {
+    const normalizedCurrencyCode = this.normalizedCurrencyCode(currencyCode)
+    const amount = formatMoneyAmount(value)
+    return normalizedCurrencyCode === 'CNY'
+      ? `¥${amount}`
+      : `${normalizedCurrencyCode} ${amount}`
+  }
+
+  private normalizedCurrencyCode(currencyCode?: string) {
+    return currencyCode?.trim().toUpperCase() || 'CNY'
   }
 
   private localizedTitle(groupName: string) {
