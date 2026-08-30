@@ -24,6 +24,7 @@ import {
   AddWalkcalcRecordDto,
   DropWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
+  QueryWalkcalcSettlementDto,
   ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
@@ -119,8 +120,13 @@ export class WalkcalcController {
   async settlementSuggestion(
     @UserId() userId: string,
     @Param('code') code: string,
+    @Query() query: QueryWalkcalcSettlementDto = {},
   ) {
-    return this.walkcalcService.settlementSuggestion(userId, code)
+    return this.walkcalcService.settlementSuggestion(
+      userId,
+      code,
+      query.currencyCode,
+    )
   }
 
   @Post('groups/:code/settlements/resolve')

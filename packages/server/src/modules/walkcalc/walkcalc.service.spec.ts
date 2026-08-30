@@ -806,6 +806,7 @@ describe('WalkcalcService normalized ledger', () => {
       ctx.service.settlementSuggestion('u1', 'AB12'),
     ).resolves.toEqual({
       groupCode: 'AB12',
+      currencyCode: 'CNY',
       strategy: 'exact',
       transfers: [
         { fromId: 'tmp1', toId: 'u1', amount: '30.00' },
@@ -862,6 +863,69 @@ describe('WalkcalcService normalized ledger', () => {
       ],
     })
     await expectRebuildMatches(ctx)
+  })
+
+  it('keeps mixed-currency balances and settlements independent', async () => {
+    const ctx = createSeededGroupContext()
+
+    await ctx.service.addRecord('u1', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '100.00',
+      currencyCode: 'CNY',
+      payerId: 'u1',
+      participantIds: ['u1', 'u2'],
+      occurredAt: 1710000000000,
+    })
+    await ctx.service.addRecord('u2', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '20.00',
+      currencyCode: 'USD',
+      payerId: 'u2',
+      participantIds: ['u1', 'u2'],
+      occurredAt: 1710000000001,
+    })
+
+    await expect(
+      ctx.service.settlementSuggestion('u1', 'AB12', 'CNY'),
+    ).resolves.toEqual({
+      groupCode: 'AB12',
+      currencyCode: 'CNY',
+      strategy: 'exact',
+      transfers: [{ fromId: 'u2', toId: 'u1', amount: '50.00' }],
+    })
+    await expect(
+      ctx.service.settlementSuggestion('u1', 'AB12', 'USD'),
+    ).resolves.toEqual({
+      groupCode: 'AB12',
+      currencyCode: 'USD',
+      strategy: 'exact',
+      transfers: [{ fromId: 'u1', toId: 'u2', amount: '10.00' }],
+    })
+
+    await ctx.service.resolveSettlements('u1', 'AB12', {
+      currencyCode: 'CNY',
+    })
+    const balances = await ctx.service.groupBalances('u1', 'AB12')
+    expect(
+      balances.participants.find(
+        (participant) => participant.participantId === 'u1',
+      )?.currencyBalances,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ currencyCode: 'CNY', balance: '0.00' }),
+        expect.objectContaining({ currencyCode: 'USD', balance: '-10.00' }),
+      ]),
+    )
+    await expect(
+      ctx.service.settlementSuggestion('u1', 'AB12', 'USD'),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        currencyCode: 'USD',
+        transfers: [{ fromId: 'u1', toId: 'u2', amount: '10.00' }],
+      }),
+    )
   })
 
   it('prioritizes settlements involving the current user before amount', async () => {
@@ -1120,6 +1184,66 @@ describe('WalkcalcService normalized ledger', () => {
       GeneralException,
     )
     expect(ctx.walkcalcPushService.notifyMemberJoined).not.toHaveBeenCalled()
+  })
+
+  it('preserves legacy records and projections when the group default currency changes', async () => {
+    const ctx = createContext({
+      groups: [groupDoc({ currencyCode: 'CNY' })],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+      ],
+      records: [
+        expenseRecord({
+          amountValue: '200',
+          participantIds: ['u1', 'u2'],
+          involvedParticipantIds: ['u1', 'u2'],
+        }),
+      ],
+      projections: [
+        projection('AB12', 'u1', {
+          balanceValue: '100',
+          expenseShareValue: '100',
+          paidTotalValue: '200',
+          recordCount: 1,
+        }),
+        projection('AB12', 'u2', {
+          balanceValue: '-100',
+          expenseShareValue: '100',
+          recordCount: 1,
+        }),
+      ],
+    })
+
+    await expect(
+      ctx.service.updateGroupCurrency('u1', 'AB12', 'USD'),
+    ).resolves.toEqual({ code: 'AB12', currencyCode: 'USD' })
+
+    expect(ctx.groupStore.docs[0].currencyCode).toBe('USD')
+    expect(ctx.recordStore.docs[0].currencyCode).toBe('CNY')
+    expectProjection(ctx, 'u1', {
+      currencyBalances: [
+        expect.objectContaining({ currencyCode: 'CNY', balanceValue: '100' }),
+      ],
+    })
+
+    const legacyRequestRecord = await ctx.service.addRecord('u1', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '4.00',
+      payerId: 'u1',
+      participantIds: ['u1', 'u2'],
+      category: 'food',
+      occurredAt: 200,
+    })
+    expect(legacyRequestRecord.record.currencyCode).toBe('USD')
+    expectProjection(ctx, 'u1', {
+      balanceValue: '300',
+      currencyBalances: expect.arrayContaining([
+        expect.objectContaining({ currencyCode: 'CNY', balanceValue: '100' }),
+        expect.objectContaining({ currencyCode: 'USD', balanceValue: '200' }),
+      ]),
+    })
   })
 
   it('keeps group mutations successful when push dispatch fails', async () => {
@@ -1500,6 +1624,23 @@ function createFakeModel(seed: AnyDoc[], identity: Identity): FakeModelStore {
       return { matchedCount: 1, modifiedCount: 1 }
     }),
   )
+  Model.updateMany = jest.fn((filter: AnyDoc = {}, update: AnyDoc = {}) =>
+    createQuery(() => {
+      let matchedCount = 0
+      for (const doc of store.docs) {
+        if (!matchesFilter(doc, filter)) {
+          continue
+        }
+        const error = store.failUpdateWhen?.(filter, update, doc)
+        if (error) {
+          throw error
+        }
+        applyUpdate(doc, update)
+        matchedCount += 1
+      }
+      return { matchedCount, modifiedCount: matchedCount }
+    }),
+  )
   Model.replaceOne = jest.fn((filter: AnyDoc = {}, replacement: AnyDoc = {}) =>
     createQuery(() => {
       const index = store.docs.findIndex((doc) => matchesFilter(doc, filter))
@@ -1657,6 +1798,9 @@ function matchesCondition(value: unknown, condition: unknown): boolean {
     return typeof value === 'string' && condition.test(value)
   }
   if (isPlainObject(condition)) {
+    if ('$exists' in condition) {
+      return condition.$exists ? value !== undefined : value === undefined
+    }
     if ('$in' in condition) {
       const values = condition.$in as unknown[]
       return Array.isArray(value)

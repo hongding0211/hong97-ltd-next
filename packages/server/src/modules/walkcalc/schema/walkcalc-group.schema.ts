@@ -85,6 +85,9 @@ export class WalkcalcRecord {
   amountValue: string
 
   @Prop()
+  currencyCode?: string
+
+  @Prop()
   payerId?: string
 
   @Prop({ type: [String], default: [] })
@@ -127,6 +130,16 @@ export class WalkcalcRecord {
   updatedBy?: string
 }
 
+export class WalkcalcCurrencyProjection {
+  currencyCode: string
+  balanceValue: string
+  expenseShareValue: string
+  paidTotalValue: string
+  recordCount: number
+  settlementInValue: string
+  settlementOutValue: string
+}
+
 @Schema({ timestamps: true, collection: 'walkcalc_participant_projections' })
 export class WalkcalcParticipantProjection {
   @Prop({ required: true })
@@ -158,6 +171,23 @@ export class WalkcalcParticipantProjection {
 
   @Prop({ required: true, default: '0' })
   settlementOutValue: string
+
+  @Prop({
+    type: [
+      {
+        _id: false,
+        currencyCode: { type: String, required: true },
+        balanceValue: { type: String, required: true, default: '0' },
+        expenseShareValue: { type: String, required: true, default: '0' },
+        paidTotalValue: { type: String, required: true, default: '0' },
+        recordCount: { type: Number, required: true, default: 0 },
+        settlementInValue: { type: String, required: true, default: '0' },
+        settlementOutValue: { type: String, required: true, default: '0' },
+      },
+    ],
+    default: [],
+  })
+  currencyBalances: WalkcalcCurrencyProjection[]
 
   @Prop({ required: true, default: Date.now })
   modifiedAt: number

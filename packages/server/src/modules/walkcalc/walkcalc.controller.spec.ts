@@ -186,6 +186,7 @@ describe('WalkcalcController', () => {
     service.participantBalanceDetail.mockResolvedValue({ records: [] } as any)
     service.settlementSuggestion.mockResolvedValue({
       groupCode: 'AB12',
+      currencyCode: 'CNY',
       strategy: 'exact',
       transfers: [],
     })
@@ -220,7 +221,11 @@ describe('WalkcalcController', () => {
       'u2',
       { page: 1, pageSize: 10 },
     )
-    expect(service.settlementSuggestion).toHaveBeenCalledWith('u1', 'AB12')
+    expect(service.settlementSuggestion).toHaveBeenCalledWith(
+      'u1',
+      'AB12',
+      undefined,
+    )
     expect(service.resolveSettlements).toHaveBeenCalledWith('u1', 'AB12', {})
     expect(service.getRecord).toHaveBeenCalledWith('u1', 'record-1')
   })

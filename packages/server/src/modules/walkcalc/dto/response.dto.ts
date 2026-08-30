@@ -25,6 +25,17 @@ export interface WalkcalcParticipantProjectionDto
   recordCount: number
   settlementIn: MoneyAmount
   settlementOut: MoneyAmount
+  currencyBalances: WalkcalcParticipantCurrencyProjectionDto[]
+}
+
+export interface WalkcalcParticipantCurrencyProjectionDto {
+  currencyCode: string
+  balance: MoneyAmount
+  expenseShare: MoneyAmount
+  paidTotal: MoneyAmount
+  recordCount: number
+  settlementIn: MoneyAmount
+  settlementOut: MoneyAmount
 }
 
 export type WalkcalcParticipantPreviewDto = WalkcalcParticipantDto
@@ -34,6 +45,7 @@ export interface WalkcalcRecordDto {
   groupCode: string
   type: WalkcalcRecordTypeDto
   amount: MoneyAmount
+  currencyCode: string
   payerId?: string
   participantIds?: string[]
   fromId?: string
@@ -78,6 +90,7 @@ export interface WalkcalcGroupSummaryDto {
   currentUserExpenseShare: MoneyAmount
   currentUserPaidTotal: MoneyAmount
   currentUserRecordCount: number
+  currentUserCurrencyBalances: WalkcalcParticipantCurrencyProjectionDto[]
   participantCount: number
   participantPreview: WalkcalcParticipantPreviewDto[]
 }
@@ -113,6 +126,7 @@ export interface WalkcalcSettlementTransferDto {
 
 export interface WalkcalcSettlementSuggestionDto {
   groupCode: string
+  currencyCode: string
   strategy: 'exact'
   transfers: WalkcalcSettlementTransferDto[]
 }
