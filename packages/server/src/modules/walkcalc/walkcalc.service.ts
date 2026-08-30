@@ -20,6 +20,7 @@ import {
   WalkcalcGroupDto,
   WalkcalcGroupSummaryDto,
   WalkcalcHomeSummaryDto,
+  WalkcalcParticipantCurrencyProjectionDto,
   WalkcalcParticipantDto,
   WalkcalcParticipantPreviewDto,
   WalkcalcParticipantProjectionDto,
@@ -79,6 +80,16 @@ interface SettlementBalance {
 interface RecordPersistencePatch {
   $set: Record<string, unknown>
   $unset?: Record<string, ''>
+}
+
+interface CurrencyProjectionValues {
+  currencyCode: string
+  balanceValue: string
+  expenseShareValue: string
+  paidTotalValue: string
+  recordCount: number
+  settlementInValue: string
+  settlementOutValue: string
 }
 
 const recordSearchFields = new Set<RecordSearchField>(['note', 'categoryName'])
@@ -173,15 +184,20 @@ export class WalkcalcService {
       if (!activeGroupCodes.has(projection.groupCode)) {
         continue
       }
-      const currencyCode =
+      const groupCurrency =
         currencyByGroup.get(projection.groupCode) ?? defaultCurrencyCode
-      totalsByCurrency.set(
-        currencyCode,
-        addMoneyValues(
-          totalsByCurrency.get(currencyCode) ?? '0',
-          projection.balanceValue,
-        ),
-      )
+      for (const balance of this.currencyProjectionEntries(
+        projection,
+        groupCurrency,
+      )) {
+        totalsByCurrency.set(
+          balance.currencyCode,
+          addMoneyValues(
+            totalsByCurrency.get(balance.currencyCode) ?? '0',
+            balance.balanceValue,
+          ),
+        )
+      }
     }
     const balances: WalkcalcCurrencyBalanceDto[] = [
       ...totalsByCurrency.entries(),
@@ -445,7 +461,10 @@ export class WalkcalcService {
         .findOne({ groupCode: code, participantId })
         .session(session ?? null)
         .exec()
-      if (!projection || toMoneyValueBigInt(projection.balanceValue) !== 0n) {
+      if (
+        !projection ||
+        this.projectionHasUnresolvedBalance(projection, group.currencyCode)
+      ) {
         throw new GeneralException('walkcalc.memberUnsettled')
       }
 
@@ -521,14 +540,15 @@ export class WalkcalcService {
       const group = await this.loadGroupForMember(code, userId, session)
       const archivedUserIds = new Set(group.archivedUserIds)
       if (isArchive) {
-        const unsettled = await this.walkcalcProjectionModel
-          .exists({
-            groupCode: code,
-            balanceValue: { $ne: '0' },
-          })
+        const projections = await this.walkcalcProjectionModel
+          .find({ groupCode: code })
           .session(session ?? null)
           .exec()
-        if (unsettled) {
+        if (
+          projections.some((projection) =>
+            this.projectionHasUnresolvedBalance(projection, group.currencyCode),
+          )
+        ) {
           throw new GeneralException('walkcalc.groupUnsettled')
         }
         archivedUserIds.add(userId)
@@ -568,6 +588,32 @@ export class WalkcalcService {
     currencyCode: string,
   ): Promise<{ code: string; currencyCode: string }> {
     const group = await this.loadOwnedGroup(code, userId)
+    const previousCurrencyCode = this.normalizedCurrencyCode(group.currencyCode)
+    await this.walkcalcRecordModel
+      .updateMany(
+        {
+          groupCode: code,
+          $or: [
+            { currencyCode: { $exists: false } },
+            { currencyCode: null },
+            { currencyCode: '' },
+          ],
+        },
+        { $set: { currencyCode: previousCurrencyCode } },
+      )
+      .exec()
+    const projections = await this.walkcalcProjectionModel
+      .find({ groupCode: code })
+      .exec()
+    for (const projection of projections) {
+      if (!(projection.currencyBalances ?? []).length) {
+        projection.currencyBalances = this.currencyProjectionEntries(
+          projection,
+          previousCurrencyCode,
+        )
+        await projection.save()
+      }
+    }
     group.currencyCode = this.normalizedCurrencyCode(currencyCode)
     group.modifiedAt = Date.now()
     await group.save()
@@ -722,8 +768,8 @@ export class WalkcalcService {
     if (!record) {
       throw new GeneralException('walkcalc.recordNotFound')
     }
-    await this.loadGroupForMember(record.groupCode, userId)
-    return this.mapRecordToDto(record)
+    const group = await this.loadGroupForMember(record.groupCode, userId)
+    return this.mapRecordToDto(record, group.currencyCode)
   }
 
   async groupRecords(
@@ -731,8 +777,8 @@ export class WalkcalcService {
     groupCode: string,
     query: QueryWalkcalcRecordsDto,
   ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
-    await this.loadGroupForMember(groupCode, userId)
-    return this.queryRecords(groupCode, query)
+    const group = await this.loadGroupForMember(groupCode, userId)
+    return this.queryRecords(groupCode, query, group.currencyCode)
   }
 
   async groupBalances(
@@ -752,7 +798,7 @@ export class WalkcalcService {
     participantId: string,
     query: QueryWalkcalcRecordsDto,
   ): Promise<WalkcalcBalanceDetailDto> {
-    await this.loadGroupForMember(groupCode, userId)
+    const group = await this.loadGroupForMember(groupCode, userId)
     const [participant] = await this.loadParticipantProjectionDtos(
       groupCode,
       participantId,
@@ -760,10 +806,14 @@ export class WalkcalcService {
     if (!participant) {
       throw new GeneralException('walkcalc.invalidParticipant')
     }
-    const records = await this.queryRecords(groupCode, {
-      ...query,
-      participantId,
-    })
+    const records = await this.queryRecords(
+      groupCode,
+      {
+        ...query,
+        participantId,
+      },
+      group.currencyCode,
+    )
     return {
       ...participant,
       records: records.data as WalkcalcRecordDto[],
@@ -776,24 +826,32 @@ export class WalkcalcService {
   async settlementSuggestion(
     userId: string,
     groupCode: string,
+    currencyCode?: string,
   ): Promise<WalkcalcSettlementSuggestionDto> {
-    await this.loadGroupForMember(groupCode, userId)
-    return this.buildSettlementSuggestion(groupCode, undefined, userId)
+    const group = await this.loadGroupForMember(groupCode, userId)
+    return this.buildSettlementSuggestion(
+      groupCode,
+      this.normalizedCurrencyCode(currencyCode ?? group.currencyCode),
+      undefined,
+      userId,
+    )
   }
 
   async resolveSettlements(
     userId: string,
     groupCode: string,
-    _dto: ResolveWalkcalcSettlementsDto,
+    dto: ResolveWalkcalcSettlementsDto,
   ): Promise<WalkcalcRecordsMutationDto> {
     const mutation = await this.runInOptionalTransaction(async (session) => {
       const group = await this.loadGroupForMember(groupCode, userId, session)
       const suggestion = await this.buildSettlementSuggestion(
         groupCode,
+        this.normalizedCurrencyCode(dto.currencyCode ?? group.currencyCode),
         session,
       )
       const records = await this.createSettlementRecordsForTransfers(
         groupCode,
+        suggestion.currencyCode,
         suggestion.transfers,
         userId,
         session,
@@ -911,6 +969,7 @@ export class WalkcalcService {
       recordCount: 0,
       settlementInValue: '0',
       settlementOutValue: '0',
+      currencyBalances: [],
       modifiedAt: Date.now(),
     })
     await projection.save({ session })
@@ -1055,6 +1114,12 @@ export class WalkcalcService {
     const amountValue = this.resolveAmountValue(dto.amount)
     const createdAt = previousRecord?.createdAt ?? now
     const occurredAt = dto.occurredAt
+    const currencyCode = await this.resolveRecordCurrencyCode(
+      dto.groupCode,
+      dto.currencyCode,
+      previousRecord,
+      session,
+    )
 
     if (dto.type === 'expense') {
       const payerId = this.requiredParticipantId(dto.payerId)
@@ -1082,6 +1147,7 @@ export class WalkcalcService {
         recordId: previousRecord?.recordId ?? uuidv4(),
         type: dto.type,
         amountValue,
+        currencyCode,
         payerId,
         participantIds,
         involvedParticipantIds,
@@ -1119,6 +1185,7 @@ export class WalkcalcService {
         recordId: previousRecord?.recordId ?? uuidv4(),
         type: dto.type,
         amountValue,
+        currencyCode,
         fromId,
         toId,
         involvedParticipantIds,
@@ -1215,13 +1282,24 @@ export class WalkcalcService {
     direction: 1 | -1,
     session?: ClientSession,
   ) {
+    const group = await this.loadActiveGroup(record.groupCode, session)
+    const groupCurrencyCode = this.normalizedCurrencyCode(group.currencyCode)
+    const recordCurrencyCode = this.normalizedCurrencyCode(
+      record.currencyCode ?? groupCurrencyCode,
+    )
     const deltas =
       direction === 1
         ? this.buildDeltasForRecord(record)
         : reverseLedgerDeltas(this.buildDeltasForRecord(record))
 
     for (const delta of deltas) {
-      await this.applyProjectionDelta(record.groupCode, delta, session)
+      await this.applyProjectionDelta(
+        record.groupCode,
+        recordCurrencyCode,
+        groupCurrencyCode,
+        delta,
+        session,
+      )
     }
   }
 
@@ -1250,28 +1328,57 @@ export class WalkcalcService {
     nextRecord: WalkcalcRecord,
     finalize?: () => Promise<void>,
   ) {
-    const undoDeltas: LedgerDelta[] = []
+    const group = await this.loadActiveGroup(previousRecord.groupCode)
+    const groupCurrencyCode = this.normalizedCurrencyCode(group.currencyCode)
+    const previousCurrencyCode = this.normalizedCurrencyCode(
+      previousRecord.currencyCode ?? groupCurrencyCode,
+    )
+    const nextCurrencyCode = this.normalizedCurrencyCode(
+      nextRecord.currencyCode ?? groupCurrencyCode,
+    )
+    const undoDeltas: Array<{ currencyCode: string; delta: LedgerDelta }> = []
     let recordUpdated = false
 
     try {
       for (const delta of reverseLedgerDeltas(
         this.buildDeltasForRecord(previousRecord),
       )) {
-        await this.applyProjectionDelta(previousRecord.groupCode, delta)
-        undoDeltas.push(reverseLedgerDeltas([delta])[0])
+        await this.applyProjectionDelta(
+          previousRecord.groupCode,
+          previousCurrencyCode,
+          groupCurrencyCode,
+          delta,
+        )
+        undoDeltas.push({
+          currencyCode: previousCurrencyCode,
+          delta: reverseLedgerDeltas([delta])[0],
+        })
       }
 
       await this.updatePersistedRecord(nextRecord)
       recordUpdated = true
 
       for (const delta of this.buildDeltasForRecord(nextRecord)) {
-        await this.applyProjectionDelta(nextRecord.groupCode, delta)
-        undoDeltas.push(reverseLedgerDeltas([delta])[0])
+        await this.applyProjectionDelta(
+          nextRecord.groupCode,
+          nextCurrencyCode,
+          groupCurrencyCode,
+          delta,
+        )
+        undoDeltas.push({
+          currencyCode: nextCurrencyCode,
+          delta: reverseLedgerDeltas([delta])[0],
+        })
       }
       await finalize?.()
     } catch (err) {
-      for (const delta of [...undoDeltas].reverse()) {
-        await this.applyProjectionDelta(previousRecord.groupCode, delta)
+      for (const undo of [...undoDeltas].reverse()) {
+        await this.applyProjectionDelta(
+          previousRecord.groupCode,
+          undo.currencyCode,
+          groupCurrencyCode,
+          undo.delta,
+        )
       }
       if (recordUpdated) {
         await this.updatePersistedRecord(previousRecord)
@@ -1309,6 +1416,7 @@ export class WalkcalcService {
       recordId: record.recordId,
       type: record.type,
       amountValue: record.amountValue,
+      currencyCode: record.currencyCode,
       involvedParticipantIds: record.involvedParticipantIds,
       createdAt: record.createdAt,
       occurredAt: record.occurredAt,
@@ -1353,6 +1461,8 @@ export class WalkcalcService {
 
   private async applyProjectionDelta(
     groupCode: string,
+    currencyCode: string,
+    groupCurrencyCode: string,
     delta: LedgerDelta,
     session?: ClientSession,
   ) {
@@ -1363,6 +1473,22 @@ export class WalkcalcService {
     if (!projection) {
       throw new GeneralException('walkcalc.invalidParticipant')
     }
+
+    const currencyBalances = this.currencyProjectionEntries(
+      projection,
+      groupCurrencyCode,
+    )
+    const normalizedCurrencyCode = this.normalizedCurrencyCode(currencyCode)
+    let currencyBalance = currencyBalances.find(
+      (balance) => balance.currencyCode === normalizedCurrencyCode,
+    )
+    if (!currencyBalance) {
+      currencyBalance = this.emptyCurrencyProjection(normalizedCurrencyCode)
+      currencyBalances.push(currencyBalance)
+    }
+
+    this.applyDeltaToCurrencyProjection(currencyBalance, delta)
+    projection.currencyBalances = currencyBalances
 
     projection.balanceValue = addMoneyValues(
       projection.balanceValue,
@@ -1395,6 +1521,7 @@ export class WalkcalcService {
   private async queryRecords(
     groupCode: string,
     query: QueryWalkcalcRecordsDto,
+    groupCurrencyCode?: string,
   ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
@@ -1417,7 +1544,9 @@ export class WalkcalcService {
     ])
 
     return {
-      data: records.map((record) => this.mapRecordToDto(record)),
+      data: records.map((record) =>
+        this.mapRecordToDto(record, groupCurrencyCode),
+      ),
       total,
       page,
       pageSize,
@@ -1539,8 +1668,7 @@ export class WalkcalcService {
       WalkcalcParticipantProjectionDocument[]
     > = groupCodes.length
       ? this.walkcalcProjectionModel
-          .find({ groupCode: { $in: groupCodes }, balanceValue: { $ne: '0' } })
-          .select({ groupCode: 1 })
+          .find({ groupCode: { $in: groupCodes } })
           .exec()
       : Promise.resolve([])
     const [projections, participants, unresolvedProjections] =
@@ -1552,8 +1680,17 @@ export class WalkcalcService {
     const projectionMap = new Map(
       projections.map((projection) => [projection.groupCode, projection]),
     )
+    const groupMap = new Map(groups.map((group) => [group.code, group]))
     const unresolvedGroupCodes = new Set(
-      unresolvedProjections.map((projection) => projection.groupCode),
+      unresolvedProjections
+        .filter((projection) =>
+          this.projectionHasUnresolvedBalance(
+            projection,
+            groupMap.get(projection.groupCode)?.currencyCode ??
+              defaultCurrencyCode,
+          ),
+        )
+        .map((projection) => projection.groupCode),
     )
     const participantsByGroup = this.groupParticipantsForSummary(participants)
     const userIds = [
@@ -1599,6 +1736,19 @@ export class WalkcalcService {
           projection?.paidTotalValue ?? '0',
         ),
         currentUserRecordCount: projection?.recordCount ?? 0,
+        currentUserCurrencyBalances: projection
+          ? this.currencyProjectionDtos(projection, group.currencyCode)
+          : [
+              {
+                currencyCode: this.normalizedCurrencyCode(group.currencyCode),
+                balance: '0.00',
+                expenseShare: '0.00',
+                paidTotal: '0.00',
+                recordCount: 0,
+                settlementIn: '0.00',
+                settlementOut: '0.00',
+              },
+            ],
         participantCount: groupParticipants.length,
         participantPreview,
       }
@@ -1690,8 +1840,10 @@ export class WalkcalcService {
       ownerUserId: group.ownerUserId,
       archivedUserIds: group.archivedUserIds,
       isOwner: group.ownerUserId === userId,
-      hasUnresolvedBalance: participants.some(
-        (participant) => participant.balance !== '0.00',
+      hasUnresolvedBalance: participants.some((participant) =>
+        participant.currencyBalances.some(
+          (balance) => balance.balance !== '0.00',
+        ),
       ),
       createdAt: group.createdAtMs,
       modifiedAt: group.modifiedAt,
@@ -1731,11 +1883,127 @@ export class WalkcalcService {
       : defaultCurrencyCode
   }
 
+  private async resolveRecordCurrencyCode(
+    groupCode: string,
+    requestedCurrencyCode?: string,
+    previousRecord?: WalkcalcRecord,
+    session?: ClientSession,
+  ): Promise<string> {
+    if (requestedCurrencyCode) {
+      return this.normalizedCurrencyCode(requestedCurrencyCode)
+    }
+    if (previousRecord?.currencyCode) {
+      return this.normalizedCurrencyCode(previousRecord.currencyCode)
+    }
+    const group = await this.loadActiveGroup(groupCode, session)
+    return this.normalizedCurrencyCode(group.currencyCode)
+  }
+
+  private currencyProjectionEntries(
+    projection: WalkcalcParticipantProjection,
+    groupCurrencyCode: string,
+  ): CurrencyProjectionValues[] {
+    const existing = projection.currencyBalances ?? []
+    if (existing.length) {
+      return existing.map((balance) => ({
+        currencyCode: this.normalizedCurrencyCode(balance.currencyCode),
+        balanceValue: balance.balanceValue ?? '0',
+        expenseShareValue: balance.expenseShareValue ?? '0',
+        paidTotalValue: balance.paidTotalValue ?? '0',
+        recordCount: balance.recordCount ?? 0,
+        settlementInValue: balance.settlementInValue ?? '0',
+        settlementOutValue: balance.settlementOutValue ?? '0',
+      }))
+    }
+    return [
+      {
+        currencyCode: this.normalizedCurrencyCode(groupCurrencyCode),
+        balanceValue: projection.balanceValue ?? '0',
+        expenseShareValue: projection.expenseShareValue ?? '0',
+        paidTotalValue: projection.paidTotalValue ?? '0',
+        recordCount: projection.recordCount ?? 0,
+        settlementInValue: projection.settlementInValue ?? '0',
+        settlementOutValue: projection.settlementOutValue ?? '0',
+      },
+    ]
+  }
+
+  private currencyProjectionDtos(
+    projection: WalkcalcParticipantProjection,
+    groupCurrencyCode: string,
+  ): WalkcalcParticipantCurrencyProjectionDto[] {
+    return this.currencyProjectionEntries(projection, groupCurrencyCode).map(
+      (balance) => ({
+        currencyCode: balance.currencyCode,
+        balance: formatMoneyAmount(balance.balanceValue),
+        expenseShare: formatMoneyAmount(balance.expenseShareValue),
+        paidTotal: formatMoneyAmount(balance.paidTotalValue),
+        recordCount: balance.recordCount,
+        settlementIn: formatMoneyAmount(balance.settlementInValue),
+        settlementOut: formatMoneyAmount(balance.settlementOutValue),
+      }),
+    )
+  }
+
+  private emptyCurrencyProjection(
+    currencyCode: string,
+  ): CurrencyProjectionValues {
+    return {
+      currencyCode: this.normalizedCurrencyCode(currencyCode),
+      balanceValue: '0',
+      expenseShareValue: '0',
+      paidTotalValue: '0',
+      recordCount: 0,
+      settlementInValue: '0',
+      settlementOutValue: '0',
+    }
+  }
+
+  private applyDeltaToCurrencyProjection(
+    projection: CurrencyProjectionValues,
+    delta: LedgerDelta,
+  ) {
+    projection.balanceValue = addMoneyValues(
+      projection.balanceValue,
+      delta.balanceValue,
+    )
+    projection.expenseShareValue = addMoneyValues(
+      projection.expenseShareValue,
+      delta.expenseShareValue,
+    )
+    projection.paidTotalValue = addMoneyValues(
+      projection.paidTotalValue,
+      delta.paidTotalValue,
+    )
+    projection.settlementInValue = addMoneyValues(
+      projection.settlementInValue,
+      delta.settlementInValue,
+    )
+    projection.settlementOutValue = addMoneyValues(
+      projection.settlementOutValue,
+      delta.settlementOutValue,
+    )
+    projection.recordCount += delta.recordCount
+    if (projection.recordCount < 0) {
+      throw new GeneralException('walkcalc.invalidProjectionState')
+    }
+  }
+
+  private projectionHasUnresolvedBalance(
+    projection: WalkcalcParticipantProjection,
+    groupCurrencyCode: string,
+  ): boolean {
+    return this.currencyProjectionEntries(projection, groupCurrencyCode).some(
+      (balance) => toMoneyValueBigInt(balance.balanceValue) !== 0n,
+    )
+  }
+
   private async loadParticipantProjectionDtos(
     groupCode: string,
     participantId?: string,
     session?: ClientSession,
   ): Promise<WalkcalcParticipantProjectionDto[]> {
+    const group = await this.loadActiveGroup(groupCode, session)
     const participantFilter: Record<string, unknown> =
       this.activeParticipantFilter({ groupCode })
     if (participantId) {
@@ -1796,16 +2064,35 @@ export class WalkcalcService {
           settlementOut: formatMoneyAmount(
             projection?.settlementOutValue ?? '0',
           ),
+          currencyBalances: projection
+            ? this.currencyProjectionDtos(projection, group.currencyCode)
+            : [
+                {
+                  currencyCode: this.normalizedCurrencyCode(group.currencyCode),
+                  balance: '0.00',
+                  expenseShare: '0.00',
+                  paidTotal: '0.00',
+                  recordCount: 0,
+                  settlementIn: '0.00',
+                  settlementOut: '0.00',
+                },
+              ],
         }
       })
   }
 
-  private mapRecordToDto(record: WalkcalcRecord): WalkcalcRecordDto {
+  private mapRecordToDto(
+    record: WalkcalcRecord,
+    groupCurrencyCode?: string,
+  ): WalkcalcRecordDto {
     return {
       recordId: record.recordId,
       groupCode: record.groupCode,
       type: record.type,
       amount: formatMoneyAmount(record.amountValue),
+      currencyCode: this.normalizedCurrencyCode(
+        record.currencyCode ?? groupCurrencyCode,
+      ),
       payerId: record.payerId,
       participantIds:
         record.type === 'expense' ? record.participantIds : undefined,
@@ -1826,18 +2113,27 @@ export class WalkcalcService {
 
   private async buildSettlementSuggestion(
     groupCode: string,
+    currencyCode: string,
     session?: ClientSession,
     priorityParticipantId?: string,
   ): Promise<WalkcalcSettlementSuggestionDto> {
+    const group = await this.loadActiveGroup(groupCode, session)
+    const normalizedCurrencyCode = this.normalizedCurrencyCode(currencyCode)
     const projections = await this.walkcalcProjectionModel
       .find({ groupCode })
       .session(session ?? null)
       .exec()
     const balances = projections
-      .map((projection) => ({
-        participantId: projection.participantId,
-        value: toMoneyValueBigInt(projection.balanceValue),
-      }))
+      .map((projection) => {
+        const balance = this.currencyProjectionEntries(
+          projection,
+          group.currencyCode,
+        ).find((item) => item.currencyCode === normalizedCurrencyCode)
+        return {
+          participantId: projection.participantId,
+          value: toMoneyValueBigInt(balance?.balanceValue ?? '0'),
+        }
+      })
       .filter((balance) => balance.value !== 0n)
       .sort((left, right) =>
         left.participantId.localeCompare(right.participantId),
@@ -1879,6 +2175,7 @@ export class WalkcalcService {
 
     return {
       groupCode,
+      currencyCode: normalizedCurrencyCode,
       strategy: 'exact',
       transfers: transfers.map((transfer) => ({
         ...transfer,
@@ -1952,23 +2249,44 @@ export class WalkcalcService {
     userId: string,
     session?: ClientSession,
   ): Promise<void> {
-    const transfers = await this.buildSettlementTransfersForGroup(
-      groupCode,
-      session,
-    )
-    await this.createSettlementRecordsForTransfers(
-      groupCode,
-      transfers.map((transfer) => ({
-        ...transfer,
-        amount: formatMoneyAmount(transfer.amount),
-      })),
-      userId,
-      session,
-    )
+    const group = await this.loadActiveGroup(groupCode, session)
+    const projections = await this.walkcalcProjectionModel
+      .find({ groupCode })
+      .session(session ?? null)
+      .exec()
+    const currencies = new Set<string>()
+    for (const projection of projections) {
+      for (const balance of this.currencyProjectionEntries(
+        projection,
+        group.currencyCode,
+      )) {
+        if (toMoneyValueBigInt(balance.balanceValue) !== 0n) {
+          currencies.add(balance.currencyCode)
+        }
+      }
+    }
+    for (const currencyCode of [...currencies].sort()) {
+      const transfers = await this.buildSettlementTransfersForGroup(
+        groupCode,
+        currencyCode,
+        session,
+      )
+      await this.createSettlementRecordsForTransfers(
+        groupCode,
+        currencyCode,
+        transfers.map((transfer) => ({
+          ...transfer,
+          amount: formatMoneyAmount(transfer.amount),
+        })),
+        userId,
+        session,
+      )
+    }
   }
 
   private async createSettlementRecordsForTransfers(
     groupCode: string,
+    currencyCode: string,
     transfers: Array<{ fromId: string; toId: string; amount: string }>,
     userId: string,
     session?: ClientSession,
@@ -1981,6 +2299,7 @@ export class WalkcalcService {
             groupCode,
             type: 'settlement',
             amount: transfer.amount,
+            currencyCode,
             fromId: transfer.fromId,
             toId: transfer.toId,
             occurredAt,
@@ -1998,23 +2317,38 @@ export class WalkcalcService {
 
   private async buildSettlementTransfersForGroup(
     groupCode: string,
+    currencyCode: string,
     session?: ClientSession,
   ): Promise<Array<{ fromId: string; toId: string; amount: MoneyValue }>> {
+    const group = await this.loadActiveGroup(groupCode, session)
+    const normalizedCurrencyCode = this.normalizedCurrencyCode(currencyCode)
     const projections = await this.walkcalcProjectionModel
       .find({ groupCode })
       .session(session ?? null)
       .exec()
     const creditors = projections
-      .map((projection) => ({
-        participantId: projection.participantId,
-        value: toMoneyValueBigInt(projection.balanceValue),
-      }))
+      .map((projection) => {
+        const balance = this.currencyProjectionEntries(
+          projection,
+          group.currencyCode,
+        ).find((item) => item.currencyCode === normalizedCurrencyCode)
+        return {
+          participantId: projection.participantId,
+          value: toMoneyValueBigInt(balance?.balanceValue ?? '0'),
+        }
+      })
       .filter((balance) => balance.value > 0n)
     const debtors = projections
-      .map((projection) => ({
-        participantId: projection.participantId,
-        value: toMoneyValueBigInt(projection.balanceValue),
-      }))
+      .map((projection) => {
+        const balance = this.currencyProjectionEntries(
+          projection,
+          group.currencyCode,
+        ).find((item) => item.currencyCode === normalizedCurrencyCode)
+        return {
+          participantId: projection.participantId,
+          value: toMoneyValueBigInt(balance?.balanceValue ?? '0'),
+        }
+      })
       .filter((balance) => balance.value < 0n)
 
     const transfers: Array<{

@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsISO4217CurrencyCode,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -27,6 +28,10 @@ export class AddWalkcalcRecordDto {
   @IsString()
   @Matches(MONEY_AMOUNT_PATTERN)
   amount: string
+
+  @IsOptional()
+  @IsISO4217CurrencyCode()
+  currencyCode?: string
 
   @IsOptional()
   @IsString()
@@ -87,6 +92,10 @@ export class UpdateWalkcalcRecordDto extends AddWalkcalcRecordDto {
 
 export class ResolveWalkcalcSettlementsDto {
   @IsOptional()
+  @IsISO4217CurrencyCode()
+  currencyCode?: string
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(200)
   transfers?: Array<{
@@ -94,6 +103,12 @@ export class ResolveWalkcalcSettlementsDto {
     toId: string
     amount: string
   }>
+}
+
+export class QueryWalkcalcSettlementDto {
+  @IsOptional()
+  @IsISO4217CurrencyCode()
+  currencyCode?: string
 }
 
 export class QueryWalkcalcRecordsDto {
