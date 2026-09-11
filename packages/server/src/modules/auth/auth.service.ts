@@ -763,16 +763,12 @@ export class AuthService {
     return refreshToken
   }
 
-  private async rotateRefreshSession(
+  private async extendRefreshSession(
     session: RefreshSessionDocument,
-  ): Promise<string> {
-    const refreshToken = this.generateRefreshToken(session.sessionId)
-    session.tokenHash = this.hashRefreshToken(refreshToken)
+  ): Promise<void> {
     session.expiresAt = this.getRefreshExpiresAt()
-    session.rotatedAt = new Date()
     session.revokedAt = null
     await session.save()
-    return refreshToken
   }
 
   private async revokeRefreshSession(
@@ -840,24 +836,36 @@ export class AuthService {
 
   private async validateRefreshSessionFromCandidates(
     refreshTokens: string[],
-  ): Promise<RefreshSessionDocument> {
+  ): Promise<{
+    session: RefreshSessionDocument
+    refreshToken: string
+  }> {
     if (refreshTokens.length <= 1) {
-      return this.validateRefreshSession(refreshTokens[0])
+      return {
+        session: await this.validateRefreshSession(refreshTokens[0]),
+        refreshToken: refreshTokens[0],
+      }
     }
 
     for (const refreshToken of refreshTokens) {
       try {
-        return await this.validateRefreshSession(refreshToken, {
-          revokeOnMismatch: false,
-        })
+        return {
+          session: await this.validateRefreshSession(refreshToken, {
+            revokeOnMismatch: false,
+          }),
+          refreshToken,
+        }
       } catch {
         // A native client can carry a stale body token while its cookie jar has
-        // the rotated token. Try every presented credential before treating the
-        // request as refresh-token reuse.
+        // the valid token. Try every presented credential before treating the
+        // request as invalid.
       }
     }
 
-    return this.validateRefreshSession(refreshTokens[0])
+    return {
+      session: await this.validateRefreshSession(refreshTokens[0]),
+      refreshToken: refreshTokens[0],
+    }
   }
 
   private async issueLoginSession(user: UserDocument, res?: Response) {
@@ -1087,16 +1095,17 @@ export class AuthService {
     res?: Response,
     refreshTokenDto?: RefreshTokenRequestDto,
   ): Promise<RefreshTokenDto> {
-    const session = await this.validateRefreshSessionFromCandidates(
-      this.extractRefreshTokenCandidates(req, refreshTokenDto),
-    )
+    const { session, refreshToken } =
+      await this.validateRefreshSessionFromCandidates(
+        this.extractRefreshTokenCandidates(req, refreshTokenDto),
+      )
     const user = await this.userModel.findOne({ userId: session.userId })
     if (!user) {
       throw new UnauthorizedException('User not found')
     }
 
     const accessToken = this.generateAccessToken(user)
-    const refreshToken = await this.rotateRefreshSession(session)
+    await this.extendRefreshSession(session)
 
     if (res) {
       this.clearAuthCookies(res)

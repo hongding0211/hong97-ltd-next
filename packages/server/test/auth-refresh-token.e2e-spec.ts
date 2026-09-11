@@ -8,6 +8,7 @@ import { App } from 'supertest/types'
 import { StructuredResponseInterceptor } from '../src/interceptors/response/structured-response'
 import { AuthController } from '../src/modules/auth/auth.controller'
 import { AuthService } from '../src/modules/auth/auth.service'
+import { PermissionsService } from '../src/modules/permissions/permissions.service'
 
 describe('Auth refresh token HTTP flow (e2e)', () => {
   let app: INestApplication<App>
@@ -105,6 +106,10 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
       providers: [
         { provide: AuthService, useValue: service },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: PermissionsService,
+          useValue: { assertUserHasPermissions: jest.fn() },
+        },
       ],
     }).compile()
 
@@ -120,7 +125,7 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
     await app?.close()
   })
 
-  it('accepts the current refresh cookie when a native body refresh token is stale', async () => {
+  it('keeps concurrent cookie and native refreshes on one stable session', async () => {
     const agent = request.agent(app.getHttpServer())
     const login = await agent
       .post('/auth/login')
@@ -135,27 +140,25 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
 
     const firstRefreshToken = login.body.data.refreshToken
 
-    const firstRefresh = await agent.post('/auth/refreshToken').expect(200)
+    const [cookieRefresh, nativeRefresh] = await Promise.all([
+      agent.post('/auth/refreshToken').expect(200),
+      request(app.getHttpServer())
+        .post('/auth/refreshToken')
+        .send({ refreshToken: firstRefreshToken })
+        .expect(200),
+    ])
 
-    const currentRefreshToken = firstRefresh.body.data.refreshToken
-
-    const secondRefresh = await agent
-      .post('/auth/refreshToken')
-      .send({ refreshToken: firstRefreshToken })
-      .expect(200)
-
-    expect(secondRefresh.body).toEqual({
-      isSuccess: true,
-      data: {
-        accessToken: 'access-3',
-        refreshToken: expect.any(String),
-        accessTokenExpiresIn: '15m',
-        refreshTokenExpiresIn: '30d',
-      },
-    })
-    expect(secondRefresh.body.data.refreshToken).not.toEqual(
-      currentRefreshToken,
-    )
+    for (const response of [cookieRefresh, nativeRefresh]) {
+      expect(response.body).toEqual({
+        isSuccess: true,
+        data: {
+          accessToken: expect.stringMatching(/^access-[23]$/),
+          refreshToken: firstRefreshToken,
+          accessTokenExpiresIn: '15m',
+          refreshTokenExpiresIn: '30d',
+        },
+      })
+    }
     expect(activeSession.revokedAt).toBeNull()
   })
 })

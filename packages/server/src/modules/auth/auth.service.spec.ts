@@ -533,7 +533,7 @@ describe('AuthService token flow', () => {
     expect(res.cookie).not.toHaveBeenCalled()
   })
 
-  it('refreshes from the refresh cookie and rotates the stored token hash', async () => {
+  it('refreshes from the refresh cookie without rotating it', async () => {
     await login()
     const firstRefreshToken = getCookieValue('refreshToken')
     const firstTokenHash = activeSession.tokenHash
@@ -547,12 +547,12 @@ describe('AuthService token flow', () => {
 
     expect(result).toEqual({
       accessToken: 'access-2',
-      refreshToken: expect.not.stringMatching(firstRefreshToken),
+      refreshToken: firstRefreshToken,
       accessTokenExpiresIn: '15m',
       refreshTokenExpiresIn: '30d',
     })
-    expect(activeSession.tokenHash).not.toEqual(firstTokenHash)
-    expect(activeSession.rotatedAt).toBeInstanceOf(Date)
+    expect(activeSession.tokenHash).toEqual(firstTokenHash)
+    expect(activeSession.rotatedAt).toBeNull()
     expect(res.cookie).toHaveBeenCalledWith(
       'accessToken',
       'access-2',
@@ -560,7 +560,7 @@ describe('AuthService token flow', () => {
     )
     expect(res.cookie).toHaveBeenCalledWith(
       'refreshToken',
-      expect.not.stringMatching(firstRefreshToken),
+      firstRefreshToken,
       expect.objectContaining({ httpOnly: true, path: '/' }),
     )
   })
@@ -577,13 +577,13 @@ describe('AuthService token flow', () => {
 
     expect(result).toEqual({
       accessToken: 'access-2',
-      refreshToken: expect.not.stringMatching(firstRefreshToken),
+      refreshToken: firstRefreshToken,
       accessTokenExpiresIn: '15m',
       refreshTokenExpiresIn: '30d',
     })
   })
 
-  it('uses a current refresh cookie when a native body token is stale', async () => {
+  it('keeps a valid cookie refresh token when a native body token is stale', async () => {
     await login()
     const firstRefreshToken = getCookieValue('refreshToken')
 
@@ -602,7 +602,7 @@ describe('AuthService token flow', () => {
 
     expect(result).toEqual({
       accessToken: 'access-3',
-      refreshToken: expect.not.stringMatching(firstRefresh.refreshToken),
+      refreshToken: firstRefreshToken,
       accessTokenExpiresIn: '15m',
       refreshTokenExpiresIn: '30d',
     })
@@ -635,7 +635,7 @@ describe('AuthService token flow', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException)
   })
 
-  it('revokes the session when an old refresh token is reused', async () => {
+  it('allows concurrent reuse of the stable refresh token', async () => {
     await login()
     const firstRefreshToken = getCookieValue('refreshToken')
 
@@ -644,13 +644,13 @@ describe('AuthService token flow', () => {
       res,
     )
 
-    await expect(
-      service.refreshToken(
-        { cookies: { refreshToken: firstRefreshToken } } as any,
-        res,
-      ),
-    ).rejects.toBeInstanceOf(UnauthorizedException)
-    expect(activeSession.revokedAt).toBeInstanceOf(Date)
+    const result = await service.refreshToken(
+      { cookies: { refreshToken: firstRefreshToken } } as any,
+      res,
+    )
+
+    expect(result.refreshToken).toBe(firstRefreshToken)
+    expect(activeSession.revokedAt).toBeNull()
   })
 
   it('logout clears both auth cookies and prevents later refresh', async () => {
