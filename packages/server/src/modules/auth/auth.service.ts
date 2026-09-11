@@ -876,7 +876,7 @@ export class AuthService {
     const refreshToken = await this.createRefreshSession(user.userId)
 
     if (res) {
-      this.clearAuthCookies(res)
+      res.clearCookie(this.getLegacyCookieName(), this.getClearCookieOptions())
       this.setAccessTokenCookie(res, accessToken)
       this.setRefreshTokenCookie(res, refreshToken)
     }
@@ -1108,7 +1108,7 @@ export class AuthService {
     await this.extendRefreshSession(session)
 
     if (res) {
-      this.clearAuthCookies(res)
+      res.clearCookie(this.getLegacyCookieName(), this.getClearCookieOptions())
       this.setAccessTokenCookie(res, accessToken)
       this.setRefreshTokenCookie(res, refreshToken)
     }

@@ -140,6 +140,20 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
 
     const firstRefreshToken = login.body.data.refreshToken
 
+    const expectSessionCookies = (response: request.Response) => {
+      const cookies = response.headers['set-cookie'] as unknown as string[]
+      for (const name of ['accessToken', 'refreshToken']) {
+        const matching = cookies.filter((cookie) =>
+          cookie.startsWith(`${name}=`),
+        )
+        expect(matching).toHaveLength(1)
+        expect(matching[0]).not.toContain(`${name}=;`)
+        expect(matching[0]).toContain('HttpOnly')
+        expect(matching[0]).toContain('SameSite=Strict')
+      }
+    }
+    expectSessionCookies(login)
+
     const [cookieRefresh, nativeRefresh] = await Promise.all([
       agent.post('/auth/refreshToken').expect(200),
       request(app.getHttpServer())
@@ -149,6 +163,7 @@ describe('Auth refresh token HTTP flow (e2e)', () => {
     ])
 
     for (const response of [cookieRefresh, nativeRefresh]) {
+      expectSessionCookies(response)
       expect(response.body).toEqual({
         isSuccess: true,
         data: {
