@@ -1531,8 +1531,24 @@ export class WalkcalcService {
       await this.assertParticipantsExist(groupCode, [participantId])
       filter.involvedParticipantIds = participantId
     }
+    const filters: Record<string, unknown>[] = [filter]
+    if (query.currencyCodes?.length) {
+      const codes = [...new Set(query.currencyCodes)]
+      const currencyOptions: Record<string, unknown>[] = [
+        { currencyCode: { $in: codes } },
+      ]
+      // Match the currency used by mapRecordToDto for legacy records.
+      if (codes.includes(this.normalizedCurrencyCode(groupCurrencyCode))) {
+        currencyOptions.push(
+          { currencyCode: { $exists: false } },
+          { currencyCode: null },
+        )
+      }
+      filters.push({ $or: currencyOptions })
+    }
     const searchFilter = this.recordSearchFilter(query.search)
-    const finalFilter = searchFilter ? { $and: [filter, searchFilter] } : filter
+    if (searchFilter) filters.push(searchFilter)
+    const finalFilter = filters.length === 1 ? filter : { $and: filters }
     const [records, total] = await Promise.all([
       this.walkcalcRecordModel
         .find(finalFilter)

@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   ArrayMaxSize,
   ArrayNotEmpty,
@@ -128,6 +128,19 @@ export class QueryWalkcalcRecordsDto {
   @IsOptional()
   @IsString()
   search?: string
+
+  // Comma-separated ISO codes; omission means all currencies.
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.split(',').map((code: string) => code.trim().toUpperCase())
+      : value,
+  )
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @IsISO4217CurrencyCode({ each: true })
+  currencyCodes?: string[]
 
   @IsOptional()
   @IsString()

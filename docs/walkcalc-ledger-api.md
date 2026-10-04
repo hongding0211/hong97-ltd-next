@@ -835,6 +835,17 @@ Sorting:
 
 - newest first by `createdAt desc`。
 
+### Record Filters
+
+Both group records and participant-record endpoints accept `currencyCodes=USD,CNY`.
+Codes are trimmed, uppercased, validated as ISO 4217 currencies, and combined as an OR within the currency selection. Omit the parameter for all currencies; malformed or empty values are rejected.
+
+Combine `currencyCodes`, `participantId`, and structured `search` with AND. Filtering happens before counting and pagination. The `participantId` filter covers payers, expense participants, and settlement senders/receivers; the client uses its current participant ID for “Related to me”.
+
+Legacy records with a missing or null currency match their group's default currency, consistent with the response mapping. Changing the record-query scope does not recalculate balances or settlement suggestions. Clients should restrict those currency-specific projections to the same selection, and preserve the existing personal suggestion scope.
+
+Example: `GET /walkcalc/groups/:code/records?page=1&pageSize=10&currencyCodes=USD,CNY&participantId=user_1`
+
 ### Record Search
 
 `search` is an optional URL-encoded JSON string:

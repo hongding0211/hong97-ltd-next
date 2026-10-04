@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
-import { AddWalkcalcRecordDto } from './dto/record.dto'
+import { AddWalkcalcRecordDto, QueryWalkcalcRecordsDto } from './dto/record.dto'
 import { WalkcalcController } from './walkcalc.controller'
 import { WalkcalcService } from './walkcalc.service'
 
@@ -228,6 +228,37 @@ describe('WalkcalcController', () => {
     )
     expect(service.resolveSettlements).toHaveBeenCalledWith('u1', 'AB12', {})
     expect(service.getRecord).toHaveBeenCalledWith('u1', 'record-1')
+  })
+
+  it('validates and normalizes multi-currency query parameters', async () => {
+    const pipe = new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    })
+    const metadata = {
+      type: 'query' as const,
+      metatype: QueryWalkcalcRecordsDto,
+    }
+    await expect(
+      pipe.transform(
+        { currencyCodes: 'usd, CNY', participantId: 'u1' },
+        metadata,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        currencyCodes: ['USD', 'CNY'],
+        participantId: 'u1',
+      }),
+    )
+    for (const currencyCodes of ['', 'USD,', 'INVALID', 'USD,$ne']) {
+      await expect(
+        pipe.transform({ currencyCodes }, metadata),
+      ).rejects.toThrow()
+    }
+    await expect(pipe.transform({}, metadata)).resolves.toEqual(
+      expect.objectContaining({ page: 1 }),
+    )
   })
 
   it('uses the new semantic record contract and rejects legacy money fields through validation', async () => {

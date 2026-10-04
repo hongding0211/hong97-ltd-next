@@ -1076,6 +1076,90 @@ describe('WalkcalcService normalized ledger', () => {
     )
   })
 
+  it('combines currency selection, participation, and search before counting and paging', async () => {
+    const ctx = createContext({
+      groups: [groupDoc({ currencyCode: 'USD' })],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+      ],
+      records: [
+        expenseRecord({
+          recordId: 'usd',
+          currencyCode: 'USD',
+          note: 'Dinner',
+          createdAt: 600,
+        }),
+        expenseRecord({
+          recordId: 'cny',
+          currencyCode: 'CNY',
+          note: 'Dinner',
+          createdAt: 500,
+        }),
+        expenseRecord({ recordId: 'legacy', note: 'Dinner', createdAt: 400 }),
+        expenseRecord({
+          recordId: 'null',
+          currencyCode: null,
+          note: 'Dinner',
+          createdAt: 300,
+        }),
+        expenseRecord({
+          recordId: 'other',
+          currencyCode: 'USD',
+          payerId: 'u2',
+          participantIds: ['u2'],
+          involvedParticipantIds: ['u2'],
+          note: 'Dinner',
+          createdAt: 200,
+        }),
+        expenseRecord({
+          recordId: 'taxi',
+          currencyCode: 'USD',
+          note: 'Taxi',
+          createdAt: 100,
+        }),
+      ],
+    })
+    const query = {
+      currencyCodes: ['USD'],
+      participantId: 'u1',
+      search: structuredSearch('Dinner', ['note']),
+      pageSize: 2,
+    }
+    const first = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 1,
+    })
+    expect(first.total).toBe(3)
+    expect((first.data as any[]).map((r) => r.recordId)).toEqual([
+      'usd',
+      'legacy',
+    ])
+    const second = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 2,
+    })
+    expect(second.total).toBe(3)
+    expect((second.data as any[]).map((r) => r.recordId)).toEqual(['null'])
+    expect((second.data as any[])[0].currencyCode).toBe('USD')
+    const multiple = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      currencyCodes: ['USD', 'CNY', 'USD'],
+      pageSize: 10,
+    })
+    expect(multiple.total).toBe(4)
+    const cny = await ctx.service.groupRecords('u1', 'AB12', {
+      currencyCodes: ['CNY'],
+    })
+    expect(cny.total).toBe(1)
+    const empty = await ctx.service.groupRecords('u1', 'AB12', {
+      currencyCodes: ['EUR'],
+    })
+    expect(empty.total).toBe(0)
+    const all = await ctx.service.groupRecords('u1', 'AB12', {})
+    expect(all.total).toBe(6)
+  })
+
   it('rejects archive until every participant balance is zero', async () => {
     const ctx = createSeededGroupContext()
     projectionDoc(ctx, 'u1').balanceValue = '0'
