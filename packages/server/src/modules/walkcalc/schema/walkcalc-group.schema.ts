@@ -228,6 +228,12 @@ WalkcalcRecordSchema.index({
 })
 WalkcalcRecordSchema.index({ groupCode: 1, type: 1, createdAt: -1 })
 WalkcalcRecordSchema.index({ groupCode: 1, category: 1, createdAt: -1 })
+WalkcalcRecordSchema.index({
+  groupCode: 1,
+  type: 1,
+  participantIds: 1,
+  occurredAt: -1,
+})
 
 WalkcalcParticipantProjectionSchema.index(
   { groupCode: 1, participantId: 1 },

@@ -15,6 +15,7 @@
   "debtResolveRecordImmutable": "债务和解记录不能被修改",
   "invalidParticipant": "无效的参与者",
   "invalidRecordSearch": "无效的记录搜索条件",
+  "invalidOccurredAtRange": "无效的账单发生时间范围",
   "invalidRecordType": "无效的记录类型",
   "invalidMoneyAmount": "无效的金额",
   "invalidProjectionState": "无效的余额状态",

@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsISO4217CurrencyCode,
   IsIn,
   IsInt,
@@ -111,7 +112,57 @@ export class QueryWalkcalcSettlementDto {
   currencyCode?: string
 }
 
-export class QueryWalkcalcRecordsDto {
+export class QueryWalkcalcSpendingFiltersDto {
+  // Inclusive start and exclusive end, in Unix milliseconds.
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  fromOccurredAt?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  toOccurredAt?: number
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.split(',').map((category: string) => category.trim())
+      : value,
+  )
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  categoryIds?: string[]
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  includeUncategorized?: boolean
+
+  // Comma-separated ISO codes; omission means all currencies.
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.split(',').map((code: string) => code.trim().toUpperCase())
+      : value,
+  )
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @IsISO4217CurrencyCode({ each: true })
+  currencyCodes?: string[]
+}
+
+export class QueryWalkcalcStatisticsDto extends QueryWalkcalcSpendingFiltersDto {}
+
+export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -129,20 +180,15 @@ export class QueryWalkcalcRecordsDto {
   @IsString()
   search?: string
 
-  // Comma-separated ISO codes; omission means all currencies.
-  @IsOptional()
-  @Transform(({ value }) =>
-    typeof value === 'string'
-      ? value.split(',').map((code: string) => code.trim().toUpperCase())
-      : value,
-  )
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMaxSize(200)
-  @IsISO4217CurrencyCode({ each: true })
-  currencyCodes?: string[]
-
   @IsOptional()
   @IsString()
   participantId?: string
+
+  @IsOptional()
+  @IsIn(['myExpense'])
+  scope?: 'myExpense'
+
+  @IsOptional()
+  @IsIn(['createdAt', 'occurredAt'])
+  sortBy?: 'createdAt' | 'occurredAt'
 }

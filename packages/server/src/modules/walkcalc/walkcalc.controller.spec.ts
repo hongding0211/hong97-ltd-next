@@ -1,6 +1,10 @@
 import { ValidationPipe } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
-import { AddWalkcalcRecordDto, QueryWalkcalcRecordsDto } from './dto/record.dto'
+import {
+  AddWalkcalcRecordDto,
+  QueryWalkcalcRecordsDto,
+  QueryWalkcalcStatisticsDto,
+} from './dto/record.dto'
 import { WalkcalcController } from './walkcalc.controller'
 import { WalkcalcService } from './walkcalc.service'
 
@@ -33,6 +37,7 @@ describe('WalkcalcController', () => {
             dropRecord: jest.fn(),
             updateRecord: jest.fn(),
             groupRecords: jest.fn(),
+            groupStatistics: jest.fn(),
             groupBalances: jest.fn(),
             participantBalanceDetail: jest.fn(),
             settlementSuggestion: jest.fn(),
@@ -51,7 +56,10 @@ describe('WalkcalcController', () => {
     service.currentUser.mockResolvedValue({ userId: 'u1' } as any)
     service.users.mockResolvedValue([{ userId: 'u2' }] as any)
     service.searchUsers.mockResolvedValue([{ userId: 'u3' }] as any)
-    service.homeSummary.mockResolvedValue({ totalBalance: '12.34' })
+    service.homeSummary.mockResolvedValue({
+      totalBalance: '12.34',
+      expenseShares: [],
+    })
 
     await controller.currentUser('u1')
     await controller.users({ userIds: ['u2'] })
@@ -183,6 +191,11 @@ describe('WalkcalcController', () => {
       recordId: 'record-1',
     } as any)
     service.groupRecords.mockResolvedValue({ data: [], total: 0 } as any)
+    service.groupStatistics.mockResolvedValue({
+      groupCode: 'AB12',
+      totals: [],
+      byCategory: [],
+    })
     service.participantBalanceDetail.mockResolvedValue({ records: [] } as any)
     service.settlementSuggestion.mockResolvedValue({
       groupCode: 'AB12',
@@ -200,6 +213,7 @@ describe('WalkcalcController', () => {
       recordId: 'record-1',
     })
     await controller.groupRecords('u1', 'AB12', { page: 1, pageSize: 10 })
+    await controller.groupStatistics('u1', 'AB12', { categoryIds: ['food'] })
     await controller.participantRecords('u1', 'AB12', 'u2', {
       page: 1,
       pageSize: 10,
@@ -214,6 +228,9 @@ describe('WalkcalcController', () => {
     expect(service.groupRecords).toHaveBeenCalledWith('u1', 'AB12', {
       page: 1,
       pageSize: 10,
+    })
+    expect(service.groupStatistics).toHaveBeenCalledWith('u1', 'AB12', {
+      categoryIds: ['food'],
     })
     expect(service.participantBalanceDetail).toHaveBeenCalledWith(
       'u1',
@@ -258,6 +275,52 @@ describe('WalkcalcController', () => {
     }
     await expect(pipe.transform({}, metadata)).resolves.toEqual(
       expect.objectContaining({ page: 1 }),
+    )
+    await expect(
+      pipe.transform(
+        {
+          scope: 'myExpense',
+          categoryIds: 'food,traffic',
+          includeUncategorized: 'true',
+          fromOccurredAt: '100',
+          toOccurredAt: '200',
+          sortBy: 'occurredAt',
+        },
+        metadata,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        scope: 'myExpense',
+        categoryIds: ['food', 'traffic'],
+        includeUncategorized: true,
+        fromOccurredAt: 100,
+        toOccurredAt: 200,
+        sortBy: 'occurredAt',
+      }),
+    )
+    await expect(
+      pipe.transform({ scope: 'unknown' }, metadata),
+    ).rejects.toThrow()
+    await expect(
+      pipe.transform({ categoryIds: 'food,' }, metadata),
+    ).rejects.toThrow()
+    await expect(
+      pipe.transform({ includeUncategorized: 'yes' }, metadata),
+    ).rejects.toThrow()
+    await expect(
+      pipe.transform({ fromOccurredAt: '-1' }, metadata),
+    ).rejects.toThrow()
+
+    await expect(
+      pipe.transform(
+        { currencyCodes: 'usd', categoryIds: 'food' },
+        { type: 'query', metatype: QueryWalkcalcStatisticsDto },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        currencyCodes: ['USD'],
+        categoryIds: ['food'],
+      }),
     )
   })
 

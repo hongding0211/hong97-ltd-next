@@ -71,6 +71,7 @@ export type I18nTranslations = {
     debtResolveRecordImmutable: string
     invalidParticipant: string
     invalidRecordSearch: string
+    invalidOccurredAtRange: string
     invalidRecordType: string
     invalidMoneyAmount: string
     invalidProjectionState: string

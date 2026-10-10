@@ -25,6 +25,7 @@ import {
   DropWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
   QueryWalkcalcSettlementDto,
+  QueryWalkcalcStatisticsDto,
   ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
@@ -91,6 +92,16 @@ export class WalkcalcController {
     @Query() query: QueryWalkcalcRecordsDto,
   ) {
     return this.walkcalcService.groupRecords(userId, code, query)
+  }
+
+  @Get('groups/:code/statistics')
+  @HttpCode(HttpStatus.OK)
+  async groupStatistics(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Query() query: QueryWalkcalcStatisticsDto,
+  ) {
+    return this.walkcalcService.groupStatistics(userId, code, query)
   }
 
   @Get('groups/:code/balances')

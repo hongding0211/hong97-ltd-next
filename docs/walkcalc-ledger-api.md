@@ -307,7 +307,9 @@ Response:
 
 ```json
 {
-  "totalBalance": "12.34"
+  "totalBalance": "12.34",
+  "balances": [{ "currencyCode": "CNY", "totalBalance": "12.34" }],
+  "expenseShares": [{ "currencyCode": "CNY", "expenseShare": "80.00" }]
 }
 ```
 
@@ -316,6 +318,7 @@ Semantics:
 - `totalBalance` 是当前用户在所有参与 group 中的净额总和。
 - 包括 archived groups。
 - 包括未被当前 group pagination 加载到的 groups。
+- `expenseShares` 是当前用户在所有可访问 group 中的累计消费分摊额，按货币分别返回；不包括已删除 group。结算不会改变它。没有消费的货币不出现在数组中。
 
 ## Group APIs
 
@@ -831,6 +834,8 @@ Response:
 
 `data` is `WalkcalcRecord[]`.
 
+Every record response, including unfiltered lists, single-record reads, participant-record lists, and mutation results, contains `currentUserExpenseShare`. It is the authenticated user's exact share of that expense in the record currency. It is `"0.00"` for settlements and expenses the user paid for but did not consume. `amount` remains the full record amount. Filters never change the record response shape.
+
 Sorting:
 
 - newest first by `createdAt desc`。
@@ -840,11 +845,36 @@ Sorting:
 Both group records and participant-record endpoints accept `currencyCodes=USD,CNY`.
 Codes are trimmed, uppercased, validated as ISO 4217 currencies, and combined as an OR within the currency selection. Omit the parameter for all currencies; malformed or empty values are rejected.
 
-Combine `currencyCodes`, `participantId`, and structured `search` with AND. Filtering happens before counting and pagination. The `participantId` filter covers payers, expense participants, and settlement senders/receivers; the client uses its current participant ID for “Related to me”.
+Combine `currencyCodes`, `participantId`, `scope`, `categoryIds`, occurrence time, and structured `search` with AND. Filtering happens before counting and pagination. The existing `participantId` filter covers payers, expense participants, and settlement senders/receivers.
+
+`scope=myExpense` selects only expense records whose `participantIds` include the authenticated user. It excludes settlements and expenses the user only paid for. Omit `scope` to retain the existing all-record behavior. The server derives the user ID from authentication; clients cannot select another user's personal expense scope.
+
+`categoryIds=food,traffic` matches stored category IDs exactly. `includeUncategorized=true` adds records with missing, null, or empty category; by itself it selects only uncategorized records. `fromOccurredAt` is inclusive and `toOccurredAt` is exclusive, both Unix milliseconds. The start must be earlier than the end. `sortBy=occurredAt` sorts by bill occurrence time; omission retains `createdAt` ordering. Both sorts are descending.
 
 Legacy records with a missing or null currency match their group's default currency, consistent with the response mapping. Changing the record-query scope does not recalculate balances or settlement suggestions. Clients should restrict those currency-specific projections to the same selection, and preserve the existing personal suggestion scope.
 
 Example: `GET /walkcalc/groups/:code/records?page=1&pageSize=10&currencyCodes=USD,CNY&participantId=user_1`
+
+Personal spending example: `GET /walkcalc/groups/:code/records?scope=myExpense&currencyCodes=USD&categoryIds=food&fromOccurredAt=1710000000000&toOccurredAt=1712678400000&sortBy=occurredAt`
+
+### Personal Spending Statistics
+
+`GET /walkcalc/groups/:code/statistics`
+
+This authenticated group-member endpoint always measures the requester's own expense share. It accepts `currencyCodes`, `categoryIds`, `includeUncategorized`, `fromOccurredAt`, and `toOccurredAt` with the same meanings as the record list. The response is grouped by currency and category without converting currencies:
+
+```json
+{
+  "groupCode": "AB12",
+  "totals": [{ "currencyCode": "CNY", "expenseShare": "80.00", "recordCount": 2 }],
+  "byCategory": [
+    { "currencyCode": "CNY", "categoryId": "food", "expenseShare": "50.00", "recordCount": 1 },
+    { "currencyCode": "CNY", "categoryId": null, "expenseShare": "30.00", "recordCount": 1 }
+  ]
+}
+```
+
+`categoryId: null` means uncategorized. `recordCount` counts matched expense records, including a record whose exact share rounds to zero cents. The unfiltered all-time group amount is already available from the current user's `expenseShare` in the group summary and participant projections; filtered statistics read matching records through an index and apply the same exact cent-splitting rule as those projections.
 
 ### Record Search
 
@@ -1046,6 +1076,7 @@ Common WalkCalc business error keys:
 | `walkcalc.recordNotFound` | record does not exist |
 | `walkcalc.invalidParticipant` | participant id invalid or not in group |
 | `walkcalc.invalidRecordSearch` | search JSON shape is invalid |
+| `walkcalc.invalidOccurredAtRange` | occurrence-time start is not earlier than end |
 | `walkcalc.invalidRecordType` | record type is not supported |
 | `walkcalc.invalidMoneyAmount` | amount is invalid or non-positive |
 | `walkcalc.invalidProjectionState` | projection would become invalid, for example negative record count |
@@ -1059,7 +1090,7 @@ Common WalkCalc business error keys:
 | `GET` | `/walkcalc/users/me` | current WalkCalc user |
 | `POST` | `/walkcalc/users` | lookup users by ids |
 | `GET` | `/walkcalc/users/search` | search users by display name |
-| `GET` | `/walkcalc/home/summary` | home total balance |
+| `GET` | `/walkcalc/home/summary` | home balance and personal expense shares by currency |
 | `POST` | `/walkcalc/groups` | create group |
 | `POST` | `/walkcalc/groups/join` | join group |
 | `GET` | `/walkcalc/groups/my` | list my groups |
@@ -1075,6 +1106,7 @@ Common WalkCalc business error keys:
 | `POST` | `/walkcalc/records/drop` | hard delete record |
 | `GET` | `/walkcalc/records/:recordId` | read record |
 | `GET` | `/walkcalc/groups/:code/records` | list/search group records |
+| `GET` | `/walkcalc/groups/:code/statistics` | filtered personal spending totals and categories |
 | `GET` | `/walkcalc/groups/:code/balances` | list participant balances |
 | `GET` | `/walkcalc/groups/:code/balances/:participantId/records` | participant balance detail and records |
 | `GET` | `/walkcalc/groups/:code/settlement-suggestion` | backend settlement suggestion |

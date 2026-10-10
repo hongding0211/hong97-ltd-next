@@ -110,6 +110,11 @@ records.
 - **THEN** the backend returns the user's total balance across all joined groups
 - **AND** archived groups and groups not included in the current page are included in that total
 
+#### Scenario: Home summary includes personal spending by currency
+- **WHEN** an authenticated user loads the home summary
+- **THEN** the backend returns the user's all-time expense share across active groups, including archived groups, separately for each currency
+- **AND** settlement records do not increase personal spending
+
 #### Scenario: Group lists filter by current user's archive state
 - **WHEN** an authenticated user requests their group list with an archive-state filter
 - **THEN** the backend filters active or archived groups using the current user's archive membership
@@ -124,6 +129,30 @@ records.
 - **WHEN** a group member opens a participant balance detail
 - **THEN** the backend returns records where that participant is involved
 - **AND** the backend returns an accurate total before pagination
+
+### Requirement: Personal spending records and statistics share one meaning
+The system SHALL define personal spending as the authenticated user's exact
+allocated share of expense records, regardless of the payer.
+
+#### Scenario: My expense filter keeps the record contract stable
+- **WHEN** a group member requests paginated records with `scope=myExpense`
+- **THEN** the backend includes only expenses whose participant IDs contain that member
+- **AND** applies other record filters before counting and pagination
+- **AND** omitting the scope preserves the existing all-record query behavior
+- **AND** all record responses include the same `currentUserExpenseShare` field regardless of query scope
+
+#### Scenario: Per-record expense share reflects exact cent allocation
+- **WHEN** an expense is split among participants
+- **THEN** `currentUserExpenseShare` is the requesting member's exact allocated amount
+- **AND** it is zero for a payer who did not participate in the expense and for settlements
+- **AND** this field is also present in single-record and mutation responses
+
+#### Scenario: Filtered statistics reconcile with matching records
+- **WHEN** a group member requests personal statistics filtered by occurrence time, category, or currency
+- **THEN** the backend totals only matching personal expense shares
+- **AND** returns totals and category breakdowns separately for each currency
+- **AND** the same filter semantics can retrieve the matching paginated records
+- **AND** legacy records without a currency use the group's existing currency fallback rule
 
 ### Requirement: Settlement suggestions are backend-authoritative
 The system SHALL compute settlement suggestions from current participant

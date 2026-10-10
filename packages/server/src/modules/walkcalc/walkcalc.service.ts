@@ -9,6 +9,8 @@ import { CreateWalkcalcGroupDto, QueryWalkcalcGroupsDto } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
+  QueryWalkcalcSpendingFiltersDto,
+  QueryWalkcalcStatisticsDto,
   ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
 } from './dto/record.dto'
@@ -16,6 +18,7 @@ import {
   WalkcalcBalanceDetailDto,
   WalkcalcBalanceListDto,
   WalkcalcCurrencyBalanceDto,
+  WalkcalcCurrencyExpenseShareDto,
   WalkcalcDropRecordMutationDto,
   WalkcalcGroupDto,
   WalkcalcGroupSummaryDto,
@@ -29,6 +32,7 @@ import {
   WalkcalcRecordMutationDto,
   WalkcalcRecordsMutationDto,
   WalkcalcSettlementSuggestionDto,
+  WalkcalcStatisticsDto,
 } from './dto/response.dto'
 import {
   WalkcalcGroup,
@@ -55,6 +59,7 @@ import {
   assertPositiveMoneyAmount,
   formatMoneyAmount,
   fromMoneyValueBigInt,
+  splitMoneyValue,
   toMoneyValueBigInt,
 } from './utils/money'
 import { WalkcalcPushService } from './walkcalc-push.service'
@@ -180,6 +185,7 @@ export class WalkcalcService {
       ]),
     )
     const totalsByCurrency = new Map<string, string>()
+    const expenseSharesByCurrency = new Map<string, string>()
     for (const projection of projections) {
       if (!activeGroupCodes.has(projection.groupCode)) {
         continue
@@ -197,6 +203,13 @@ export class WalkcalcService {
             balance.balanceValue,
           ),
         )
+        expenseSharesByCurrency.set(
+          balance.currencyCode,
+          addMoneyValues(
+            expenseSharesByCurrency.get(balance.currencyCode) ?? '0',
+            balance.expenseShareValue,
+          ),
+        )
       }
     }
     const balances: WalkcalcCurrencyBalanceDto[] = [
@@ -207,7 +220,16 @@ export class WalkcalcService {
         currencyCode,
         totalBalance: formatMoneyAmount(totalBalance),
       }))
-    return { totalBalance: formatMoneyAmount(total), balances }
+    const expenseShares: WalkcalcCurrencyExpenseShareDto[] = [
+      ...expenseSharesByCurrency.entries(),
+    ]
+      .filter(([, value]) => toMoneyValueBigInt(value) !== 0n)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([currencyCode, expenseShare]) => ({
+        currencyCode,
+        expenseShare: formatMoneyAmount(expenseShare),
+      }))
+    return { totalBalance: formatMoneyAmount(total), balances, expenseShares }
   }
 
   async createGroup(
@@ -636,7 +658,7 @@ export class WalkcalcService {
       await group.save({ session })
       return {
         result: {
-          record: this.mapRecordToDto(record),
+          record: this.mapRecordToDto(record, userId),
           group: await this.mapGroupToDto(group, userId, session),
         },
         group,
@@ -740,7 +762,7 @@ export class WalkcalcService {
       }
       return {
         result: {
-          record: this.mapRecordToDto(nextRecord),
+          record: this.mapRecordToDto(nextRecord, userId),
           group: await this.mapGroupToDto(group, userId, session),
         },
         group,
@@ -769,7 +791,7 @@ export class WalkcalcService {
       throw new GeneralException('walkcalc.recordNotFound')
     }
     const group = await this.loadGroupForMember(record.groupCode, userId)
-    return this.mapRecordToDto(record, group.currencyCode)
+    return this.mapRecordToDto(record, userId, group.currencyCode)
   }
 
   async groupRecords(
@@ -778,7 +800,89 @@ export class WalkcalcService {
     query: QueryWalkcalcRecordsDto,
   ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
     const group = await this.loadGroupForMember(groupCode, userId)
-    return this.queryRecords(groupCode, query, group.currencyCode)
+    return this.queryRecords(userId, groupCode, query, group.currencyCode)
+  }
+
+  async groupStatistics(
+    userId: string,
+    groupCode: string,
+    query: QueryWalkcalcStatisticsDto,
+  ): Promise<WalkcalcStatisticsDto> {
+    const group = await this.loadGroupForMember(groupCode, userId)
+    const filter = this.buildSpendingRecordFilter(
+      groupCode,
+      group.currencyCode,
+      query,
+      userId,
+    )
+    const records = this.walkcalcRecordModel
+      .find(filter)
+      .select({
+        type: 1,
+        amountValue: 1,
+        currencyCode: 1,
+        category: 1,
+        participantIds: 1,
+      })
+      .cursor()
+    const totals = new Map<
+      string,
+      { expenseShare: string; recordCount: number }
+    >()
+    const categories = new Map<
+      string,
+      {
+        currencyCode: string
+        categoryId: string | null
+        expenseShare: string
+        recordCount: number
+      }
+    >()
+    for await (const record of records) {
+      const currencyCode = this.normalizedCurrencyCode(
+        record.currencyCode ?? group.currencyCode,
+      )
+      const share = this.currentUserRecordShareValue(record, userId)
+      const total = totals.get(currencyCode) ?? {
+        expenseShare: '0',
+        recordCount: 0,
+      }
+      total.expenseShare = addMoneyValues(total.expenseShare, share)
+      total.recordCount += 1
+      totals.set(currencyCode, total)
+
+      const categoryId = record.category || null
+      const key = JSON.stringify([currencyCode, categoryId])
+      const category = categories.get(key) ?? {
+        currencyCode,
+        categoryId,
+        expenseShare: '0',
+        recordCount: 0,
+      }
+      category.expenseShare = addMoneyValues(category.expenseShare, share)
+      category.recordCount += 1
+      categories.set(key, category)
+    }
+    return {
+      groupCode,
+      totals: [...totals.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([currencyCode, values]) => ({
+          currencyCode,
+          expenseShare: formatMoneyAmount(values.expenseShare),
+          recordCount: values.recordCount,
+        })),
+      byCategory: [...categories.values()]
+        .sort(
+          (left, right) =>
+            left.currencyCode.localeCompare(right.currencyCode) ||
+            (left.categoryId ?? '').localeCompare(right.categoryId ?? ''),
+        )
+        .map((value) => ({
+          ...value,
+          expenseShare: formatMoneyAmount(value.expenseShare),
+        })),
+    }
   }
 
   async groupBalances(
@@ -807,6 +911,7 @@ export class WalkcalcService {
       throw new GeneralException('walkcalc.invalidParticipant')
     }
     const records = await this.queryRecords(
+      userId,
       groupCode,
       {
         ...query,
@@ -860,7 +965,7 @@ export class WalkcalcService {
       await group.save({ session })
       return {
         result: {
-          records: records.map((record) => this.mapRecordToDto(record)),
+          records: records.map((record) => this.mapRecordToDto(record, userId)),
           group: await this.mapGroupToDto(group, userId, session),
         },
         group,
@@ -1519,40 +1624,37 @@ export class WalkcalcService {
   }
 
   private async queryRecords(
+    userId: string,
     groupCode: string,
     query: QueryWalkcalcRecordsDto,
     groupCurrencyCode?: string,
   ): Promise<PaginationResponseDto<WalkcalcRecordDto>> {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 10
-    const filter: Record<string, unknown> = { groupCode }
+    const filters: Record<string, unknown>[] = [
+      this.buildSpendingRecordFilter(
+        groupCode,
+        groupCurrencyCode,
+        query,
+        query.scope === 'myExpense' ? userId : undefined,
+      ),
+    ]
     const participantId = query.participantId?.trim()
     if (participantId) {
       await this.assertParticipantsExist(groupCode, [participantId])
-      filter.involvedParticipantIds = participantId
-    }
-    const filters: Record<string, unknown>[] = [filter]
-    if (query.currencyCodes?.length) {
-      const codes = [...new Set(query.currencyCodes)]
-      const currencyOptions: Record<string, unknown>[] = [
-        { currencyCode: { $in: codes } },
-      ]
-      // Match the currency used by mapRecordToDto for legacy records.
-      if (codes.includes(this.normalizedCurrencyCode(groupCurrencyCode))) {
-        currencyOptions.push(
-          { currencyCode: { $exists: false } },
-          { currencyCode: null },
-        )
-      }
-      filters.push({ $or: currencyOptions })
+      filters.push({ involvedParticipantIds: participantId })
     }
     const searchFilter = this.recordSearchFilter(query.search)
     if (searchFilter) filters.push(searchFilter)
-    const finalFilter = filters.length === 1 ? filter : { $and: filters }
+    const finalFilter = filters.length === 1 ? filters[0] : { $and: filters }
+    const sort: Record<string, -1> =
+      query.sortBy === 'occurredAt'
+        ? { occurredAt: -1, createdAt: -1, recordId: -1 }
+        : { createdAt: -1 }
     const [records, total] = await Promise.all([
       this.walkcalcRecordModel
         .find(finalFilter)
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .exec(),
@@ -1561,12 +1663,71 @@ export class WalkcalcService {
 
     return {
       data: records.map((record) =>
-        this.mapRecordToDto(record, groupCurrencyCode),
+        this.mapRecordToDto(record, userId, groupCurrencyCode),
       ),
       total,
       page,
       pageSize,
     }
+  }
+
+  private buildSpendingRecordFilter(
+    groupCode: string,
+    groupCurrencyCode: string | undefined,
+    query: QueryWalkcalcSpendingFiltersDto,
+    consumingUserId?: string,
+  ): Record<string, unknown> {
+    if (
+      query.fromOccurredAt !== undefined &&
+      query.toOccurredAt !== undefined &&
+      query.fromOccurredAt >= query.toOccurredAt
+    ) {
+      throw new GeneralException('walkcalc.invalidOccurredAtRange')
+    }
+    const filters: Record<string, unknown>[] = [{ groupCode }]
+    if (consumingUserId) {
+      filters.push({ type: 'expense', participantIds: consumingUserId })
+    }
+    if (
+      query.fromOccurredAt !== undefined ||
+      query.toOccurredAt !== undefined
+    ) {
+      filters.push({
+        occurredAt: {
+          ...(query.fromOccurredAt !== undefined
+            ? { $gte: query.fromOccurredAt }
+            : {}),
+          ...(query.toOccurredAt !== undefined
+            ? { $lt: query.toOccurredAt }
+            : {}),
+        },
+      })
+    }
+    if (query.categoryIds?.length || query.includeUncategorized) {
+      filters.push({
+        category: {
+          $in: [
+            ...new Set(query.categoryIds ?? []),
+            ...(query.includeUncategorized ? [null, ''] : []),
+          ],
+        },
+      })
+    }
+    if (query.currencyCodes?.length) {
+      const codes = [...new Set(query.currencyCodes)]
+      const currencyOptions: Record<string, unknown>[] = [
+        { currencyCode: { $in: codes } },
+      ]
+      if (codes.includes(this.normalizedCurrencyCode(groupCurrencyCode))) {
+        currencyOptions.push(
+          { currencyCode: { $exists: false } },
+          { currencyCode: null },
+          { currencyCode: '' },
+        )
+      }
+      filters.push({ $or: currencyOptions })
+    }
+    return filters.length === 1 ? filters[0] : { $and: filters }
   }
 
   private recordSearchFilter(
@@ -2099,6 +2260,7 @@ export class WalkcalcService {
 
   private mapRecordToDto(
     record: WalkcalcRecord,
+    userId: string,
     groupCurrencyCode?: string,
   ): WalkcalcRecordDto {
     return {
@@ -2106,6 +2268,9 @@ export class WalkcalcService {
       groupCode: record.groupCode,
       type: record.type,
       amount: formatMoneyAmount(record.amountValue),
+      currentUserExpenseShare: formatMoneyAmount(
+        this.currentUserRecordShareValue(record, userId),
+      ),
       currencyCode: this.normalizedCurrencyCode(
         record.currencyCode ?? groupCurrencyCode,
       ),
@@ -2125,6 +2290,17 @@ export class WalkcalcService {
       createdBy: record.createdBy,
       updatedBy: record.updatedBy,
     }
+  }
+
+  private currentUserRecordShareValue(
+    record: Pick<WalkcalcRecord, 'type' | 'amountValue' | 'participantIds'>,
+    userId: string,
+  ): string {
+    if (record.type !== 'expense') return '0'
+    const participantIds = record.participantIds ?? []
+    const index = participantIds.indexOf(userId)
+    if (index < 0) return '0'
+    return splitMoneyValue(record.amountValue, participantIds.length)[index]
   }
 
   private async buildSettlementSuggestion(

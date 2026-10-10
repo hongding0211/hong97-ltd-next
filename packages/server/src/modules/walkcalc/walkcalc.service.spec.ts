@@ -126,8 +126,14 @@ describe('WalkcalcService normalized ledger', () => {
         userParticipant('CD34', 'u1'),
       ],
       projections: [
-        projection('AB12', 'u1', { balanceValue: '1000' }),
-        projection('CD34', 'u1', { balanceValue: '-250' }),
+        projection('AB12', 'u1', {
+          balanceValue: '1000',
+          expenseShareValue: '1250',
+        }),
+        projection('CD34', 'u1', {
+          balanceValue: '-250',
+          expenseShareValue: '300',
+        }),
         projection('EF56', 'u1', { balanceValue: '999999' }),
       ],
     })
@@ -137,6 +143,10 @@ describe('WalkcalcService normalized ledger', () => {
       balances: [
         { currencyCode: 'CNY', totalBalance: '10.00' },
         { currencyCode: 'USD', totalBalance: '-2.50' },
+      ],
+      expenseShares: [
+        { currencyCode: 'CNY', expenseShare: '12.50' },
+        { currencyCode: 'USD', expenseShare: '3.00' },
       ],
     })
     await expect(
@@ -1160,6 +1170,243 @@ describe('WalkcalcService normalized ledger', () => {
     expect(all.total).toBe(6)
   })
 
+  it('keeps record shape stable while personal spending filters and statistics agree', async () => {
+    const ctx = createContext({
+      groups: [groupDoc({ currencyCode: 'USD' })],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+      ],
+      records: [
+        expenseRecord({
+          recordId: 'shared',
+          amountValue: '101',
+          currencyCode: 'USD',
+          payerId: 'u2',
+          participantIds: ['u1', 'u2'],
+          involvedParticipantIds: ['u1', 'u2'],
+          category: 'food',
+          occurredAt: 100,
+          createdAt: 100,
+        }),
+        expenseRecord({
+          recordId: 'paid-only',
+          amountValue: '200',
+          currencyCode: 'USD',
+          payerId: 'u1',
+          participantIds: ['u2'],
+          involvedParticipantIds: ['u1', 'u2'],
+          category: 'food',
+          occurredAt: 200,
+          createdAt: 200,
+        }),
+        expenseRecord({
+          recordId: 'traffic',
+          amountValue: '300',
+          currencyCode: 'USD',
+          payerId: 'u2',
+          participantIds: ['u1'],
+          involvedParticipantIds: ['u1', 'u2'],
+          category: 'traffic',
+          occurredAt: 300,
+          createdAt: 300,
+        }),
+        expenseRecord({
+          recordId: 'legacy',
+          amountValue: '100',
+          payerId: 'u2',
+          participantIds: ['u1'],
+          involvedParticipantIds: ['u1', 'u2'],
+          category: 'food',
+          occurredAt: 350,
+          createdAt: 350,
+        }),
+        settlementRecord({
+          recordId: 'settled',
+          amountValue: '500',
+          currencyCode: 'USD',
+          fromId: 'u1',
+          toId: 'u2',
+          occurredAt: 400,
+          createdAt: 400,
+        }),
+        expenseRecord({
+          recordId: 'cny',
+          amountValue: '400',
+          currencyCode: 'CNY',
+          payerId: 'u1',
+          participantIds: ['u1'],
+          involvedParticipantIds: ['u1'],
+          category: 'food',
+          occurredAt: 500,
+          createdAt: 500,
+        }),
+      ],
+    })
+
+    const unfiltered = await ctx.service.groupRecords('u1', 'AB12', {})
+    expect(unfiltered.total).toBe(6)
+    expect(unfiltered.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          recordId: 'shared',
+          amount: '1.01',
+          currentUserExpenseShare: '0.51',
+        }),
+        expect.objectContaining({
+          recordId: 'paid-only',
+          currentUserExpenseShare: '0.00',
+        }),
+        expect.objectContaining({
+          recordId: 'settled',
+          currentUserExpenseShare: '0.00',
+        }),
+      ]),
+    )
+    await expect(ctx.service.getRecord('u1', 'shared')).resolves.toEqual(
+      expect.objectContaining({ currentUserExpenseShare: '0.51' }),
+    )
+
+    const query = {
+      scope: 'myExpense' as const,
+      currencyCodes: ['USD'],
+      categoryIds: ['food'],
+      fromOccurredAt: 100,
+      toOccurredAt: 400,
+      sortBy: 'occurredAt' as const,
+      pageSize: 1,
+    }
+    const first = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 1,
+    })
+    const second = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 2,
+    })
+    expect(first.total).toBe(2)
+    expect(first.data).toEqual([
+      expect.objectContaining({
+        recordId: 'legacy',
+        currencyCode: 'USD',
+        currentUserExpenseShare: '1.00',
+      }),
+    ])
+    expect(second.data).toEqual([
+      expect.objectContaining({
+        recordId: 'shared',
+        currentUserExpenseShare: '0.51',
+      }),
+    ])
+
+    await expect(
+      ctx.service.groupStatistics('u1', 'AB12', {
+        currencyCodes: ['USD'],
+        categoryIds: ['food'],
+        fromOccurredAt: 100,
+        toOccurredAt: 400,
+      }),
+    ).resolves.toEqual({
+      groupCode: 'AB12',
+      totals: [{ currencyCode: 'USD', expenseShare: '1.51', recordCount: 2 }],
+      byCategory: [
+        {
+          currencyCode: 'USD',
+          categoryId: 'food',
+          expenseShare: '1.51',
+          recordCount: 2,
+        },
+      ],
+    })
+    await expect(
+      ctx.service.groupStatistics('u1', 'AB12', {}),
+    ).resolves.toEqual({
+      groupCode: 'AB12',
+      totals: [
+        { currencyCode: 'CNY', expenseShare: '4.00', recordCount: 1 },
+        { currencyCode: 'USD', expenseShare: '4.51', recordCount: 3 },
+      ],
+      byCategory: expect.arrayContaining([
+        {
+          currencyCode: 'USD',
+          categoryId: 'food',
+          expenseShare: '1.51',
+          recordCount: 2,
+        },
+        {
+          currencyCode: 'USD',
+          categoryId: 'traffic',
+          expenseShare: '3.00',
+          recordCount: 1,
+        },
+      ]),
+    })
+    await expect(ctx.service.groupStatistics('u3', 'AB12', {})).rejects.toEqual(
+      expect.objectContaining({ message: 'walkcalc.groupNotFoundOrNoAccess' }),
+    )
+    await expect(
+      ctx.service.groupStatistics('u1', 'AB12', {
+        fromOccurredAt: 400,
+        toOccurredAt: 100,
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({ message: 'walkcalc.invalidOccurredAtRange' }),
+    )
+  })
+
+  it('filters uncategorized personal expenses and includes shares in mutation responses', async () => {
+    const ctx = createSeededGroupContext()
+    const added = await ctx.service.addRecord('u1', {
+      groupCode: 'AB12',
+      type: 'expense',
+      amount: '1.01',
+      currencyCode: 'USD',
+      payerId: 'u2',
+      participantIds: ['u1', 'u2'],
+      occurredAt: 100,
+    })
+    expect(added.record.currentUserExpenseShare).toBe('0.51')
+    const updated = await ctx.service.updateRecord('u1', {
+      groupCode: 'AB12',
+      recordId: added.record.recordId,
+      type: 'expense',
+      amount: '2.01',
+      currencyCode: 'USD',
+      payerId: 'u2',
+      participantIds: ['u1', 'u2'],
+      occurredAt: 100,
+    })
+    expect(updated.record.currentUserExpenseShare).toBe('1.01')
+    expectProjection(ctx, 'u1', { expenseShareValue: '101' })
+    await expect(
+      ctx.service.groupRecords('u1', 'AB12', {
+        scope: 'myExpense',
+        includeUncategorized: true,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        total: 1,
+        data: [expect.objectContaining({ currentUserExpenseShare: '1.01' })],
+      }),
+    )
+    await expect(
+      ctx.service.groupStatistics('u1', 'AB12', {
+        includeUncategorized: true,
+      }),
+    ).resolves.toEqual({
+      groupCode: 'AB12',
+      totals: [{ currencyCode: 'USD', expenseShare: '1.01', recordCount: 1 }],
+      byCategory: [
+        {
+          currencyCode: 'USD',
+          categoryId: null,
+          expenseShare: '1.01',
+          recordCount: 1,
+        },
+      ],
+    })
+  })
+
   it('rejects archive until every participant balance is zero', async () => {
     const ctx = createSeededGroupContext()
     projectionDoc(ctx, 'u1').balanceValue = '0'
@@ -1222,6 +1469,7 @@ describe('WalkcalcService normalized ledger', () => {
     await expect(ctx.service.homeSummary('u1')).resolves.toEqual({
       totalBalance: '0.00',
       balances: [],
+      expenseShares: [],
     })
   })
 
@@ -1829,6 +2077,9 @@ function createQuery(executor: () => any) {
       limitCount = count
       return query
     }),
+    cursor: jest.fn(async function* () {
+      for (const item of await query.exec()) yield item
+    }),
     exec: jest.fn(async () => {
       const value = executor()
       if (!Array.isArray(value)) {
@@ -1882,11 +2133,19 @@ function matchesCondition(value: unknown, condition: unknown): boolean {
     return typeof value === 'string' && condition.test(value)
   }
   if (isPlainObject(condition)) {
+    if ('$gte' in condition || '$lt' in condition) {
+      return (
+        typeof value === 'number' &&
+        (!('$gte' in condition) || value >= condition.$gte) &&
+        (!('$lt' in condition) || value < condition.$lt)
+      )
+    }
     if ('$exists' in condition) {
       return condition.$exists ? value !== undefined : value === undefined
     }
     if ('$in' in condition) {
       const values = condition.$in as unknown[]
+      if (value === undefined && values.includes(null)) return true
       return Array.isArray(value)
         ? value.some((item) => values.includes(item))
         : values.includes(value)

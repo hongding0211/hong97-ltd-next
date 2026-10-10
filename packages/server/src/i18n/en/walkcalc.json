@@ -15,6 +15,7 @@
   "debtResolveRecordImmutable": "Debt-resolution records cannot be modified",
   "invalidParticipant": "Invalid participant",
   "invalidRecordSearch": "Invalid record search",
+  "invalidOccurredAtRange": "Invalid record occurrence time range",
   "invalidRecordType": "Invalid record type",
   "invalidMoneyAmount": "Invalid money amount",
   "invalidProjectionState": "Invalid balance state",
