@@ -1,17 +1,31 @@
 import { useUser } from '@hooks/useUser'
 import {
   ArrowLeft,
-  ArrowRight,
-  Ellipsis,
+  ArrowLeftRight,
+  Banknote,
+  BedDouble,
+  CarFront,
+  Check,
+  ChevronRight,
+  Coffee,
+  Gamepad2,
+  House,
+  Pencil,
+  Plane,
   Plus,
   Search,
-  Settings2,
+  ShoppingBag,
+  Tag,
+  Ticket,
+  UsersRound,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import BalanceCarousel from '../../../components/walkcalc/BalanceCarousel'
 import WalkcalcLayout from '../../../components/walkcalc/WalkcalcLayout'
 import {
   categories,
@@ -32,6 +46,7 @@ import type {
   WalkcalcSettlementSuggestionDto,
   WalkcalcStatisticsDto,
 } from '../../../components/walkcalc/api'
+import { useWalkcalcI18n } from '../../../components/walkcalc/i18n'
 import {
   Dialog,
   Empty,
@@ -51,21 +66,31 @@ type Panel =
   | null
 
 export default function WalkcalcGroup() {
+  const { t, language } = useWalkcalcI18n()
   const router = useRouter()
   const user = useUser()
+  const userId = user?.userId
   const code = typeof router.query.code === 'string' ? router.query.code : ''
   const [group, setGroup] = useState<WalkcalcGroupDto | null>(null)
   const [records, setRecords] = useState<WalkcalcRecordDto[]>([])
   const [recordTotal, setRecordTotal] = useState(0)
   const [recordPage, setRecordPage] = useState(1)
   const [panel, setPanel] = useState<Panel>(null)
+  const [balanceSelected, setBalanceSelected] =
+    useState<WalkcalcParticipantProjectionDto | null>(null)
+  const [personalTransfers, setPersonalTransfers] = useState<
+    { currencyCode: string; fromId: string; toId: string; amount: string }[]
+  >([])
+  const [membersReturnToSettings, setMembersReturnToSettings] = useState(false)
   const [editRecord, setEditRecord] = useState<WalkcalcRecordDto | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const loadingMoreRef = useRef(false)
 
-  async function loadGroup() {
-    if (!code || !user) return
+  const loadGroup = useCallback(async () => {
+    if (!code || !userId) return
     setLoading(true)
     setError('')
     try {
@@ -79,19 +104,27 @@ export default function WalkcalcGroup() {
       setRecords(page.data)
       setRecordTotal(page.total)
       setRecordPage(1)
+      setLoadMoreFailed(false)
     } catch (cause) {
       setError((cause as Error).message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [code, userId])
 
   useEffect(() => {
     void loadGroup()
-  }, [code, user?.userId])
+  }, [loadGroup])
 
-  async function moreRecords() {
-    if (!code) return
+  const moreRecords = useCallback(async () => {
+    if (
+      !code ||
+      loading ||
+      loadingMoreRef.current ||
+      records.length >= recordTotal
+    )
+      return
+    loadingMoreRef.current = true
     setLoading(true)
     try {
       const page = await walkcalcApi<Page<WalkcalcRecordDto>>(
@@ -102,28 +135,29 @@ export default function WalkcalcGroup() {
       )
       setRecords((current) => [...current, ...page.data])
       setRecordPage(page.page)
+      setLoadMoreFailed(false)
     } catch (cause) {
       setError((cause as Error).message)
+      setLoadMoreFailed(true)
     } finally {
+      loadingMoreRef.current = false
       setLoading(false)
     }
-  }
+  }, [code, loading, records.length, recordTotal, recordPage])
 
-  async function deleteRecord(record: WalkcalcRecordDto) {
-    if (!window.confirm('删除这条记录？')) return
-    setBusy(true)
-    try {
-      await walkcalcApi('/records/drop', {
-        method: 'POST',
-        body: JSON.stringify({ groupCode: code, recordId: record.recordId }),
-      })
-      await loadGroup()
-    } catch (cause) {
-      setError((cause as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }
+  useEffect(() => {
+    const node = loadMoreRef.current
+    if (!node || loading || loadMoreFailed || records.length >= recordTotal)
+      return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void moreRecords()
+      },
+      { rootMargin: '180px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [loading, loadMoreFailed, records.length, recordTotal, moreRecords])
 
   const participants = group?.participants || []
   const byId = (id?: string) =>
@@ -154,228 +188,386 @@ export default function WalkcalcGroup() {
           expenseShare: me?.expenseShare || '0',
         },
       ]
+  const visibleBalanceRows = balanceRows.filter(
+    (row) => row.recordCount > 0 || Number(row.balance) !== 0,
+  )
+  const groupCode = group?.code
+  const participantId = me?.participantId
+  const visibleBalanceCodes = visibleBalanceRows
+    .map((row) => row.currencyCode)
+    .join(',')
+  useEffect(() => {
+    if (!groupCode || !participantId) {
+      setPersonalTransfers([])
+      return
+    }
+    let active = true
+    const codes = visibleBalanceCodes ? visibleBalanceCodes.split(',') : []
+    void Promise.all(
+      codes.map((currencyCode) =>
+        walkcalcApi<WalkcalcSettlementSuggestionDto>(
+          `${groupPath(groupCode)}/settlement-suggestion${queryString({
+            currencyCode,
+          })}`,
+        )
+          .then((result) =>
+            result.transfers.map((transfer) => ({ ...transfer, currencyCode })),
+          )
+          .catch(() => []),
+      ),
+    ).then((all) => {
+      if (active)
+        setPersonalTransfers(
+          all
+            .flat()
+            .filter(
+              (transfer) =>
+                transfer.fromId === participantId ||
+                transfer.toId === participantId,
+            ),
+        )
+    })
+    return () => {
+      active = false
+    }
+  }, [groupCode, participantId, visibleBalanceCodes])
+  function openBalances(
+    person: WalkcalcParticipantProjectionDto | null = null,
+  ) {
+    setBalanceSelected(person)
+    setPanel('balances')
+  }
 
   return (
     <>
       <Head>
-        <title>{group?.name || '群组'} · WalkCalc</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{group?.name || t('群组')} · WalkCalc</title>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="WalkCalc" />
+        <meta
+          name="theme-color"
+          content="#fafafa"
+          media="(prefers-color-scheme: light)"
+        />
+        <meta
+          name="theme-color"
+          content="#0a0a0a"
+          media="(prefers-color-scheme: dark)"
+        />
+        <link rel="apple-touch-icon" href="/walkcalc/app-icon.png" />
+        <link rel="manifest" href="/walkcalc/manifest.webmanifest" />
       </Head>
-      <WalkcalcLayout>
-        <main className={styles.shell}>
-          <Link className={styles.back} href="/walkcalc">
-            <ArrowLeft size={17} /> 所有群组
-          </Link>
-          <div className={styles.topline}>
-            <div>
-              <span className={styles.eyebrow}>WALKCALC / {code}</span>
-              <h1>{group?.name || '群组'}</h1>
-            </div>
-            <div className={styles.actions}>
+      <WalkcalcLayout
+        secondaryHeader={
+          <>
+            <Link
+              className={styles.groupBack}
+              href="/walkcalc"
+              aria-label={t('返回群组')}
+            >
+              <ArrowLeft size={21} />
+            </Link>
+            <h1
+              className={styles.groupNavTitle}
+              title={group?.name || t('群组')}
+            >
+              {group?.name || t('群组')}
+            </h1>
+            <div className={styles.groupTopActions}>
               <button
                 type="button"
-                className={styles.iconButton}
-                onClick={() => setPanel('settings')}
-                aria-label="群组设置"
-              >
-                <Settings2 size={19} />
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
+                className={styles.groupMore}
                 onClick={() => setPanel('search')}
+                aria-label={t('搜索记录')}
               >
-                <Search size={17} /> 搜索
+                <Search size={21} />
               </button>
               <button
                 type="button"
-                className={styles.primaryButton}
-                onClick={() => {
-                  setEditRecord(null)
-                  setPanel('expense')
-                }}
+                className={styles.groupMore}
+                onClick={() => setPanel('settings')}
+                aria-label={t('群组设置')}
               >
-                <Plus size={17} /> 记一笔
+                <Pencil size={19} />
               </button>
             </div>
-          </div>
+          </>
+        }
+      >
+        <main className={`${styles.shell} ${styles.groupShell}`}>
           <ErrorNote message={error} />
           {group && (
             <>
-              <div className={styles.detailGrid}>
-                <section className={styles.balanceCard}>
-                  <span className={styles.muted}>我的余额</span>
-                  <div className={styles.balanceGrid}>
-                    {balanceRows.map((row) => (
-                      <div key={row.currencyCode}>
-                        <span className={styles.currencyCode}>
-                          {row.currencyCode}
-                        </span>
-                        <strong
-                          className={
-                            Number(row.balance) > 0
-                              ? styles.positive
-                              : Number(row.balance) < 0
-                                ? styles.negative
-                                : ''
-                          }
-                        >
-                          {money(row.balance, row.currencyCode)}
-                        </strong>
-                        <small>
-                          {Number(row.balance) > 0
-                            ? '待收回'
-                            : Number(row.balance) < 0
-                              ? '待支付'
-                              : '已结清'}
-                        </small>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                <section className={styles.sideCard}>
-                  <span className={styles.muted}>群组成员</span>
-                  <div className={styles.memberPreview}>
-                    {participants.slice(0, 5).map((person) => (
-                      <Initials
-                        key={person.participantId}
-                        name={participantName(person)}
-                      />
-                    ))}
-                    <strong>{participants.length} 人</strong>
-                  </div>
+              {participants.length === 1 && recordTotal === 0 ? (
+                <div className={styles.peopleSetup}>
+                  <span className={styles.peopleSetupIcon}>
+                    <UsersRound size={30} />
+                  </span>
+                  <strong>{t('添加成员')}</strong>
+                  <p>{t('当它成为共同支出群组时，可以添加成员或临时成员。')}</p>
                   <button
                     type="button"
-                    className={styles.textButton}
-                    onClick={() => setPanel('members')}
+                    className={styles.secondaryButton}
+                    onClick={() => {
+                      setMembersReturnToSettings(false)
+                      setPanel('members')
+                    }}
                   >
-                    查看与管理 <ArrowRight size={15} />
+                    {t('添加成员')}
                   </button>
-                </section>
-              </div>
-              <div className={styles.tabs}>
-                <button type="button" onClick={() => setPanel('balances')}>
-                  余额与结算 <ArrowRight size={16} />
-                </button>
-                <button type="button" onClick={() => setPanel('statistics')}>
-                  我的支出 <ArrowRight size={16} />
-                </button>
-              </div>
-              <div className={styles.sectionHead}>
-                <h2>
-                  记录 <span>{recordTotal}</span>
-                </h2>
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  onClick={() => setPanel('search')}
-                >
-                  <Search size={16} /> 搜索记录
-                </button>
-              </div>
-              <div className={styles.recordList}>
-                {records.map((record) => (
-                  <article className={styles.recordRow} key={record.recordId}>
-                    <button
-                      type="button"
-                      className={styles.recordMain}
-                      onClick={() => {
-                        setEditRecord(record)
-                        setPanel(
-                          record.type === 'settlement'
-                            ? 'settlement'
-                            : 'expense',
-                        )
-                      }}
-                    >
-                      <span className={styles.recordIcon}>
-                        {record.type === 'settlement'
-                          ? '↔'
-                          : categoryName(record.category).slice(0, 1)}
-                      </span>
-                      <span className={styles.recordText}>
-                        <strong>
-                          {record.note ||
-                            (record.type === 'settlement'
-                              ? `${byId(record.fromId)} → ${byId(record.toId)}`
-                              : categoryName(record.category))}
-                        </strong>
-                        <small>
-                          {record.type === 'settlement'
-                            ? '结算'
-                            : categoryName(record.category)}{' '}
-                          ·{' '}
-                          {new Date(record.occurredAt).toLocaleDateString(
-                            'zh-CN',
-                          )}
-                        </small>
-                      </span>
-                      <strong className={styles.recordAmount}>
-                        {money(record.amount, record.currencyCode)}
-                      </strong>
-                    </button>
-                    {canMutate(record) && (
-                      <details className={styles.recordMenu}>
-                        <summary aria-label="记录操作">
-                          <Ellipsis size={17} />
-                        </summary>
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditRecord(record)
-                              setPanel(
-                                record.type === 'settlement'
-                                  ? 'settlement'
-                                  : 'expense',
-                              )
-                            }}
-                          >
-                            编辑
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.negative}
-                            disabled={busy}
-                            onClick={() => deleteRecord(record)}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </details>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.balanceCard}>
+                    {visibleBalanceRows.length ? (
+                      <BalanceCarousel
+                        title={t('总余额')}
+                        balances={visibleBalanceRows.map((row) => ({
+                          currencyCode: row.currencyCode,
+                          amount: row.balance,
+                        }))}
+                        subtitle={(balance) =>
+                          Number(balance.amount) > 0
+                            ? t('别人欠你')
+                            : Number(balance.amount) < 0
+                              ? t('你欠别人')
+                              : t('已结清')
+                        }
+                        onOpen={() => openBalances(me || null)}
+                      />
+                    ) : (
+                      <div className={styles.carouselBalance}>
+                        <span className={styles.balanceTitle}>
+                          {t('总余额')}
+                        </span>
+                        <strong className={styles.balanceDash}>—</strong>
+                      </div>
                     )}
-                  </article>
-                ))}
-              </div>
-              {!records.length && !loading && (
-                <Empty
-                  title="还没有记录"
-                  detail="添加一笔共同花费，余额就会自动更新。"
-                  action={
+                  </div>
+                  <div className={styles.sectionHead}>
+                    <h2>
+                      {personalTransfers.length ? t('建议结清') : t('余额')}
+                    </h2>
+                  </div>
+                  <div className={styles.listPanel}>
+                    {personalTransfers.length
+                      ? personalTransfers.slice(0, 3).map((transfer, index) => {
+                          const isPayer = transfer.fromId === me?.participantId
+                          const otherName = byId(
+                            isPayer ? transfer.toId : transfer.fromId,
+                          )
+                          return (
+                            <button
+                              type="button"
+                              className={`${styles.listRow} ${styles.balanceMemberRow}`}
+                              key={`${transfer.fromId}-${transfer.toId}-${transfer.currencyCode}-${index}`}
+                              onClick={() => openBalances()}
+                            >
+                              <span className={styles.person}>
+                                <Initials
+                                  name={otherName}
+                                  avatar={
+                                    participants.find(
+                                      (person) =>
+                                        person.participantId ===
+                                        (isPayer
+                                          ? transfer.toId
+                                          : transfer.fromId),
+                                    )?.profile?.avatar
+                                  }
+                                />
+                                <span>
+                                  <strong>
+                                    {isPayer
+                                      ? t('你欠 %@', otherName)
+                                      : t('%@ 欠你', otherName)}
+                                  </strong>
+                                  <small>{t('与 %@ 结清', otherName)}</small>
+                                </span>
+                              </span>
+                              <span
+                                className={`${styles.balanceMemberValue} ${
+                                  isPayer ? styles.negative : styles.positive
+                                }`}
+                              >
+                                {isPayer ? '-' : ''}
+                                {money(transfer.amount, transfer.currencyCode)}
+                              </span>
+                            </button>
+                          )
+                        })
+                      : participants.slice(0, 3).map((person) => (
+                          <button
+                            type="button"
+                            className={`${styles.listRow} ${styles.balanceMemberRow}`}
+                            key={person.participantId}
+                            onClick={() => openBalances(person)}
+                          >
+                            <span className={styles.person}>
+                              <Initials
+                                name={participantName(person)}
+                                avatar={person.profile?.avatar}
+                              />
+                              <span>
+                                <strong>{participantName(person)}</strong>
+                                <small>
+                                  {t('%@ 条记录', person.recordCount)}
+                                </small>
+                              </span>
+                            </span>
+                            <span className={styles.balanceMemberValue}>
+                              {money(person.balance, group.currencyCode)}{' '}
+                              <ChevronRight size={16} />
+                            </span>
+                          </button>
+                        ))}
                     <button
                       type="button"
-                      className={styles.primaryButton}
-                      onClick={() => setPanel('expense')}
+                      className={`${styles.listRow} ${styles.listFooter}`}
+                      onClick={() => openBalances()}
                     >
-                      记一笔
+                      {personalTransfers.length
+                        ? t('查看详情')
+                        : participants.length > 3
+                          ? t('查看全部')
+                          : t('查看详情')}{' '}
+                      <ChevronRight size={16} />
                     </button>
-                  }
-                />
-              )}
-              {loading && <p className={styles.muted}>加载中…</p>}
-              {records.length < recordTotal && (
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  disabled={loading}
-                  onClick={moreRecords}
-                >
-                  加载更多
-                </button>
+                  </div>
+                  <div className={styles.sectionHead}>
+                    <h2>{t('支出')}</h2>
+                  </div>
+                  <div className={styles.recordList}>
+                    {records.map((record) => (
+                      <article
+                        className={styles.recordRow}
+                        key={record.recordId}
+                      >
+                        <button
+                          type="button"
+                          className={styles.recordMain}
+                          onClick={() => {
+                            setEditRecord(record)
+                            setPanel(
+                              record.type === 'settlement'
+                                ? 'settlement'
+                                : 'expense',
+                            )
+                          }}
+                        >
+                          <span
+                            className={styles.recordIcon}
+                            data-category={
+                              record.type === 'settlement'
+                                ? 'transfer'
+                                : record.category || 'other'
+                            }
+                          >
+                            {record.type === 'settlement' ? (
+                              <ArrowLeftRight size={16} />
+                            ) : record.category === 'food' ? (
+                              <UtensilsCrossed size={16} />
+                            ) : record.category === 'beverage' ? (
+                              <Coffee size={16} />
+                            ) : record.category === 'shopping' ? (
+                              <ShoppingBag size={16} />
+                            ) : record.category === 'traffic' ? (
+                              <CarFront size={16} />
+                            ) : record.category === 'accommodation' ? (
+                              <BedDouble size={16} />
+                            ) : record.category === 'stay' ? (
+                              <House size={16} />
+                            ) : record.category === 'vacation' ? (
+                              <Plane size={16} />
+                            ) : record.category === 'transfer' ? (
+                              <Banknote size={16} />
+                            ) : record.category === 'ticket' ? (
+                              <Ticket size={16} />
+                            ) : record.category === 'game' ? (
+                              <Gamepad2 size={16} />
+                            ) : (
+                              <Tag size={16} />
+                            )}
+                          </span>
+                          <span className={styles.recordText}>
+                            <strong>
+                              {record.note ||
+                                (record.type === 'settlement'
+                                  ? `${byId(record.fromId)} → ${byId(
+                                      record.toId,
+                                    )}`
+                                  : categoryName(record.category))}
+                            </strong>
+                            <small>
+                              {record.type === 'settlement'
+                                ? t('结算')
+                                : `@${byId(record.payerId)}`}
+                            </small>
+                          </span>
+                          <span className={styles.recordTrailing}>
+                            <strong className={styles.recordAmount}>
+                              {money(record.amount, record.currencyCode)}
+                            </strong>
+                            <small>
+                              {new Date(record.occurredAt).toLocaleString(
+                                language === 'zh' ? 'zh-CN' : 'en-US',
+                                {
+                                  month: 'numeric',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                },
+                              )}
+                            </small>
+                          </span>
+                        </button>
+                      </article>
+                    ))}
+                    {!records.length && !loading && (
+                      <div className={styles.listRow}>
+                        <span className={styles.muted}>{t('暂无支出')}</span>
+                      </div>
+                    )}
+                  </div>
+                  {records.length < recordTotal && (
+                    <div ref={loadMoreRef} className={styles.loadMoreFooter}>
+                      {loadMoreFailed ? (
+                        <button
+                          type="button"
+                          className={styles.textButton}
+                          onClick={() => void moreRecords()}
+                        >
+                          {t('重试')}
+                        </button>
+                      ) : (
+                        <span>{t('正在加载更多...')}</span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
         </main>
+        {group && (
+          <div className={styles.fabWrap}>
+            <button
+              type="button"
+              className={styles.groupAddButton}
+              aria-label={t('新增支出')}
+              onClick={() => {
+                setEditRecord(null)
+                setPanel('expense')
+              }}
+            >
+              <Plus size={21} />
+            </button>
+          </div>
+        )}
       </WalkcalcLayout>
       {group && panel === 'expense' && (
         <RecordEditor
@@ -406,6 +598,7 @@ export default function WalkcalcGroup() {
       {group && panel === 'balances' && (
         <Balances
           group={group}
+          initialSelected={balanceSelected}
           onClose={() => setPanel(null)}
           onChanged={loadGroup}
         />
@@ -413,7 +606,7 @@ export default function WalkcalcGroup() {
       {group && panel === 'members' && (
         <Members
           group={group}
-          onClose={() => setPanel(null)}
+          onClose={() => setPanel(membersReturnToSettings ? 'settings' : null)}
           onChanged={loadGroup}
         />
       )}
@@ -422,6 +615,12 @@ export default function WalkcalcGroup() {
           group={group}
           onClose={() => setPanel(null)}
           onChanged={loadGroup}
+          onOpenMembers={() => {
+            setMembersReturnToSettings(true)
+            setPanel('members')
+          }}
+          onOpenStatistics={() => setPanel('statistics')}
+          onLeave={() => void router.push('/walkcalc')}
         />
       )}
       {group && panel === 'search' && (
@@ -441,6 +640,36 @@ export default function WalkcalcGroup() {
   )
 }
 
+const expenseCategoryIcons = {
+  food: UtensilsCrossed,
+  beverage: Coffee,
+  accommodation: BedDouble,
+  shopping: ShoppingBag,
+  traffic: CarFront,
+  stay: House,
+  vacation: Plane,
+  transfer: Banknote,
+  ticket: Ticket,
+  game: Gamepad2,
+  other: Tag,
+}
+
+function currencySymbol(code: string, locale: string) {
+  try {
+    return (
+      new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: code,
+        currencyDisplay: 'narrowSymbol',
+      })
+        .formatToParts(0)
+        .find((part) => part.type === 'currency')?.value || code
+    )
+  } catch {
+    return code
+  }
+}
+
 function RecordEditor({
   group,
   record,
@@ -456,13 +685,19 @@ function RecordEditor({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t, language } = useWalkcalcI18n()
+  const user = useUser()
   const people = group.participants
+  const currentPerson = people.find((person) => person.userId === user?.userId)
   const [amount, setAmount] = useState(record?.amount || '')
   const [currency, setCurrency] = useState(
     record?.currencyCode || group.currencyCode,
   )
   const [payerId, setPayerId] = useState(
-    record?.payerId || people[0]?.participantId || '',
+    record?.payerId ||
+      currentPerson?.participantId ||
+      people[0]?.participantId ||
+      '',
   )
   const [participantIds, setParticipantIds] = useState<string[]>(
     record?.participantIds || people.map((person) => person.participantId),
@@ -483,22 +718,48 @@ function RecordEditor({
   })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [currencyPickerOpen, setCurrencyPickerOpen] = useState(false)
+  const [currencySearch, setCurrencySearch] = useState('')
+  const currencyItems = useMemo(() => {
+    const locale = language === 'zh' ? 'zh-CN' : 'en-US'
+    const names = new Intl.DisplayNames([locale], { type: 'currency' })
+    return currencies.map((code) => ({
+      code,
+      name: names.of(code) || code,
+      symbol: currencySymbol(code, locale),
+    }))
+  }, [language])
+  const filteredCurrencyItems = useMemo(() => {
+    const query = currencySearch.trim().toLocaleLowerCase()
+    return currencyItems.filter(({ code, name, symbol }) =>
+      `${code} ${name} ${symbol}`.toLocaleLowerCase().includes(query),
+    )
+  }, [currencyItems, currencySearch])
+
+  useEffect(() => {
+    if (!record) {
+      const preferred = window.localStorage.getItem(
+        `walkcalc-record-currency-${group.code}`,
+      )
+      if (preferred) setCurrency(preferred)
+    }
+  }, [group.code, record])
 
   async function save() {
     if (!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
-      setError('请输入有效金额，最多两位小数。')
+      setError(t('请输入有效金额，最多两位小数。'))
       return
     }
     if (type === 'expense' && (!payerId || !participantIds.length)) {
-      setError('请选择付款人和分摊成员。')
+      setError(t('请选择付款人和分摊成员。'))
       return
     }
     if (type === 'settlement' && (!fromId || !toId || fromId === toId)) {
-      setError('请选择不同的付款人与收款人。')
+      setError(t('请选择不同的付款人与收款人。'))
       return
     }
     if (!occurredAt || !Number.isFinite(new Date(occurredAt).getTime())) {
-      setError('请选择有效日期和时间。')
+      setError(t('请选择有效日期和时间。'))
       return
     }
     setBusy(true)
@@ -520,6 +781,31 @@ function RecordEditor({
         method: 'POST',
         body: JSON.stringify(body),
       })
+      if (type === 'expense')
+        window.localStorage.setItem(
+          `walkcalc-record-currency-${group.code}`,
+          currency,
+        )
+      onSaved()
+    } catch (cause) {
+      setError((cause as Error).message)
+      setBusy(false)
+    }
+  }
+
+  async function deleteRecord() {
+    if (!record || readOnly || busy || !window.confirm(t('删除这条记录？')))
+      return
+    setBusy(true)
+    setError('')
+    try {
+      await walkcalcApi('/records/drop', {
+        method: 'POST',
+        body: JSON.stringify({
+          groupCode: group.code,
+          recordId: record.recordId,
+        }),
+      })
       onSaved()
     } catch (cause) {
       setError((cause as Error).message)
@@ -528,180 +814,315 @@ function RecordEditor({
   }
 
   return (
-    <Dialog
-      title={
-        record
-          ? readOnly
-            ? '记录详情'
-            : '编辑记录'
-          : type === 'expense'
-            ? '记一笔'
-            : '添加结算'
-      }
-      onClose={onClose}
-    >
-      <div className={styles.form}>
-        <fieldset className={styles.fieldset} disabled={readOnly || busy}>
-          <div className={styles.inlineFields}>
-            <label>
-              金额
+    <>
+      <Dialog
+        title={
+          record
+            ? readOnly
+              ? t('记录详情')
+              : record.note ||
+                (record.type === 'settlement'
+                  ? t('结算')
+                  : categoryName(record.category))
+            : type === 'expense'
+              ? t('新增支出')
+              : t('添加结算')
+        }
+        onClose={onClose}
+      >
+        <div className={styles.form}>
+          <fieldset className={styles.fieldset} disabled={readOnly || busy}>
+            <div className={styles.expenseAmountRow}>
+              <button
+                type="button"
+                className={styles.currencyTrigger}
+                disabled={readOnly || busy}
+                onClick={() => setCurrencyPickerOpen(true)}
+                aria-label={`${t('选择货币')}，${currency}`}
+              >
+                <span>
+                  {currencySymbol(
+                    currency,
+                    language === 'zh' ? 'zh-CN' : 'en-US',
+                  )}
+                </span>
+              </button>
               <input
+                className={styles.amountInput}
                 inputMode="decimal"
+                aria-label={t('金额')}
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 placeholder="0.00"
               />
+            </div>
+            {type === 'expense' ? (
+              <>
+                <div className={styles.editorSection}>
+                  <span className={styles.fieldLabel}>{t('付款人')}</span>
+                  <div className={styles.avatarChoices}>
+                    {people.map((person) => {
+                      const selected = payerId === person.participantId
+                      const displayName =
+                        person.participantId === currentPerson?.participantId
+                          ? t('你')
+                          : participantName(person)
+                      return (
+                        <button
+                          type="button"
+                          key={person.participantId}
+                          className={styles.avatarChoice}
+                          aria-pressed={selected}
+                          onClick={() => setPayerId(person.participantId)}
+                        >
+                          <span
+                            className={`${styles.choiceAvatar} ${
+                              selected ? styles.choiceSelected : ''
+                            }`}
+                          >
+                            <Initials
+                              name={participantName(person)}
+                              avatar={person.profile?.avatar}
+                              size={38}
+                            />
+                            {selected && (
+                              <span className={styles.choiceCheck}>
+                                <Check size={10} strokeWidth={3} />
+                              </span>
+                            )}
+                          </span>
+                          <small>{displayName}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className={styles.editorSection}>
+                  <div className={styles.splitHeading}>
+                    <span className={styles.fieldLabel}>{t('分摊')}</span>
+                    <button
+                      type="button"
+                      className={styles.textButton}
+                      aria-pressed={participantIds.length === people.length}
+                      onClick={() =>
+                        setParticipantIds(
+                          participantIds.length === people.length
+                            ? []
+                            : people.map((person) => person.participantId),
+                        )
+                      }
+                    >
+                      {t('全部')}
+                    </button>
+                  </div>
+                  <div className={styles.avatarChoices}>
+                    {people.map((person) => {
+                      const selected = participantIds.includes(
+                        person.participantId,
+                      )
+                      const displayName =
+                        person.participantId === currentPerson?.participantId
+                          ? t('你')
+                          : participantName(person)
+                      return (
+                        <button
+                          type="button"
+                          key={person.participantId}
+                          className={styles.avatarChoice}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            setParticipantIds((current) =>
+                              selected
+                                ? current.filter(
+                                    (id) => id !== person.participantId,
+                                  )
+                                : [...current, person.participantId],
+                            )
+                          }
+                        >
+                          <span
+                            className={`${styles.choiceAvatar} ${
+                              selected ? styles.choiceSelected : ''
+                            }`}
+                          >
+                            <Initials
+                              name={participantName(person)}
+                              avatar={person.profile?.avatar}
+                              size={38}
+                            />
+                            {selected && (
+                              <span className={styles.choiceCheck}>
+                                <Check size={10} strokeWidth={3} />
+                              </span>
+                            )}
+                          </span>
+                          <small>{displayName}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className={styles.editorSection}>
+                  <span className={styles.fieldLabel}>{t('类别')}</span>
+                  <div className={styles.avatarChoices}>
+                    {categories.map(([id, label]) => {
+                      const Icon = expenseCategoryIcons[id]
+                      return (
+                        <button
+                          type="button"
+                          key={id}
+                          className={styles.avatarChoice}
+                          aria-pressed={category === id}
+                          onClick={() => setCategory(id)}
+                        >
+                          <span
+                            data-category={id}
+                            className={`${styles.categoryChoiceIcon} ${
+                              category === id ? styles.choiceSelected : ''
+                            }`}
+                          >
+                            <Icon size={18} />
+                          </span>
+                          <small>{t(label)}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.inlineFields}>
+                <label>
+                  {t('付款人')}
+                  <select
+                    value={fromId}
+                    onChange={(event) => setFromId(event.target.value)}
+                  >
+                    {people.map((person) => (
+                      <option
+                        key={person.participantId}
+                        value={person.participantId}
+                      >
+                        {participantName(person)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {t('收款人')}
+                  <select
+                    value={toId}
+                    onChange={(event) => setToId(event.target.value)}
+                  >
+                    {people.map((person) => (
+                      <option
+                        key={person.participantId}
+                        value={person.participantId}
+                      >
+                        {participantName(person)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+            <label>
+              {t('可选备注')}
+              <input
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t('可选备注')}
+              />
             </label>
             <label>
-              货币
-              <select
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-              >
-                {Array.from(new Set([currency, ...currencies])).map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
+              {t('日期')}
+              <input
+                type="datetime-local"
+                value={occurredAt}
+                onChange={(event) => setOccurredAt(event.target.value)}
+              />
             </label>
-          </div>
-          {type === 'expense' ? (
-            <>
-              <label>
-                付款人
-                <select
-                  value={payerId}
-                  onChange={(event) => setPayerId(event.target.value)}
+          </fieldset>
+          <ErrorNote message={error} />
+          {!readOnly && (
+            <div className={styles.recordActions}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={save}
+                disabled={busy}
+              >
+                {t('保存')}
+              </button>
+              {record && (
+                <button
+                  type="button"
+                  className={`${styles.secondaryButton} ${styles.negative}`}
+                  onClick={() => void deleteRecord()}
+                  disabled={busy}
                 >
-                  {people.map((person) => (
-                    <option
-                      key={person.participantId}
-                      value={person.participantId}
-                    >
-                      {participantName(person)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div>
-                <span className={styles.fieldLabel}>分摊成员</span>
-                <div className={styles.checkboxGrid}>
-                  {people.map((person) => (
-                    <label key={person.participantId}>
-                      <input
-                        type="checkbox"
-                        checked={participantIds.includes(person.participantId)}
-                        onChange={(event) =>
-                          setParticipantIds((current) =>
-                            event.target.checked
-                              ? [...current, person.participantId]
-                              : current.filter(
-                                  (id) => id !== person.participantId,
-                                ),
-                          )
-                        }
-                      />{' '}
-                      {participantName(person)}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <label>
-                分类
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                >
-                  {categories.map(([id, label]) => (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          ) : (
-            <div className={styles.inlineFields}>
-              <label>
-                付款人
-                <select
-                  value={fromId}
-                  onChange={(event) => setFromId(event.target.value)}
-                >
-                  {people.map((person) => (
-                    <option
-                      key={person.participantId}
-                      value={person.participantId}
-                    >
-                      {participantName(person)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                收款人
-                <select
-                  value={toId}
-                  onChange={(event) => setToId(event.target.value)}
-                >
-                  {people.map((person) => (
-                    <option
-                      key={person.participantId}
-                      value={person.participantId}
-                    >
-                      {participantName(person)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {t('删除')}
+                </button>
+              )}
             </div>
           )}
-          <label>
-            备注
+        </div>
+      </Dialog>
+      {currencyPickerOpen && (
+        <Dialog title={t('货币')} onClose={() => setCurrencyPickerOpen(false)}>
+          <div className={styles.currencyPicker}>
             <input
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="可选"
+              className={styles.currencySearch}
+              value={currencySearch}
+              onChange={(event) => setCurrencySearch(event.target.value)}
+              placeholder={t('搜索货币')}
             />
-          </label>
-          <label>
-            日期
-            <input
-              type="datetime-local"
-              value={occurredAt}
-              onChange={(event) => setOccurredAt(event.target.value)}
-            />
-          </label>
-        </fieldset>
-        <ErrorNote message={error} />
-        {!readOnly && (
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={save}
-            disabled={busy}
-          >
-            保存
-          </button>
-        )}
-      </div>
-    </Dialog>
+            <div className={styles.currencyResults}>
+              {filteredCurrencyItems.map(({ code, name, symbol }) => (
+                <button
+                  type="button"
+                  key={code}
+                  className={styles.currencyResult}
+                  aria-pressed={currency === code}
+                  onClick={() => {
+                    setCurrency(code)
+                    setCurrencyPickerOpen(false)
+                    setCurrencySearch('')
+                  }}
+                >
+                  <span className={styles.currencyResultSymbol}>{symbol}</span>
+                  <span>
+                    <strong>{code}</strong>
+                    <small>{name}</small>
+                  </span>
+                  {currency === code && <Check size={18} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </>
   )
 }
 
 function Balances({
   group,
+  initialSelected,
   onClose,
   onChanged,
 }: {
   group: WalkcalcGroupDto
+  initialSelected: WalkcalcParticipantProjectionDto | null
   onClose: () => void
   onChanged: () => Promise<void>
 }) {
+  const { t } = useWalkcalcI18n()
   const [currency, setCurrency] = useState(group.currencyCode)
   const [suggestion, setSuggestion] =
     useState<WalkcalcSettlementSuggestionDto | null>(null)
   const [selected, setSelected] =
-    useState<WalkcalcParticipantProjectionDto | null>(null)
+    useState<WalkcalcParticipantProjectionDto | null>(initialSelected)
   const [detail, setDetail] = useState<WalkcalcRecordDto[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -730,7 +1151,7 @@ function Balances({
     if (
       !suggestion?.transfers.length ||
       !window.confirm(
-        `结清 ${currency} 的 ${suggestion.transfers.length} 笔转账？`,
+        t('结清 %@ 的 %@ 笔转账？', currency, suggestion.transfers.length),
       )
     )
       return
@@ -761,11 +1182,14 @@ function Balances({
       setError((cause as Error).message)
     }
   }
+  useEffect(() => {
+    if (initialSelected) void showDetail(initialSelected)
+  }, [initialSelected])
   return (
-    <Dialog title="余额与结算" onClose={onClose} wide>
+    <Dialog title={t('余额')} onClose={onClose} wide>
       <div className={styles.form}>
         <label>
-          货币
+          {t('货币')}
           <select
             value={currency}
             onChange={(event) => setCurrency(event.target.value)}
@@ -789,7 +1213,10 @@ function Balances({
                 onClick={() => showDetail(person)}
               >
                 <span className={styles.person}>
-                  <Initials name={participantName(person)} />
+                  <Initials
+                    name={participantName(person)}
+                    avatar={person.profile?.avatar}
+                  />
                   {participantName(person)}
                 </span>
                 <strong
@@ -809,7 +1236,9 @@ function Balances({
         </div>
         {selected && (
           <section className={styles.subSection}>
-            <h3>{participantName(selected)} · 相关记录</h3>
+            <h3>
+              {participantName(selected)} · {t('相关记录')}
+            </h3>
             {detail.map((record) => (
               <div className={styles.listRow} key={record.recordId}>
                 <span>{record.note || categoryName(record.category)}</span>
@@ -819,7 +1248,7 @@ function Balances({
           </section>
         )}
         <section className={styles.subSection}>
-          <h3>建议转账</h3>
+          <h3>{t('建议结清')}</h3>
           {suggestion?.transfers.length ? (
             suggestion.transfers.map((transfer, index) => (
               <div
@@ -833,7 +1262,7 @@ function Balances({
               </div>
             ))
           ) : (
-            <p className={styles.muted}>当前货币已结清。</p>
+            <p className={styles.muted}>{t('当前货币已结清。')}</p>
           )}
         </section>
         <ErrorNote message={error} />
@@ -844,7 +1273,7 @@ function Balances({
             disabled={busy}
             onClick={resolve}
           >
-            全部结清
+            {t('结清')}
           </button>
         )}
       </div>
@@ -861,6 +1290,7 @@ function Members({
   onClose: () => void
   onChanged: () => Promise<void>
 }) {
+  const { t } = useWalkcalcI18n()
   const [tempName, setTempName] = useState('')
   const [search, setSearch] = useState('')
   const [found, setFound] = useState<WalkcalcPublicUserDto[]>([])
@@ -891,22 +1321,27 @@ function Members({
       await onChanged()
       setTempName('')
       setSearch('')
-      onClose()
     } catch (cause) {
       setError((cause as Error).message)
+    } finally {
       setBusy(false)
     }
   }
   return (
-    <Dialog title="成员" onClose={onClose}>
+    <Dialog title={t('成员')} onClose={onClose}>
       <div className={styles.form}>
         <div className={styles.listPanel}>
           {group.participants.map((person) => (
             <div className={styles.listRow} key={person.participantId}>
               <span className={styles.person}>
-                <Initials name={participantName(person)} />
+                <Initials
+                  name={participantName(person)}
+                  avatar={person.profile?.avatar}
+                />
                 {participantName(person)}
-                {person.userId === group.ownerUserId && <small>创建者</small>}
+                {person.userId === group.ownerUserId && (
+                  <small>{t('创建者')}</small>
+                )}
               </span>
               {group.isOwner && person.userId !== group.ownerUserId && (
                 <button
@@ -919,7 +1354,7 @@ function Members({
                     )
                   }
                   onClick={() => {
-                    if (window.confirm(`移除 ${participantName(person)}？`))
+                    if (window.confirm(t('移除 %@？', participantName(person))))
                       void mutate(
                         `${groupPath(group.code)}/members/${encodeURIComponent(
                           person.participantId,
@@ -928,19 +1363,19 @@ function Members({
                       )
                   }}
                 >
-                  移除
+                  {t('移除')}
                 </button>
               )}
             </div>
           ))}
         </div>
         <label>
-          添加临时成员
+          {t('添加临时成员')}
           <div className={styles.inputAction}>
             <input
               value={tempName}
               onChange={(event) => setTempName(event.target.value)}
-              placeholder="姓名"
+              placeholder={t('姓名')}
             />
             <button
               type="button"
@@ -952,16 +1387,16 @@ function Members({
                 })
               }
             >
-              添加
+              {t('添加')}
             </button>
           </div>
         </label>
         <label>
-          邀请已有用户
+          {t('邀请已有用户')}
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="搜索用户名"
+            placeholder={t('搜索用户名')}
           />
         </label>
         {found
@@ -973,7 +1408,13 @@ function Members({
           )
           .map((person) => (
             <div className={styles.listRow} key={person.userId}>
-              <span>{person.profile?.name || person.userId}</span>
+              <span className={styles.person}>
+                <Initials
+                  name={person.profile?.name || person.userId}
+                  avatar={person.profile?.avatar}
+                />
+                {person.profile?.name || person.userId}
+              </span>
               <button
                 type="button"
                 className={styles.textButton}
@@ -984,7 +1425,7 @@ function Members({
                   })
                 }
               >
-                邀请
+                {t('邀请')}
               </button>
             </div>
           ))}
@@ -998,11 +1439,18 @@ function GroupSettings({
   group,
   onClose,
   onChanged,
+  onOpenMembers,
+  onOpenStatistics,
+  onLeave,
 }: {
   group: WalkcalcGroupDto
   onClose: () => void
   onChanged: () => Promise<void>
+  onOpenMembers: () => void
+  onOpenStatistics: () => void
+  onLeave: () => void
 }) {
+  const { t } = useWalkcalcI18n()
   const [name, setName] = useState(group.name)
   const [currency, setCurrency] = useState(group.currencyCode)
   const [error, setError] = useState('')
@@ -1016,18 +1464,42 @@ function GroupSettings({
         body: JSON.stringify(body),
       })
       await onChanged()
-      onClose()
+    } catch (cause) {
+      setError((cause as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function groupAction(action: 'archive' | 'delete') {
+    if (action === 'archive' && group.hasUnresolvedBalance) {
+      setError(t('请先结清群组余额，再归档群组。'))
+      return
+    }
+    if (
+      !window.confirm(action === 'archive' ? t('归档群组？') : t('删除群组？'))
+    )
+      return
+    setBusy(true)
+    setError('')
+    try {
+      await walkcalcApi(
+        `${groupPath(group.code)}${action === 'archive' ? '/archive' : ''}`,
+        {
+          method: action === 'archive' ? 'POST' : 'DELETE',
+        },
+      )
+      onLeave()
     } catch (cause) {
       setError((cause as Error).message)
       setBusy(false)
     }
   }
   return (
-    <Dialog title="群组设置" onClose={onClose}>
+    <Dialog title={t('群组设置')} onClose={onClose}>
       <div className={styles.form}>
-        <p className={styles.muted}>群组 ID：{group.code}</p>
+        <h3 className={styles.formSectionTitle}>{t('群组')}</h3>
         <label>
-          群组名称
+          {t('群组名称')}
           <div className={styles.inputAction}>
             <input
               value={name}
@@ -1039,31 +1511,103 @@ function GroupSettings({
               disabled={busy || !name.trim() || name === group.name}
               onClick={() => save('/name', { name: name.trim() })}
             >
-              保存
+              {t('保存')}
             </button>
           </div>
         </label>
-        <label>
-          默认货币
-          <div className={styles.inputAction}>
-            <select
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value)}
-            >
-              {Array.from(new Set([currency, ...currencies])).map((item) => (
-                <option key={item}>{item}</option>
+        <div className={`${styles.listRow} ${styles.listPanel}`}>
+          <span>{t('群组 ID')}</span>
+          <strong>{group.code}</strong>
+        </div>
+        {group.isOwner ? (
+          <label>
+            {t('默认货币')}
+            <div className={styles.inputAction}>
+              <select
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+              >
+                {Array.from(new Set([currency, ...currencies])).map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={busy || currency === group.currencyCode}
+                onClick={() => save('/currency', { currencyCode: currency })}
+              >
+                {t('保存')}
+              </button>
+            </div>
+          </label>
+        ) : (
+          <div className={`${styles.listRow} ${styles.listPanel}`}>
+            <span>{t('默认货币')}</span>
+            <strong>{group.currencyCode}</strong>
+          </div>
+        )}
+        <h3 className={styles.formSectionTitle}>{t('成员')}</h3>
+        <div className={styles.listPanel}>
+          <button
+            type="button"
+            className={styles.listRow}
+            onClick={onOpenMembers}
+          >
+            <span>{t('成员')}</span>
+            <span className={styles.person}>
+              {group.participants.slice(0, 4).map((person) => (
+                <Initials
+                  key={person.participantId}
+                  name={participantName(person)}
+                  avatar={person.profile?.avatar}
+                />
               ))}
-            </select>
+              <ChevronRight size={16} />
+            </span>
+          </button>
+          <button
+            type="button"
+            className={styles.listRow}
+            onClick={onOpenMembers}
+          >
+            {t('添加成员')} <ChevronRight size={16} />
+          </button>
+          <button
+            type="button"
+            className={styles.listRow}
+            onClick={onOpenMembers}
+          >
+            {t('添加临时成员')} <ChevronRight size={16} />
+          </button>
+        </div>
+        <div className={styles.listPanel}>
+          <button
+            type="button"
+            className={styles.listRow}
+            onClick={onOpenStatistics}
+          >
+            {t('我的支出')} <ChevronRight size={16} />
+          </button>
+          <button
+            type="button"
+            className={styles.listRow}
+            disabled={busy}
+            onClick={() => void groupAction('archive')}
+          >
+            {t('归档群组')} <ChevronRight size={16} />
+          </button>
+          {group.isOwner && (
             <button
               type="button"
-              className={styles.secondaryButton}
-              disabled={busy || currency === group.currencyCode}
-              onClick={() => save('/currency', { currencyCode: currency })}
+              className={`${styles.listRow} ${styles.negative}`}
+              disabled={busy}
+              onClick={() => void groupAction('delete')}
             >
-              保存
+              {t('删除群组')} <ChevronRight size={16} />
             </button>
-          </div>
-        </label>
+          )}
+        </div>
         <ErrorNote message={error} />
       </div>
     </Dialog>
@@ -1079,6 +1623,7 @@ function RecordSearch({
   onClose: () => void
   onEdit: (record: WalkcalcRecordDto) => void
 }) {
+  const { t } = useWalkcalcI18n()
   const [query, setQuery] = useState('')
   const [records, setRecords] = useState<WalkcalcRecordDto[]>([])
   const [error, setError] = useState('')
@@ -1107,14 +1652,14 @@ function RecordSearch({
     return () => clearTimeout(timer)
   }, [group.code, query])
   return (
-    <Dialog title="搜索记录" onClose={onClose} wide>
+    <Dialog title={t('搜索记录')} onClose={onClose} wide>
       <div className={styles.form}>
         <label className={styles.search}>
           <Search size={17} />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索备注或分类"
+            placeholder={t('搜索备注和分类')}
           />
         </label>
         <ErrorNote message={error} />
@@ -1129,7 +1674,7 @@ function RecordSearch({
             <strong>{money(record.amount, record.currencyCode)}</strong>
           </button>
         ))}
-        {query && !records.length && <Empty title="没有找到记录" />}
+        {query && !records.length && <Empty title={t('没有匹配记录')} />}
       </div>
     </Dialog>
   )
@@ -1139,6 +1684,7 @@ function Statistics({
   group,
   onClose,
 }: { group: WalkcalcGroupDto; onClose: () => void }) {
+  const { t } = useWalkcalcI18n()
   const [statistics, setStatistics] = useState<WalkcalcStatisticsDto | null>(
     null,
   )
@@ -1151,13 +1697,13 @@ function Statistics({
       .catch((cause) => setError(cause.message))
   }, [group.code])
   return (
-    <Dialog title="我的支出" onClose={onClose}>
+    <Dialog title={t('我的支出')} onClose={onClose}>
       <div className={styles.form}>
         <ErrorNote message={error} />
         {statistics?.totals.map((total) => (
           <section className={styles.subSection} key={total.currencyCode}>
             <p className={styles.muted}>
-              {total.currencyCode} · {total.recordCount} 笔
+              {total.currencyCode} · {t('%@ 笔', total.recordCount)}
             </p>
             <strong className={styles.statAmount}>
               {money(total.expenseShare, total.currencyCode)}
@@ -1173,7 +1719,7 @@ function Statistics({
           </section>
         ))}
         {statistics && !statistics.totals.length && (
-          <Empty title="还没有支出" />
+          <Empty title={t('还没有支出')} />
         )}
       </div>
     </Dialog>

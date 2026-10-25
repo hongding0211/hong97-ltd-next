@@ -8,6 +8,7 @@ import type {
   WalkcalcSettlementSuggestionDto,
   WalkcalcStatisticsDto,
 } from '@server/modules/walkcalc/dto/response.dto'
+import { translateWalkcalc } from './i18n'
 
 export type {
   WalkcalcGroupDto,
@@ -62,8 +63,8 @@ export async function walkcalcApi<T>(
     throw new Error(
       envelope?.msg ||
         (response.status === 401
-          ? '登录已过期，请重新登录。'
-          : '请求失败，请稍后重试。'),
+          ? translateWalkcalc('登录已过期，请重新登录。')
+          : translateWalkcalc('请求失败，请稍后重试。')),
     )
   }
   return envelope.data as T
@@ -82,14 +83,41 @@ export function queryString(
   return text ? `?${text}` : ''
 }
 
-export function money(value: string | number | undefined, currency = 'CNY') {
+export function money(
+  value: string | number | undefined,
+  currency = 'CNY',
+  spaceCurrency = false,
+) {
   const amount = Number(value || 0)
   try {
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'narrowSymbol',
-    }).format(amount)
+    const formatter = new Intl.NumberFormat(
+      typeof navigator === 'undefined'
+        ? 'zh-CN'
+        : navigator.languages?.[0] || navigator.language,
+      {
+        style: 'currency',
+        currency,
+        currencyDisplay: 'narrowSymbol',
+      },
+    )
+    if (!spaceCurrency) return formatter.format(amount)
+
+    const parts = formatter.formatToParts(amount)
+    const currencyIndex = parts.findIndex((part) => part.type === 'currency')
+    const numberIndex = parts.findIndex((part) => part.type === 'integer')
+    if (currencyIndex < 0 || numberIndex < 0) return formatter.format(amount)
+    const between = parts.slice(
+      Math.min(currencyIndex, numberIndex) + 1,
+      Math.max(currencyIndex, numberIndex),
+    )
+    if (between.some((part) => /\s/.test(part.value))) {
+      return formatter.format(amount)
+    }
+    parts[currencyIndex].value =
+      currencyIndex < numberIndex
+        ? `${parts[currencyIndex].value} `
+        : ` ${parts[currencyIndex].value}`
+    return parts.map((part) => part.value).join('')
   } catch {
     return `${currency} ${amount.toFixed(2)}`
   }
@@ -101,24 +129,31 @@ export function participantName(person?: {
   participantId?: string
 }) {
   return (
-    person?.profile?.name || person?.tempName || person?.participantId || '成员'
+    person?.profile?.name ||
+    person?.tempName ||
+    person?.participantId ||
+    translateWalkcalc('成员')
   )
 }
 
 export const categories = [
   ['food', '餐饮'],
   ['beverage', '饮品'],
+  ['accommodation', '酒店'],
   ['shopping', '购物'],
   ['traffic', '交通'],
-  ['accommodation', '住宿'],
+  ['stay', '住宿'],
   ['vacation', '旅行'],
+  ['transfer', '转账'],
   ['ticket', '票务'],
   ['game', '娱乐'],
-  ['transfer', '其他'],
+  ['other', '其他'],
 ] as const
 
 export function categoryName(id?: string) {
-  return categories.find(([key]) => key === id)?.[1] || id || '其他'
+  return translateWalkcalc(
+    categories.find(([key]) => key === id)?.[1] || id || '其他',
+  )
 }
 
 const commonCurrencies = [

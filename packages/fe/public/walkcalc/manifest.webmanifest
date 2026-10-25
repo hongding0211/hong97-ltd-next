@@ -1,0 +1,12 @@
+{
+  "name": "Walking Calculator",
+  "short_name": "WalkCalc",
+  "start_url": "/walkcalc",
+  "scope": "/walkcalc",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "icons": [
+    { "src": "/walkcalc/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}
