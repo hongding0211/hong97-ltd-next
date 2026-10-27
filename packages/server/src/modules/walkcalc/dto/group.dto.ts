@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsISO4217CurrencyCode,
   IsIn,
   IsInt,
@@ -75,4 +76,9 @@ export class QueryWalkcalcGroupsDto {
   @IsOptional()
   @IsIn(['all', 'active', 'archived'])
   archiveState?: 'all' | 'active' | 'archived' = 'all'
+}
+
+export class UpdateWalkcalcGroupPinDto {
+  @IsBoolean()
+  isPinned: boolean
 }

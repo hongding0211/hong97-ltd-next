@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
+import { UpdateWalkcalcGroupPinDto } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
   QueryWalkcalcRecordsDto,
@@ -32,6 +33,7 @@ describe('WalkcalcController', () => {
             inviteUsers: jest.fn(),
             removeMember: jest.fn(),
             archiveGroup: jest.fn(),
+            pinGroup: jest.fn(),
             renameGroup: jest.fn(),
             addRecord: jest.fn(),
             dropRecord: jest.fn(),
@@ -50,6 +52,42 @@ describe('WalkcalcController', () => {
 
     controller = module.get(WalkcalcController)
     service = module.get(WalkcalcService)
+  })
+
+  it('routes pin state to the current user without accepting a user id from the body', async () => {
+    service.pinGroup.mockResolvedValue({ code: 'AB12', pinnedAt: 123 })
+    await expect(
+      controller.pinGroup('u1', 'AB12', { isPinned: true }),
+    ).resolves.toEqual({ code: 'AB12', pinnedAt: 123 })
+    expect(service.pinGroup).toHaveBeenCalledWith('u1', 'AB12', true)
+    await controller.pinGroup('u1', 'AB12', { isPinned: false })
+    expect(service.pinGroup).toHaveBeenLastCalledWith('u1', 'AB12', false)
+  })
+
+  it('requires an actual boolean for pin updates', async () => {
+    const pipe = new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    })
+    const metadata = {
+      type: 'body' as const,
+      metatype: UpdateWalkcalcGroupPinDto,
+    }
+    for (const isPinned of [true, false]) {
+      await expect(pipe.transform({ isPinned }, metadata)).resolves.toEqual({
+        isPinned,
+      })
+    }
+    for (const value of [
+      {},
+      { isPinned: 'false' },
+      { isPinned: 1 },
+      { isPinned: null },
+      { isPinned: true, userId: 'u2' },
+    ]) {
+      await expect(pipe.transform(value, metadata)).rejects.toThrow()
+    }
   })
 
   it('wires user helpers and home summary to the service', async () => {

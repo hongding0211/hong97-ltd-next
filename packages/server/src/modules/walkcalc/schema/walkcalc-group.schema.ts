@@ -54,6 +54,10 @@ export class WalkcalcParticipant {
   @Prop()
   tempName?: string
 
+  // Personal ordering preference; it must not modify the group's activity time.
+  @Prop()
+  pinnedAt?: number
+
   @Prop({ required: true, default: true })
   isActive: boolean
 

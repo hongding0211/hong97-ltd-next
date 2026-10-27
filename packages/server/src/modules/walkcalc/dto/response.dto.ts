@@ -69,6 +69,7 @@ export interface WalkcalcGroupDto {
   currencyCode: string
   ownerUserId: string
   archivedUserIds: string[]
+  pinnedAt: number | null
   isOwner: boolean
   hasUnresolvedBalance: boolean
   createdAt: number
@@ -83,6 +84,7 @@ export interface WalkcalcGroupSummaryDto {
   currencyCode: string
   ownerUserId: string
   archivedUserIds: string[]
+  pinnedAt: number | null
   isOwner: boolean
   hasUnresolvedBalance: boolean
   createdAt: number

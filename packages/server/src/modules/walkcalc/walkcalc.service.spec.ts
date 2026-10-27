@@ -97,6 +97,108 @@ describe('WalkcalcService normalized ledger', () => {
     ])
   })
 
+  it('pins per member, preserves first pin time, and sorts before pagination', async () => {
+    const ctx = createContext({
+      groups: [
+        groupDoc({ code: 'AA01', name: 'Trip newest', modifiedAt: 500 }),
+        groupDoc({ code: 'BB02', name: 'Trip older', modifiedAt: 200 }),
+        groupDoc({ code: 'CC03', name: 'Trip oldest', modifiedAt: 100 }),
+        groupDoc({ code: 'DD04', name: 'Other', modifiedAt: 300 }),
+      ],
+      participants: ['AA01', 'BB02', 'CC03', 'DD04'].flatMap((code) => [
+        userParticipant(code, 'u1'),
+        userParticipant(code, 'u2'),
+      ]),
+    })
+    const first = await ctx.service.pinGroup('u1', 'CC03', true)
+    const second = await ctx.service.pinGroup('u1', 'BB02', true)
+    expect(second.pinnedAt).toBeGreaterThan(first.pinnedAt!)
+    expect(await ctx.service.pinGroup('u1', 'CC03', true)).toEqual(first)
+    const page1 = await ctx.service.myGroups('u1', { page: 1, pageSize: 1 })
+    const page2 = await ctx.service.myGroups('u1', { page: 2, pageSize: 2 })
+    expect(page1.data.map((group) => group.code)).toEqual(['CC03'])
+    expect(page1.data[0].pinnedAt).toEqual(first.pinnedAt)
+    // Page 2 starts at offset 2: both pins have already been consumed.
+    expect(page2.data.map((group) => group.code)).toEqual(['AA01', 'DD04'])
+    const crossing = await ctx.service.myGroups('u1', { page: 1, pageSize: 3 })
+    expect(crossing.data.map((group) => group.code)).toEqual([
+      'CC03',
+      'BB02',
+      'AA01',
+    ])
+    expect(crossing.total).toBe(4)
+    expect(
+      (await ctx.service.myGroups('u2', { pageSize: 10 })).data.map(
+        (group) => group.code,
+      ),
+    ).toEqual(['AA01', 'DD04', 'BB02', 'CC03'])
+    expect((await ctx.service.getGroup('u1', 'CC03')).pinnedAt).toBe(
+      first.pinnedAt,
+    )
+    expect((await ctx.service.getGroup('u2', 'CC03')).pinnedAt).toBeNull()
+    expect(
+      ctx.groupStore.docs.find((group) => group.code === 'CC03')?.modifiedAt,
+    ).toBe(100)
+    expect(await ctx.service.pinGroup('u1', 'CC03', false)).toEqual({
+      code: 'CC03',
+      pinnedAt: null,
+    })
+    await ctx.service.pinGroup('u1', 'CC03', true)
+    expect(
+      (await ctx.service.myGroups('u1', { pageSize: 10 })).data.map(
+        (group) => group.code,
+      ),
+    ).toEqual(['BB02', 'CC03', 'AA01', 'DD04'])
+    expect(
+      (
+        await ctx.service.myGroups('u1', { search: 'Other', pageSize: 1 })
+      ).data.map((group) => group.code),
+    ).toEqual(['DD04'])
+    expect((await ctx.service.myGroups('u1', { search: 'Other' })).total).toBe(
+      1,
+    )
+  })
+
+  it('respects archive, deleted-group, and membership filters for pins', async () => {
+    const ctx = createContext({
+      groups: [
+        groupDoc({ code: 'AA01', archivedUserIds: ['u1'] }),
+        groupDoc({ code: 'BB02' }),
+        groupDoc({ code: 'CC03', isDeleted: true }),
+        groupDoc({ code: 'DD04' }),
+      ],
+      participants: [
+        { ...userParticipant('AA01', 'u1'), pinnedAt: 1 },
+        { ...userParticipant('BB02', 'u1'), pinnedAt: 2 },
+        { ...userParticipant('CC03', 'u1'), pinnedAt: 3 },
+        { ...userParticipant('DD04', 'u1'), isActive: false, pinnedAt: 4 },
+      ],
+    })
+    expect(
+      (await ctx.service.myGroups('u1', { archiveState: 'active' })).data.map(
+        (group) => group.code,
+      ),
+    ).toEqual(['BB02'])
+    expect(
+      (await ctx.service.myGroups('u1', { archiveState: 'archived' })).data.map(
+        (group) => group.code,
+      ),
+    ).toEqual(['AA01'])
+    expect((await ctx.service.myGroups('u1', {})).total).toBe(2)
+    for (const code of ['CC03', 'DD04', 'MISSING']) {
+      await expect(
+        ctx.service.pinGroup('u1', code, true),
+      ).rejects.toBeInstanceOf(GeneralException)
+    }
+    await expect(
+      ctx.service.pinGroup('u2', 'BB02', true),
+    ).rejects.toBeInstanceOf(GeneralException)
+    expect(
+      ctx.participantStore.docs.find((member) => member.groupCode === 'DD04')
+        ?.pinnedAt,
+    ).toBe(4)
+  })
+
   it('lists paginated groups while home summary includes archived and unpaged groups', async () => {
     const ctx = createContext({
       groups: [

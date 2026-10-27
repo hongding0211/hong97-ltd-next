@@ -19,6 +19,7 @@ import {
   QueryWalkcalcGroupsDto,
   RenameWalkcalcGroupDto,
   UpdateWalkcalcGroupCurrencyDto,
+  UpdateWalkcalcGroupPinDto,
 } from './dto/group.dto'
 import {
   AddWalkcalcRecordDto,
@@ -190,6 +191,16 @@ export class WalkcalcController {
     @Param('participantId') participantId: string,
   ) {
     return this.walkcalcService.removeMember(userId, code, participantId)
+  }
+
+  @Patch('groups/:code/pin')
+  @HttpCode(HttpStatus.OK)
+  async pinGroup(
+    @UserId() userId: string,
+    @Param('code') code: string,
+    @Body() dto: UpdateWalkcalcGroupPinDto,
+  ) {
+    return this.walkcalcService.pinGroup(userId, code, dto.isPinned)
   }
 
   @Post('groups/:code/archive')

@@ -515,7 +515,7 @@ export class WalkcalcService {
     const pageSize = query.pageSize ?? 10
     const memberships = await this.walkcalcParticipantModel
       .find(this.activeParticipantFilter({ kind: 'user', userId }))
-      .select({ groupCode: 1 })
+      .select({ groupCode: 1, pinnedAt: 1 })
       .exec()
     const groupCodes = memberships.map((membership) => membership.groupCode)
     const baseFilter: Record<string, unknown> = { code: { $in: groupCodes } }
@@ -530,18 +530,43 @@ export class WalkcalcService {
       query.search,
     )
 
-    const [groups, total] = await Promise.all([
-      this.walkcalcGroupModel
-        .find(filter)
-        .sort({ modifiedAt: -1 })
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .exec(),
+    const pinnedAtByGroup = new Map(
+      memberships
+        .filter((membership) => membership.pinnedAt != null)
+        .map((membership) => [membership.groupCode, membership.pinnedAt!]),
+    )
+    const pinnedCodes = [...pinnedAtByGroup.keys()]
+    // Filter before counting/slicing so search and archive scopes keep pagination exact.
+    const [pinnedGroups, total] = await Promise.all([
+      pinnedCodes.length
+        ? this.walkcalcGroupModel
+            .find({ $and: [filter, { code: { $in: pinnedCodes } }] })
+            .exec()
+        : Promise.resolve([]),
       this.walkcalcGroupModel.countDocuments(filter).exec(),
     ])
+    pinnedGroups.sort(
+      (left, right) =>
+        pinnedAtByGroup.get(left.code)! - pinnedAtByGroup.get(right.code)! ||
+        left.code.localeCompare(right.code),
+    )
+    const offset = (page - 1) * pageSize
+    const groups = pinnedGroups.slice(offset, offset + pageSize)
+    if (groups.length < pageSize) {
+      const unpinnedCodes = groupCodes.filter(
+        (code) => !pinnedAtByGroup.has(code),
+      )
+      const remaining = await this.walkcalcGroupModel
+        .find({ $and: [filter, { code: { $in: unpinnedCodes } }] })
+        .sort({ modifiedAt: -1, code: 1 })
+        .skip(Math.max(0, offset - pinnedGroups.length))
+        .limit(pageSize - groups.length)
+        .exec()
+      groups.push(...remaining)
+    }
 
     return {
-      data: await this.mapGroupsToSummaryDtos(groups, userId),
+      data: await this.mapGroupsToSummaryDtos(groups, userId, pinnedAtByGroup),
       total,
       page,
       pageSize,
@@ -551,6 +576,50 @@ export class WalkcalcService {
   async getGroup(userId: string, code: string): Promise<WalkcalcGroupDto> {
     const group = await this.loadGroupForMember(code, userId)
     return this.mapGroupToDto(group, userId)
+  }
+
+  async pinGroup(
+    userId: string,
+    code: string,
+    isPinned: boolean,
+  ): Promise<{ code: string; pinnedAt: number | null }> {
+    await this.loadGroupForMember(code, userId)
+    const filter = this.activeParticipantFilter({
+      groupCode: code,
+      kind: 'user',
+      userId,
+    })
+    if (isPinned) {
+      const latest = await this.walkcalcParticipantModel
+        .find(
+          this.activeParticipantFilter({
+            kind: 'user',
+            userId,
+            pinnedAt: { $gte: 0 },
+          }),
+        )
+        .sort({ pinnedAt: -1 })
+        .limit(1)
+        .exec()
+      const pinnedAt = Math.max(Date.now(), (latest[0]?.pinnedAt ?? 0) + 1)
+      // Retrying Pin must preserve the original position, even across devices.
+      await this.walkcalcParticipantModel
+        .updateOne(
+          { ...filter, pinnedAt: { $in: [null] } },
+          { $set: { pinnedAt } },
+        )
+        .exec()
+    } else {
+      await this.walkcalcParticipantModel
+        .updateOne(filter, { $unset: { pinnedAt: '' } })
+        .exec()
+    }
+    const membership = await this.walkcalcParticipantModel
+      .findOne(filter)
+      .exec()
+    if (!membership)
+      throw new GeneralException('walkcalc.groupNotFoundOrNoAccess')
+    return { code, pinnedAt: membership.pinnedAt ?? null }
   }
 
   async archiveGroup(
@@ -1838,6 +1907,7 @@ export class WalkcalcService {
   private async mapGroupsToSummaryDtos(
     groups: WalkcalcGroup[],
     userId: string,
+    pinnedAtByGroup: Map<string, number> = new Map(),
   ): Promise<WalkcalcGroupSummaryDto[]> {
     const groupCodes = groups.map((group) => group.code)
     const projectionPromise: Promise<WalkcalcParticipantProjectionDocument[]> =
@@ -1914,6 +1984,7 @@ export class WalkcalcService {
         currencyCode: this.normalizedCurrencyCode(group.currencyCode),
         ownerUserId: group.ownerUserId,
         archivedUserIds: group.archivedUserIds,
+        pinnedAt: pinnedAtByGroup.get(group.code) ?? null,
         isOwner: group.ownerUserId === userId,
         hasUnresolvedBalance: unresolvedGroupCodes.has(group.code),
         createdAt: group.createdAtMs,
@@ -2023,12 +2094,23 @@ export class WalkcalcService {
       group.code,
       session,
     )
+    const membership = await this.walkcalcParticipantModel
+      .findOne(
+        this.activeParticipantFilter({
+          groupCode: group.code,
+          kind: 'user',
+          userId,
+        }),
+      )
+      .session(session ?? null)
+      .exec()
     return {
       code: group.code,
       name: group.name,
       currencyCode: this.normalizedCurrencyCode(group.currencyCode),
       ownerUserId: group.ownerUserId,
       archivedUserIds: group.archivedUserIds,
+      pinnedAt: membership?.pinnedAt ?? null,
       isOwner: group.ownerUserId === userId,
       hasUnresolvedBalance: participants.some((participant) =>
         participant.currencyBalances.some(
