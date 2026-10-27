@@ -146,6 +146,14 @@ export class QueryWalkcalcSpendingFiltersDto {
   @IsBoolean()
   includeUncategorized?: boolean
 
+  // Include settlement records alongside category IDs (clients display them as transfers).
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  includeSettlements?: boolean
+
   // Comma-separated ISO codes; omission means all currencies.
   @IsOptional()
   @Transform(({ value }) =>

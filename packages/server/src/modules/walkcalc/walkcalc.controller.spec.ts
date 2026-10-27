@@ -307,6 +307,28 @@ describe('WalkcalcController', () => {
     await expect(
       pipe.transform({ includeUncategorized: 'yes' }, metadata),
     ).rejects.toThrow()
+    for (const [input, expected] of [
+      ['true', true],
+      ['false', false],
+    ]) {
+      await expect(
+        pipe.transform(
+          { categoryIds: 'food,transfer', includeSettlements: input },
+          metadata,
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          categoryIds: ['food', 'transfer'],
+          includeSettlements: expected,
+        }),
+      )
+    }
+    for (const includeSettlements of ['yes', '1', ['true']]) {
+      await expect(
+        pipe.transform({ includeSettlements }, metadata),
+      ).rejects.toThrow()
+    }
+
     await expect(
       pipe.transform({ fromOccurredAt: '-1' }, metadata),
     ).rejects.toThrow()

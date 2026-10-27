@@ -1170,6 +1170,122 @@ describe('WalkcalcService normalized ledger', () => {
     expect(all.total).toBe(6)
   })
 
+  it('combines multiple categories and optional settlements with other filters before pagination', async () => {
+    const ctx = createContext({
+      groups: [groupDoc({ currencyCode: 'USD' })],
+      participants: [
+        userParticipant('AB12', 'u1'),
+        userParticipant('AB12', 'u2'),
+      ],
+      records: [
+        expenseRecord({
+          recordId: 'food',
+          category: 'food',
+          note: 'Trip',
+          createdAt: 900,
+        }),
+        expenseRecord({
+          recordId: 'transfer',
+          category: 'transfer',
+          note: 'Trip',
+          createdAt: 800,
+        }),
+        settlementRecord({
+          recordId: 'settlement',
+          note: 'Trip',
+          createdAt: 700,
+        }),
+        settlementRecord({
+          recordId: 'legacy-settlement',
+          category: undefined,
+          note: 'Trip',
+          createdAt: 600,
+        }),
+        expenseRecord({
+          recordId: 'wrong-category',
+          category: 'shopping',
+          note: 'Trip',
+          createdAt: 500,
+        }),
+        expenseRecord({
+          recordId: 'wrong-currency',
+          category: 'food',
+          currencyCode: 'CNY',
+          note: 'Trip',
+          createdAt: 400,
+        }),
+        settlementRecord({
+          recordId: 'wrong-person',
+          fromId: 'u2',
+          toId: 'u2',
+          involvedParticipantIds: ['u2'],
+          note: 'Trip',
+          createdAt: 300,
+        }),
+        settlementRecord({
+          recordId: 'wrong-keyword',
+          note: 'Other',
+          createdAt: 200,
+        }),
+      ],
+    })
+    const query = {
+      categoryIds: ['food', 'transfer', 'food'],
+      includeSettlements: true,
+      currencyCodes: ['USD'],
+      participantId: 'u1',
+      search: structuredSearch('Trip', ['note']),
+      pageSize: 2,
+    }
+    const first = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 1,
+    })
+    const second = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      page: 2,
+    })
+    expect(first.total).toBe(4)
+    expect(second.total).toBe(4)
+    expect(first.data.map((record) => record.recordId)).toEqual([
+      'food',
+      'transfer',
+    ])
+    expect(second.data.map((record) => record.recordId)).toEqual([
+      'settlement',
+      'legacy-settlement',
+    ])
+    const exact = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      includeSettlements: false,
+    })
+    expect(exact.total).toBe(2)
+    const settlementsOnly = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      categoryIds: [],
+    })
+    expect(settlementsOnly.total).toBe(2)
+    const noMatches = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      categoryIds: ['traffic'],
+      includeSettlements: false,
+    })
+    expect(noMatches.total).toBe(0)
+    const spending = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      scope: 'myExpense',
+    })
+    expect(spending.total).toBe(2)
+    const stats = await ctx.service.groupStatistics('u1', 'AB12', query)
+    expect(
+      stats.byCategory.every(
+        (category) =>
+          category.categoryId !== null &&
+          ['food', 'transfer'].includes(category.categoryId),
+      ),
+    ).toBe(true)
+  })
+
   it('keeps record shape stable while personal spending filters and statistics agree', async () => {
     const ctx = createContext({
       groups: [groupDoc({ currencyCode: 'USD' })],

@@ -1703,15 +1703,28 @@ export class WalkcalcService {
         },
       })
     }
-    if (query.categoryIds?.length || query.includeUncategorized) {
-      filters.push({
-        category: {
-          $in: [
-            ...new Set(query.categoryIds ?? []),
-            ...(query.includeUncategorized ? [null, ''] : []),
-          ],
-        },
-      })
+    if (
+      query.categoryIds?.length ||
+      query.includeUncategorized ||
+      query.includeSettlements
+    ) {
+      const categoryOptions: Record<string, unknown>[] = []
+      if (query.categoryIds?.length || query.includeUncategorized) {
+        categoryOptions.push({
+          category: {
+            $in: [
+              ...new Set(query.categoryIds ?? []),
+              ...(query.includeUncategorized ? [null, ''] : []),
+            ],
+          },
+        })
+      }
+      if (query.includeSettlements) categoryOptions.push({ type: 'settlement' })
+      filters.push(
+        categoryOptions.length === 1
+          ? categoryOptions[0]
+          : { $or: categoryOptions },
+      )
     }
     if (query.currencyCodes?.length) {
       const codes = [...new Set(query.currencyCodes)]
