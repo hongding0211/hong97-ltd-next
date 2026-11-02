@@ -58,7 +58,7 @@ const Comment: React.FC<
   ) : (
     <>
       {replyToName && (
-        <span className="text-neutral-400 dark:text-neutral-500">
+        <span className="text-neutral-500 dark:text-neutral-400">
           @{replyToName}：
         </span>
       )}
@@ -82,7 +82,9 @@ const Comment: React.FC<
               width={18}
               borderWidth={1}
             />
-            <div className="text-sm">{name}</div>
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              {name}
+            </div>
           </div>
         )}
         {isReply ? (
@@ -93,7 +95,7 @@ const Comment: React.FC<
             onPointerUp={() => setPressed(false)}
             onPointerCancel={() => setPressed(false)}
             onPointerLeave={() => setPressed(false)}
-            className={`-mx-1 inline-block max-w-full touch-manipulation self-start rounded px-1 text-left transition-all duration-100 ease-out ${
+            className={`-mx-1 inline-block max-w-full touch-manipulation self-start rounded px-1 text-left text-neutral-900 transition-all duration-100 ease-out dark:text-white ${
               pressed
                 ? 'scale-[0.98] bg-neutral-300/70 opacity-70 dark:bg-neutral-700/80'
                 : 'hover:bg-neutral-200/60 dark:hover:bg-neutral-800/80'
@@ -102,12 +104,12 @@ const Comment: React.FC<
             {commentContent}
           </button>
         ) : (
-          <div>{commentContent}</div>
-        )}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="relative opacity-80 font-medium">
-            {timeUtil.formatDynamic(time)}
+          <div className="text-neutral-900 dark:text-white">
+            {commentContent}
           </div>
+        )}
+        <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="relative">{timeUtil.formatDynamic(time)}</div>
           {!isReply && (
             <button
               type="button"
@@ -117,7 +119,7 @@ const Comment: React.FC<
               onPointerCancel={() => setPressed(false)}
               onPointerLeave={() => setPressed(false)}
               className={`cursor-pointer hover:underline ${
-                pressed ? 'opacity-40 underline' : 'opacity-70'
+                pressed ? 'opacity-40 underline' : ''
               }`}
             >
               {t('reply.text')}
@@ -127,7 +129,7 @@ const Comment: React.FC<
             <button
               type="button"
               onClick={() => setShowDialog(true)}
-              className="cursor-pointer opacity-70 hover:underline active:underline"
+              className="cursor-pointer hover:underline active:underline"
             >
               {t('deleteComment.text')}
             </button>
@@ -225,7 +227,7 @@ export const Comments: React.FC<CommentsProps> = (props) => {
   }
 
   return (
-    <div className="px-3 py-1.5 pb-3 rounded-md bg-neutral-100 dark:bg-neutral-900 mt-10">
+    <div className="px-3 py-1.5 pb-3 rounded-md bg-neutral-50 dark:bg-neutral-950 mt-10">
       <div className="text-sm mt-2 mb-6 font-semibold">
         {t('allComments', { count: comments.length })}
       </div>

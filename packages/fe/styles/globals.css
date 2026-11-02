@@ -152,6 +152,16 @@ html {
     @apply text-neutral-700 dark:text-neutral-300;
   }
 
+  .blog-article-content .pswp-gallery {
+    @apply my-3;
+  }
+
+  /* Gallery spacing belongs to the outer block, including its caption. */
+  .blog-article-content .pswp-gallery > div {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
   .prose blockquote p::before,
   .prose blockquote p::after {
     content: none;
@@ -178,7 +188,7 @@ html {
 }
 
 .prose :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  color: rgb(115 115 115);
+  color: var(--tw-prose-captions);
   border-inline-start-color: rgb(212 212 212);
   font-style: normal;
   font-weight: 400;
@@ -187,7 +197,6 @@ html {
 .dark
   .prose
   :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  color: rgb(163 163 163);
   border-inline-start-color: rgb(64 64 64);
 }
 

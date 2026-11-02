@@ -60,7 +60,7 @@ export const CommentEdit: React.FC<CommentEditProps> = (props) => {
       <div className="relative h-[120px] md:h-[150px]">
         <Textarea
           placeholder={t('typeComment')}
-          className="text-sm resize-none absolute top-0 left-0 w-full h-full text-neutral-600 dark:text-neutral-400"
+          className="text-sm resize-none absolute top-0 left-0 w-full h-full text-neutral-900 placeholder:text-neutral-500 dark:text-white dark:placeholder:text-neutral-400"
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -130,7 +130,7 @@ export const BlogReplyEdit: React.FC<BlogReplyEditProps> = ({
         onChange={(event) => setContent(event.target.value)}
         rows={2}
         disabled={loading}
-        className="resize-none pr-24 text-sm"
+        className="resize-none pr-24 text-sm text-neutral-900 placeholder:text-neutral-500 dark:text-white dark:placeholder:text-neutral-400"
       />
       <div className="absolute bottom-3 right-3 flex items-center gap-2">
         {isTooLong && (

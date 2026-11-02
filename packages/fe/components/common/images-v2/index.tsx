@@ -226,7 +226,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
             showThumbHash={canOptimizeLoading}
           />
           {_caption && (
-            <div className="text-sm text-neutral-600 dark:text-neutral-400">
+            <div className="text-sm text-[color:var(--tw-prose-captions,#525252)] dark:text-[color:var(--tw-prose-captions,#a3a3a3)]">
               {_caption}
             </div>
           )}
@@ -287,7 +287,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
           </div>
         </div>
         {_caption && (
-          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+          <div className="text-sm text-[color:var(--tw-prose-captions,#525252)] dark:text-[color:var(--tw-prose-captions,#a3a3a3)]">
             {_caption}
           </div>
         )}
