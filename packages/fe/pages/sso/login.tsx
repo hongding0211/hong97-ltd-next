@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@radix-ui/react-label'
+import { recoverFoodSession } from '@services/sso/food-session-recovery'
 import {
   readSsoSourceQuery,
   resolveSsoSourceConfig,
@@ -48,6 +49,7 @@ import { ContextToggle } from '../../components/common/ContextToggle'
 import Logo from '../../components/common/Logo'
 import ImageCrop from '../../components/common/image-crop/ImageCrop'
 import { InputWithLabel } from '../../components/common/input-with-label'
+import { useGeneralContext } from '../../components/hoc/general-context/GeneralContext'
 
 const readRedirectQuery = (redirect: string | string[] | undefined) => {
   if (typeof redirect === 'string') {
@@ -190,6 +192,7 @@ function Login() {
   const { t: tCommon } = useTranslation('common')
 
   const router = useRouter()
+  const userId = useGeneralContext().user?.userId
 
   const {
     msg,
@@ -466,6 +469,24 @@ function Login() {
     init({ redirect: readRedirectQuery(router.query.redirect) })
     return cleanUp
   }, [router.isReady, router.query.redirect, cleanUp, init])
+
+  useEffect(() => {
+    if (!router.isReady || !userId) return
+    const controller = new AbortController()
+    try {
+      void recoverFoodSession({
+        redirect: readRedirectQuery(router.query.redirect),
+        origin: window.location.origin,
+        fetch: window.fetch.bind(window),
+        storage: window.sessionStorage,
+        replace: (path) => window.location.replace(path),
+        signal: controller.signal,
+      })
+    } catch {
+      // Login remains available if browser storage is disabled.
+    }
+    return () => controller.abort()
+  }, [router.isReady, router.query.redirect, userId])
 
   return (
     <>
