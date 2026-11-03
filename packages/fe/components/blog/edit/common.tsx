@@ -71,6 +71,8 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null)
 
   const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mobileToolbarContainer, setMobileToolbarContainer] =
+    useState<HTMLDivElement | null>(null)
 
   const [content, setContent] = useState(initialContent || '')
 
@@ -376,6 +378,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
         className="hidden"
       />
       <Actions
+        mobileToolbarRef={setMobileToolbarContainer}
         meta={meta}
         mode={mode}
         onPublish={handlePublish}
@@ -429,8 +432,12 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
               keywords={keywords}
               onKeywordsChange={handleKeywordsChange}
             />
-            <div className="overflow-x-hidden pt-2">
-              <Content value={content} onValueChange={handleValueChange} />
+            <div className="blog-article-content overflow-x-hidden pt-2">
+              <Content
+                value={content}
+                onValueChange={handleValueChange}
+                mobileToolbarContainer={mobileToolbarContainer}
+              />
             </div>
           </MdxLayout>
         ) : (
@@ -443,7 +450,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
                 <span key={k}>{` #${k}`}</span>
               ))}
             </figcaption>
-            <div className="overflow-x-hidden pt-2">
+            <div className="blog-article-content overflow-x-hidden pt-2">
               {previewContent ? (
                 <MDXRemote {...previewContent} components={components} />
               ) : (

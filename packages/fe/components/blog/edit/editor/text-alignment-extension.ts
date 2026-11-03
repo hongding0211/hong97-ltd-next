@@ -1,7 +1,8 @@
 import { Extension, type JSONContent } from '@tiptap/core'
 import { Heading } from '@tiptap/extension-heading'
+import { wrapWavyUnderline } from '@utils/wavy-underline'
 
-export type TextAlignment = 'left' | 'center' | 'right'
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -13,7 +14,7 @@ declare module '@tiptap/core' {
 }
 
 const ALIGNABLE_TYPES = ['paragraph', 'heading']
-const ALIGNMENTS: TextAlignment[] = ['left', 'center', 'right']
+const ALIGNMENTS: TextAlignment[] = ['left', 'center', 'right', 'justify']
 
 const escapeHtml = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -21,8 +22,14 @@ const escapeHtml = (value: string) =>
 const escapeAttribute = (value: string) =>
   escapeHtml(value).replace(/"/g, '&quot;')
 
+const escapeText = (value: string) =>
+  escapeHtml(value).replace(
+    /[{}*_`[\]~\\]/g,
+    (char) => `&#${char.charCodeAt(0)};`,
+  )
+
 const renderTextMarks = (node: JSONContent) => {
-  let content = escapeHtml(node.text || '')
+  let content = escapeText(node.text || '')
 
   for (const mark of node.marks || []) {
     switch (mark.type) {
@@ -35,6 +42,9 @@ const renderTextMarks = (node: JSONContent) => {
       case 'underline':
         content = `<u>${content}</u>`
         break
+      case 'wavyUnderline':
+        content = wrapWavyUnderline(content, mark.attrs?.color)
+        break
       case 'strike':
         content = `<s>${content}</s>`
         break
@@ -43,7 +53,10 @@ const renderTextMarks = (node: JSONContent) => {
         break
       case 'link': {
         const href = escapeAttribute(String(mark.attrs?.href || ''))
-        content = `<a href="${href}">${content}</a>`
+        const title = mark.attrs?.title
+          ? ` title="${escapeAttribute(String(mark.attrs.title))}"`
+          : ''
+        content = `<a href="${href}"${title}>${content}</a>`
         break
       }
     }
@@ -52,7 +65,12 @@ const renderTextMarks = (node: JSONContent) => {
   return content
 }
 
-const renderInlineHtml = (content: JSONContent[] = []) =>
+export const hasWavyUnderline = (content: JSONContent[] = []) =>
+  content.some((node) =>
+    node.marks?.some((mark) => mark.type === 'wavyUnderline'),
+  )
+
+export const renderInlineHtml = (content: JSONContent[] = []) =>
   content
     .map((node) => {
       if (node.type === 'text') {
@@ -80,14 +98,18 @@ export const TextAlignmentExtension = Extension.create({
         types: ALIGNABLE_TYPES,
         attributes: {
           textAlign: {
+            // Unset alignment inherits the article's default justification.
             default: null,
             parseHTML: (element) => {
               const value =
                 element.getAttribute('align') || element.style.textAlign
+              if (value === 'justify') {
+                return null
+              }
               return ALIGNMENTS.includes(value as TextAlignment) ? value : null
             },
             renderHTML: (attributes) => {
-              if (!attributes.textAlign || attributes.textAlign === 'left') {
+              if (!attributes.textAlign) {
                 return {}
               }
               return { style: `text-align: ${attributes.textAlign}` }
@@ -107,7 +129,7 @@ export const TextAlignmentExtension = Extension.create({
             return false
           }
 
-          if (alignment === 'left') {
+          if (alignment === 'justify') {
             return ALIGNABLE_TYPES.map((type) =>
               commands.resetAttributes(type, 'textAlign'),
             ).every(Boolean)
@@ -132,10 +154,16 @@ export const AlignedHeadingExtension = Heading.extend({
     const level = Number(node.attrs?.level) || 1
     const alignment = node.attrs?.textAlign as TextAlignment | undefined
 
-    if (alignment === 'center' || alignment === 'right') {
+    if (
+      alignment === 'left' ||
+      alignment === 'center' ||
+      alignment === 'right' ||
+      alignment === 'justify' ||
+      hasWavyUnderline(node.content)
+    ) {
       return renderAlignedMarkdownBlock(
         `h${level}`,
-        alignment,
+        alignment || 'justify',
         node.content || [],
       )
     }

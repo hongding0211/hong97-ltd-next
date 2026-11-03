@@ -1,12 +1,21 @@
 import { cn } from '@/lib/utils'
 import type { BlogTocItem } from '@utils/blog-toc'
 import { TableOfContents, X } from 'lucide-react'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { BlogToc } from '../BlogToc'
 
 interface EditTocProps {
   items: BlogTocItem[]
   blogTitle: string
+}
+
+type ScrollTarget = { id: string } | 'title'
+
+const getScrollOffset = () => {
+  const actions = document.querySelector<HTMLElement>(
+    '[data-blog-editor-actions]',
+  )
+  return actions ? actions.getBoundingClientRect().bottom + 12 : 150
 }
 
 const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
@@ -16,6 +25,7 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
   const [isNarrowViewport, setIsNarrowViewport] = useState(false)
   const scrollSpyLockRef = useRef<string | null>(null)
   const scrollSpyUnlockTimerRef = useRef<number | undefined>(undefined)
+  const pendingScrollRef = useRef<ScrollTarget | null>(null)
 
   useEffect(() => {
     setActiveId(firstItemId)
@@ -54,7 +64,10 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
         const lockedHeading = document.getElementById(scrollSpyLockRef.current)
         const lockedTop = lockedHeading?.getBoundingClientRect().top
 
-        if (lockedTop === undefined || Math.abs(lockedTop - 150) > 8) {
+        if (
+          lockedTop === undefined ||
+          Math.abs(lockedTop - getScrollOffset()) > 8
+        ) {
           return
         }
 
@@ -64,7 +77,7 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
       let nextActiveId = headings[0].id
 
       for (const heading of headings) {
-        if (heading.getBoundingClientRect().top <= 180) {
+        if (heading.getBoundingClientRect().top <= getScrollOffset() + 30) {
           nextActiveId = heading.id
         } else {
           break
@@ -100,14 +113,17 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
     }
   }, [isMobileOpen])
 
-  const scrollToHeading = (id: string) => {
+  const scrollToHeading = useCallback((id: string) => {
     const heading = document.getElementById(id)
 
     if (!heading) {
       return
     }
 
-    const top = heading.getBoundingClientRect().top + window.scrollY - 150
+    const top = Math.max(
+      0,
+      heading.getBoundingClientRect().top + window.scrollY - getScrollOffset(),
+    )
 
     setActiveId(id)
     scrollSpyLockRef.current = id
@@ -117,12 +133,30 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
     }, 900)
 
     window.scrollTo({ top, behavior: 'smooth' })
+  }, [])
+
+  const closeAndScroll = (target: ScrollTarget) => {
+    pendingScrollRef.current = target
+    setIsMobileOpen(false)
   }
 
-  const scrollToTitle = () => {
-    setIsMobileOpen(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  useEffect(() => {
+    if (isMobileOpen || !pendingScrollRef.current) {
+      return
+    }
+
+    const target = pendingScrollRef.current
+    pendingScrollRef.current = null
+    // The sheet's overflow lock must be released before Safari can scroll.
+    const frame = window.requestAnimationFrame(() => {
+      if (target === 'title') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        scrollToHeading(target.id)
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [isMobileOpen, scrollToHeading])
 
   return (
     <>
@@ -170,7 +204,7 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
             >
               <button
                 type="button"
-                onClick={scrollToTitle}
+                onClick={() => closeAndScroll('title')}
                 className="mb-4 max-w-full truncate text-left text-xs font-medium uppercase leading-5 text-neutral-500 dark:text-neutral-400"
               >
                 {blogTitle}
@@ -185,8 +219,7 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
                         href={`#${item.id}`}
                         onClick={(event) => {
                           event.preventDefault()
-                          setIsMobileOpen(false)
-                          scrollToHeading(item.id)
+                          closeAndScroll({ id: item.id })
                         }}
                         className={cn(
                           'block truncate py-1 text-left text-[15px] leading-6 text-neutral-500 transition-colors dark:text-neutral-400',

@@ -74,7 +74,7 @@ export function addHeadingAnchors(markdown: string) {
 
       const markdownMatch = line.match(/^(#{1,4})\s+(.+)$/)
       const alignedHtmlMatch = line.match(
-        /^<h([1-4])\s+align="(center|right)">(.+)<\/h\1>$/i,
+        /^<h([1-4])\s+align="(left|center|right|justify)">(.+)<\/h\1>$/i,
       )
 
       if (!markdownMatch && !alignedHtmlMatch) {

@@ -7,6 +7,7 @@ import React, { useContext, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@hooks/useLogin'
+import { useVisualViewportStickyOffset } from '@hooks/useVisualViewportStickyOffset'
 import { truncate } from '@utils/truncate'
 import cx from 'classnames'
 import { UserRound } from 'lucide-react'
@@ -29,11 +30,15 @@ interface IAppLayout {
   authRequired?: boolean
   hideNavBar?: boolean
   className?: string
+  visualViewportSticky?: boolean
 }
 
 const AppLayout: React.FC<IAppLayout> = (props) => {
   const [showMenu, setShowMenu] = useState(false)
   const hideNavBar = props.hideNavBar === true
+  const rootRef = useVisualViewportStickyOffset(
+    props.visualViewportSticky === true,
+  )
 
   const generalContext = useContext(GeneralContext)
   const { router, user } = generalContext
@@ -82,9 +87,9 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
   }
 
   return (
-    <div className="text-neutral-900 dark:text-neutral-50">
+    <div ref={rootRef} className="text-neutral-900 dark:text-neutral-50">
       {!hideNavBar && (
-        <nav className="sticky top-0 z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.8]">
+        <nav className="sticky top-[var(--app-viewport-offset-top,0px)] z-20 flex h-[64px] items-center justify-between bg-white/[0.5] px-5 backdrop-blur-xl backdrop-saturate-150 dark:bg-black/[0.8]">
           <Logo width={20} className="fill-neutral-800 dark:fill-neutral-100" />
           <button
             type="button"
@@ -200,7 +205,7 @@ const AppLayout: React.FC<IAppLayout> = (props) => {
             isMenuVisible && (
               <AnimatedDiv
                 id="mobile-navigation-menu"
-                className="fixed bottom-0 left-0 right-0 top-[64px] z-[100] bg-white sm:hidden dark:bg-black"
+                className="fixed bottom-0 left-0 right-0 top-[calc(64px+var(--app-viewport-offset-top,0px))] z-[100] bg-white sm:hidden dark:bg-black"
                 style={{
                   opacity: progress,
                   y: progress.to([0, 1], [-10, 0]),

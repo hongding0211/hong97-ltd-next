@@ -152,8 +152,28 @@ html {
     @apply text-neutral-700 dark:text-neutral-300;
   }
 
+  .blog-article-content {
+    text-align: justify;
+  }
+
+  .blog-article-content pre {
+    text-align: left;
+  }
+
+  .blog-article-content h1 {
+    @apply mt-6 mb-5 font-bold;
+  }
+
+  .blog-article-content h2 {
+    @apply font-bold;
+  }
+
+  .blog-article-content h3 {
+    @apply font-semibold;
+  }
+
   .blog-article-content .pswp-gallery {
-    @apply my-3;
+    @apply my-2.5;
   }
 
   /* Gallery spacing belongs to the outer block, including its caption. */
@@ -189,7 +209,9 @@ html {
 
 .prose :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
   color: var(--tw-prose-captions);
-  border-inline-start-color: rgb(212 212 212);
+  border-inline-start-color: rgb(229 229 229);
+  font-size: inherit;
+  line-height: inherit;
   font-style: normal;
   font-weight: 400;
 }
@@ -197,7 +219,7 @@ html {
 .dark
   .prose
   :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  border-inline-start-color: rgb(64 64 64);
+  border-inline-start-color: rgb(38 38 38);
 }
 
 .prose

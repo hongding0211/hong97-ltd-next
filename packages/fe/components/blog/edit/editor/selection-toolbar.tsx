@@ -5,9 +5,15 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { type Editor, posToDOMRect } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { isIPhoneOrIPad } from '@utils/apple-touch-device'
+import { isMobileDevice } from '@utils/mobile-device'
+import {
+  WAVE_COLORS,
+  type WaveColor,
+  normalizeWaveColor,
+} from '@utils/wavy-underline'
 import {
   AlignCenter,
+  AlignJustify,
   AlignLeft,
   AlignRight,
   Bold,
@@ -17,7 +23,9 @@ import {
   Italic,
   Link2,
   Plus,
+  Redo2,
   Underline,
+  Undo2,
   Unlink,
   X,
 } from 'lucide-react'
@@ -29,6 +37,7 @@ import { usePageScrollLock } from './use-page-scroll-lock'
 
 interface SelectionToolbarProps {
   editor: Editor
+  mobileToolbarContainer: HTMLDivElement | null
 }
 
 interface SavedSelection {
@@ -43,14 +52,16 @@ interface FloatingPosition {
   width: number
 }
 
-type KeyboardDockPosition = FloatingPosition
-
 interface VisualViewportBounds extends FloatingPosition {
   height: number
 }
 
-const KEYBOARD_DOCK_GAP = 8
-const KEYBOARD_DOCK_SIDE_INSET = 4
+const getVisualViewportBounds = (): VisualViewportBounds => ({
+  left: window.visualViewport?.offsetLeft ?? 0,
+  top: window.visualViewport?.offsetTop ?? 0,
+  width: window.visualViewport?.width ?? window.innerWidth,
+  height: window.visualViewport?.height ?? window.innerHeight,
+})
 
 const normalizeHref = (value: string) => {
   const href = value.trim()
@@ -65,8 +76,25 @@ const normalizeHref = (value: string) => {
   return `https://${href}`
 }
 
+const WavyUnderlineIcon = ({ color = 'currentColor' }: { color?: string }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4"
+  >
+    <path d="M7 3v7a5 5 0 0 0 10 0V3" />
+    <path d="M3 20c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0" />
+  </svg>
+)
+
 const ToolbarButton = ({
   active,
+  activeColor,
   touch,
   disabled,
   label,
@@ -75,6 +103,7 @@ const ToolbarButton = ({
   children,
 }: {
   active?: boolean
+  activeColor?: string
   touch?: boolean
   disabled?: boolean
   label: string
@@ -94,6 +123,11 @@ const ToolbarButton = ({
       onPointerDownAction?.()
     }}
     onClick={onClick}
+    style={
+      active && activeColor
+        ? { backgroundColor: `${activeColor}26` }
+        : undefined
+    }
     className={cn(
       'h-10 w-10 shrink-0 p-0 sm:h-8 sm:w-8',
       touch && 'h-10 w-10 sm:h-10 sm:w-10',
@@ -248,6 +282,7 @@ const LinkFields = ({
 
 export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   editor,
+  mobileToolbarContainer,
 }) => {
   const { t } = useTranslation('blog')
   const [, setVersion] = useState(0)
@@ -257,14 +292,11 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   const [canRemoveLink, setCanRemoveLink] = useState(false)
   const [floatingPosition, setFloatingPosition] =
     useState<FloatingPosition | null>(null)
-  const [appleTouchDevice, setAppleTouchDevice] = useState<boolean | null>(null)
-  const [editorFocused, setEditorFocused] = useState(editor.isFocused)
-  const [keyboardDockPosition, setKeyboardDockPosition] =
-    useState<KeyboardDockPosition | null>(null)
+  const [mobileDevice, setMobileDevice] = useState<boolean | null>(null)
   const [visualViewportBounds, setVisualViewportBounds] =
     useState<VisualViewportBounds | null>(null)
-  const [touchToolbarLevel, setTouchToolbarLevel] = useState<
-    'formatting' | 'insert'
+  const [toolbarLevel, setToolbarLevel] = useState<
+    'formatting' | 'insert' | 'wave'
   >('formatting')
   const linkOpenRef = useRef(false)
   const selectionRef = useRef<SavedSelection | null>(null)
@@ -273,7 +305,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   const mobileLinkSheetRef = useRef<HTMLDivElement>(null)
   const insertCommandItems = useRef(createInsertCommandItems()).current
 
-  usePageScrollLock(appleTouchDevice === true && linkOpen)
+  usePageScrollLock(mobileDevice === true && linkOpen)
 
   const setLinkOpen = useCallback((open: boolean) => {
     linkOpenRef.current = open
@@ -352,8 +384,11 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     setLinkText(hasText ? editor.state.doc.textBetween(from, to, ' ') : '')
     setCanRemoveLink(Boolean(existingHref))
 
-    if (appleTouchDevice === true) {
-      flushSync(() => setLinkOpen(true))
+    if (mobileDevice === true) {
+      flushSync(() => {
+        setVisualViewportBounds(getVisualViewportBounds())
+        setLinkOpen(true)
+      })
       hrefInputRef.current?.focus({ preventScroll: true })
       return
     }
@@ -364,7 +399,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       requestAnimationFrame(updateFloatingPosition)
     }
     requestAnimationFrame(() => hrefInputRef.current?.focus())
-  }, [appleTouchDevice, editor, setLinkOpen, updateFloatingPosition])
+  }, [mobileDevice, editor, setLinkOpen, updateFloatingPosition])
 
   const applyLink = useCallback(() => {
     const selection = selectionRef.current
@@ -405,71 +440,40 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   }, [editor])
 
   useEffect(() => {
-    setAppleTouchDevice(isIPhoneOrIPad())
+    setMobileDevice(isMobileDevice())
   }, [])
 
   useEffect(() => {
-    const handleFocus = () => setEditorFocused(true)
-    const handleBlur = () => setEditorFocused(false)
-
-    setEditorFocused(editor.isFocused)
-    editor.on('focus', handleFocus)
-    editor.on('blur', handleBlur)
-    return () => {
-      editor.off('focus', handleFocus)
-      editor.off('blur', handleBlur)
-    }
-  }, [editor])
-
-  useEffect(() => {
-    if (appleTouchDevice !== true || (!editorFocused && !linkOpen)) {
-      setKeyboardDockPosition(null)
+    if (mobileDevice !== true || !linkOpen) {
       setVisualViewportBounds(null)
       return
     }
 
     const viewport = window.visualViewport
 
-    const updateKeyboardDock = () => {
-      const viewportHeight = viewport?.height ?? window.innerHeight
-      const viewportOffsetTop = viewport?.offsetTop ?? 0
-      const viewportOffsetLeft = viewport?.offsetLeft ?? 0
-      const viewportWidth = viewport?.width ?? window.innerWidth
-      const visibleBottom = viewportOffsetTop + viewportHeight
-
-      setVisualViewportBounds({
-        left: viewportOffsetLeft,
-        top: viewportOffsetTop,
-        width: viewportWidth,
-        height: viewportHeight,
-      })
-
-      setKeyboardDockPosition({
-        left: viewportOffsetLeft + KEYBOARD_DOCK_SIDE_INSET,
-        top: visibleBottom - KEYBOARD_DOCK_GAP,
-        width: viewportWidth - KEYBOARD_DOCK_SIDE_INSET * 2,
-      })
+    const updateVisualViewport = () => {
+      setVisualViewportBounds(getVisualViewportBounds())
     }
 
-    updateKeyboardDock()
-    const delayedUpdate = window.setTimeout(updateKeyboardDock, 300)
+    updateVisualViewport()
+    const delayedUpdate = window.setTimeout(updateVisualViewport, 300)
     let orientationUpdate: number | undefined
     const handleOrientationChange = () => {
-      orientationUpdate = window.setTimeout(updateKeyboardDock, 300)
+      orientationUpdate = window.setTimeout(updateVisualViewport, 300)
     }
 
-    viewport?.addEventListener('resize', updateKeyboardDock)
-    viewport?.addEventListener('scroll', updateKeyboardDock)
+    viewport?.addEventListener('resize', updateVisualViewport)
+    viewport?.addEventListener('scroll', updateVisualViewport)
     window.addEventListener('orientationchange', handleOrientationChange)
 
     return () => {
       window.clearTimeout(delayedUpdate)
       window.clearTimeout(orientationUpdate)
-      viewport?.removeEventListener('resize', updateKeyboardDock)
-      viewport?.removeEventListener('scroll', updateKeyboardDock)
+      viewport?.removeEventListener('resize', updateVisualViewport)
+      viewport?.removeEventListener('scroll', updateVisualViewport)
       window.removeEventListener('orientationchange', handleOrientationChange)
     }
-  }, [appleTouchDevice, editorFocused, linkOpen])
+  }, [mobileDevice, linkOpen])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -498,7 +502,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   }, [linkOpen, updateFloatingPosition])
 
   useEffect(() => {
-    if (!linkOpen || appleTouchDevice === true) {
+    if (!linkOpen || mobileDevice === true) {
       return
     }
 
@@ -516,7 +520,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true)
     }
-  }, [appleTouchDevice, closeLink, linkOpen])
+  }, [mobileDevice, closeLink, linkOpen])
 
   useEffect(() => {
     const handleBlur = () => {
@@ -558,22 +562,46 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
 
   const linkFields = renderLinkFields()
 
-  const switchTouchToolbarLevel = (level: 'formatting' | 'insert') => {
-    flushSync(() => setTouchToolbarLevel(level))
-    editor.view.focus()
+  const switchToolbarLevel = (level: 'formatting' | 'insert' | 'wave') => {
+    flushSync(() => setToolbarLevel(level))
   }
 
   const renderFormattingControls = (touch = false) => (
     <>
       {touch && (
-        <ToolbarButton
-          touch
-          label={t('edit.formatting.insertBlock')}
-          onClick={() => switchTouchToolbarLevel('insert')}
-          onPointerDownAction={() => switchTouchToolbarLevel('insert')}
-        >
-          <Plus className="h-4 w-4" />
-        </ToolbarButton>
+        <>
+          <div
+            role="group"
+            aria-label={t('edit.formatting.history')}
+            className="flex shrink-0 items-center gap-0.5"
+          >
+            <ToolbarButton
+              touch
+              label={t('edit.formatting.undo')}
+              disabled={!editor.isEditable || !editor.can().undo()}
+              onClick={() => editor.chain().focus().undo().run()}
+            >
+              <Undo2 className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              touch
+              label={t('edit.formatting.redo')}
+              disabled={!editor.isEditable || !editor.can().redo()}
+              onClick={() => editor.chain().focus().redo().run()}
+            >
+              <Redo2 className="h-4 w-4" />
+            </ToolbarButton>
+          </div>
+          <div className="mx-0.5 h-5 w-px shrink-0 bg-neutral-200 dark:bg-neutral-800" />
+          <ToolbarButton
+            touch
+            label={t('edit.formatting.insertBlock')}
+            onClick={() => switchToolbarLevel('insert')}
+            onPointerDownAction={() => switchToolbarLevel('insert')}
+          >
+            <Plus className="h-4 w-4" />
+          </ToolbarButton>
+        </>
       )}
       <ToolbarButton
         touch={touch}
@@ -595,11 +623,31 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         touch={touch}
         active={editor.isActive('underline')}
         label={t('edit.formatting.underline')}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        onClick={() =>
+          editor.chain().focus().unsetWavyUnderline().toggleUnderline().run()
+        }
       >
         <Underline className="h-4 w-4" />
       </ToolbarButton>
       <div className="mx-0.5 h-5 w-px shrink-0 bg-neutral-200 dark:bg-neutral-800" />
+      <ToolbarButton
+        touch={touch}
+        active={editor.isActive('wavyUnderline')}
+        label={t('edit.formatting.wavyUnderline')}
+        onClick={() => switchToolbarLevel('wave')}
+      >
+        <WavyUnderlineIcon
+          color={
+            editor.isActive('wavyUnderline')
+              ? WAVE_COLORS[
+                  normalizeWaveColor(
+                    editor.getAttributes('wavyUnderline').color,
+                  )
+                ]
+              : undefined
+          }
+        />
+      </ToolbarButton>
       <ToolbarButton
         touch={touch}
         active={editor.isActive('code')}
@@ -620,9 +668,18 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       <ToolbarButton
         touch={touch}
         active={
+          !editor.isActive({ textAlign: 'left' }) &&
           !editor.isActive({ textAlign: 'center' }) &&
           !editor.isActive({ textAlign: 'right' })
         }
+        label={t('edit.formatting.alignJustify')}
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+      >
+        <AlignJustify className="h-4 w-4" />
+      </ToolbarButton>
+      <ToolbarButton
+        touch={touch}
+        active={editor.isActive({ textAlign: 'left' })}
         label={t('edit.formatting.alignLeft')}
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
       >
@@ -647,9 +704,42 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
     </>
   )
 
+  const renderWaveControls = (touch = false) => (
+    <>
+      <ToolbarButton
+        touch={touch}
+        label={t('edit.formatting.backToFormatting')}
+        onClick={() => switchToolbarLevel('formatting')}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </ToolbarButton>
+      <div className="mx-0.5 h-5 w-px shrink-0 bg-neutral-200 dark:bg-neutral-800" />
+      {(Object.keys(WAVE_COLORS) as WaveColor[]).map((color) => (
+        <ToolbarButton
+          key={color}
+          touch={touch}
+          active={editor.isActive('wavyUnderline', { color })}
+          activeColor={WAVE_COLORS[color]}
+          label={t(`edit.formatting.waveColors.${color}`)}
+          onClick={() => {
+            if (editor.isActive('wavyUnderline', { color })) {
+              editor.chain().focus().unsetWavyUnderline().run()
+            } else {
+              editor.chain().focus().setWavyUnderline(color).run()
+            }
+          }}
+        >
+          <WavyUnderlineIcon color={WAVE_COLORS[color]} />
+        </ToolbarButton>
+      ))}
+    </>
+  )
+
   const renderFormattingToolbar = () => (
     <div className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/95 p-1 shadow-lg backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95">
-      {renderFormattingControls()}
+      {toolbarLevel === 'wave'
+        ? renderWaveControls()
+        : renderFormattingControls()}
     </div>
   )
 
@@ -659,8 +749,8 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
         <ToolbarButton
           touch
           label={t('edit.formatting.backToFormatting')}
-          onClick={() => switchTouchToolbarLevel('formatting')}
-          onPointerDownAction={() => switchTouchToolbarLevel('formatting')}
+          onClick={() => switchToolbarLevel('formatting')}
+          onPointerDownAction={() => switchToolbarLevel('formatting')}
         >
           <ChevronLeft className="h-4 w-4" />
         </ToolbarButton>
@@ -680,7 +770,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => {
               const position = editor.state.selection.from
-              setTouchToolbarLevel('formatting')
+              setToolbarLevel('formatting')
               item.run(editor, { from: position, to: position })
             }}
           >
@@ -693,7 +783,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
 
   return (
     <>
-      {appleTouchDevice === false && (
+      {mobileDevice === false && (
         <BubbleMenu
           editor={editor}
           pluginKey="blogSelectionToolbar"
@@ -729,7 +819,7 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       )}
 
       {linkOpen &&
-        appleTouchDevice === false &&
+        mobileDevice === false &&
         !savedSelection?.hasText &&
         floatingPosition &&
         createPortal(
@@ -746,37 +836,30 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
           document.body,
         )}
 
-      {appleTouchDevice === true &&
-        !linkOpen &&
-        keyboardDockPosition &&
+      {mobileDevice === true &&
+        mobileToolbarContainer &&
         createPortal(
           <div
-            className="fixed z-[130] flex justify-start"
-            style={{
-              left: keyboardDockPosition.left,
-              top: keyboardDockPosition.top,
-              width: keyboardDockPosition.width,
-              transform: 'translateY(-100%)',
-            }}
-          >
-            <div
-              role={touchToolbarLevel === 'insert' ? 'listbox' : 'toolbar'}
-              aria-label={
-                touchToolbarLevel === 'insert'
-                  ? t('edit.formatting.insertBlock')
+            role={toolbarLevel === 'insert' ? 'listbox' : 'toolbar'}
+            aria-label={
+              toolbarLevel === 'insert'
+                ? t('edit.formatting.insertBlock')
+                : toolbarLevel === 'wave'
+                  ? t('edit.formatting.wavyUnderline')
                   : undefined
-              }
-              className="flex w-full items-center justify-start gap-0.5 overflow-x-auto rounded-[4px] border border-neutral-200 bg-white/95 px-2 py-1 shadow-lg backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/95"
-            >
-              {touchToolbarLevel === 'insert'
-                ? renderInsertControls()
+            }
+            className="flex w-full items-center gap-0.5 overflow-x-auto overscroll-x-contain"
+          >
+            {toolbarLevel === 'insert'
+              ? renderInsertControls()
+              : toolbarLevel === 'wave'
+                ? renderWaveControls(true)
                 : renderFormattingControls(true)}
-            </div>
           </div>,
-          document.body,
+          mobileToolbarContainer,
         )}
 
-      {appleTouchDevice === true &&
+      {mobileDevice === true &&
         linkOpen &&
         visualViewportBounds &&
         createPortal(

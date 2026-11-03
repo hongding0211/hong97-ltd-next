@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import type { Editor } from '@tiptap/react'
-import { isIPhoneOrIPad } from '@utils/apple-touch-device'
+import { isMobileDevice } from '@utils/mobile-device'
 import { useTranslation } from 'next-i18next'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -70,7 +70,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   editor,
 }) => {
   const { t } = useTranslation('blog')
-  const [appleTouchDevice, setAppleTouchDevice] = useState<boolean | null>(null)
+  const [mobileDevice, setMobileDevice] = useState<boolean | null>(null)
   const [slashMatch, setSlashMatch] = useState<SlashMatch | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [position, setPosition] = useState<MenuPosition | null>(null)
@@ -88,7 +88,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   }, [items, slashMatch?.query])
 
   const refreshMatch = useCallback(() => {
-    if (appleTouchDevice !== false) {
+    if (mobileDevice !== false) {
       setSlashMatch(null)
       return
     }
@@ -104,7 +104,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     setSlashMatch((current) =>
       current?.key === nextMatch.key ? current : nextMatch,
     )
-  }, [appleTouchDevice, editor])
+  }, [mobileDevice, editor])
 
   const updatePosition = useCallback(() => {
     if (!slashMatch) {
@@ -159,11 +159,11 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   )
 
   useEffect(() => {
-    setAppleTouchDevice(isIPhoneOrIPad())
+    setMobileDevice(isMobileDevice())
   }, [])
 
   useEffect(() => {
-    if (appleTouchDevice !== false) {
+    if (mobileDevice !== false) {
       return
     }
 
@@ -177,7 +177,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       editor.off('focus', refreshMatch)
       editor.off('blur', refreshMatch)
     }
-  }, [appleTouchDevice, editor, refreshMatch])
+  }, [mobileDevice, editor, refreshMatch])
 
   useEffect(() => {
     if (!slashMatch) {
@@ -250,7 +250,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   }, [editor, itemCount, runItem, selectedItem, slashMatchKey])
 
   if (
-    appleTouchDevice !== false ||
+    mobileDevice !== false ||
     !slashMatch ||
     !filteredItems.length ||
     !position

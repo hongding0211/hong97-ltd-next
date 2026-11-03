@@ -67,6 +67,9 @@
     "uploadImg": "Upload image",
     "imgCaptionPlaceholder": "Type image caption here",
     "formatting": {
+      "history": "Edit history",
+      "undo": "Undo",
+      "redo": "Redo",
       "bold": "Bold",
       "italic": "Italic",
       "underline": "Underline",
@@ -77,6 +80,7 @@
       "alignLeft": "Align left",
       "alignCenter": "Align center",
       "alignRight": "Align right",
+      "alignJustify": "Justify",
       "link": "Link",
       "linkText": "Display text",
       "linkTextPlaceholder": "Display text (optional)",
@@ -84,7 +88,15 @@
       "linkUrlPlaceholder": "Paste or type a link",
       "applyLink": "Apply link",
       "removeLink": "Remove link",
-      "cancelLink": "Cancel"
+      "cancelLink": "Cancel",
+      "wavyUnderline": "Wavy underline",
+      "waveColors": {
+        "blue": "Blue",
+        "green": "Green",
+        "yellow": "Yellow",
+        "red": "Red",
+        "purple": "Purple"
+      }
     }
   },
   "lastUpdate": "Update at"

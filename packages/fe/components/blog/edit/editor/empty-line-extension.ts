@@ -1,6 +1,7 @@
 import { Paragraph } from '@tiptap/extension-paragraph'
 import {
   type TextAlignment,
+  hasWavyUnderline,
   renderAlignedMarkdownBlock,
 } from './text-alignment-extension'
 
@@ -22,8 +23,19 @@ export const EmptyLineParagraphExtension = Paragraph.extend({
       return '<br />'
     }
 
-    if (alignment === 'center' || alignment === 'right') {
+    if (
+      alignment === 'left' ||
+      alignment === 'center' ||
+      alignment === 'right' ||
+      alignment === 'justify'
+    ) {
       return renderAlignedMarkdownBlock('p', alignment, node.content || [])
+    }
+
+    // Serialize decorated blocks as HTML so overlapping marks and
+    // adjacent wave colors survive the Markdown manager's mark boundaries.
+    if (hasWavyUnderline(node.content)) {
+      return renderAlignedMarkdownBlock('p', 'justify', node.content)
     }
 
     // Normal paragraph rendering

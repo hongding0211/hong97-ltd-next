@@ -4,7 +4,6 @@ import { Placeholder } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { EditorContent, EditorEvents, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { addHeadingAnchors } from '@utils/blog-toc'
 import { toast } from '@utils/toast'
 import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
@@ -13,7 +12,9 @@ import React, { useRef, useState } from 'react'
 import { CodeBlockWithLanguage } from './editor/code-block-extension'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
+import { HeadingAnchors } from './editor/heading-anchors'
 import { hasUnexpectedFencedCodeLoss } from './editor/markdown-integrity'
+import { NativeParagraphScroll } from './editor/native-paragraph-scroll'
 import { ReactMdxNode } from './editor/react-mdx-node'
 import { SelectionToolbar } from './editor/selection-toolbar'
 import { SlashCommandMenu } from './editor/slash-command-menu'
@@ -21,33 +22,18 @@ import {
   AlignedHeadingExtension,
   TextAlignmentExtension,
 } from './editor/text-alignment-extension'
+import { WavyUnderline } from './editor/wavy-underline-extension'
 
 const lowlight = createLowlight(all)
-
-const syncHeadingIds = (editor: EditorEvents['update']['editor']) => {
-  const { headingItems } = addHeadingAnchors(editor.getMarkdown())
-  const headings = Array.from(
-    editor.view.dom.querySelectorAll('h1, h2, h3, h4'),
-  ) as HTMLHeadingElement[]
-
-  headings.forEach((heading, index) => {
-    const id = headingItems[index]?.id
-
-    if (id) {
-      heading.id = id
-    } else {
-      heading.removeAttribute('id')
-    }
-  })
-}
 
 interface IContent {
   value: string
   onValueChange: (v: string) => void
+  mobileToolbarContainer: HTMLDivElement | null
 }
 
 const Content: React.FC<IContent> = (props) => {
-  const { value, onValueChange } = props
+  const { value, onValueChange, mobileToolbarContainer } = props
 
   const [initValue] = useState(value)
 
@@ -114,6 +100,8 @@ const Content: React.FC<IContent> = (props) => {
           breaks: true,
         },
       }),
+      HeadingAnchors,
+      NativeParagraphScroll,
       CodeBlockWithLanguage.configure({
         lowlight,
         enableTabIndentation: true,
@@ -129,21 +117,19 @@ const Content: React.FC<IContent> = (props) => {
       }),
       AlignedHeadingExtension,
       TextAlignmentExtension,
+      WavyUnderline,
       ReactMdxNode,
     ],
     immediatelyRender: false,
     content: initValue,
     contentType: 'markdown',
-    onCreate: ({ editor }) => {
-      syncHeadingIds(editor)
+    onCreate: () => {
       initializationDeadlineRef.current = Date.now() + 3000
       integrityCheckTimersRef.current = [0, 250, 1000, 2500].map((delay) =>
         setTimeout(() => validateInitialContent(editor), delay),
       )
     },
     onUpdate: (event) => {
-      syncHeadingIds(event.editor)
-
       if (
         saveBlockedRef.current ||
         (Date.now() <= initializationDeadlineRef.current &&
@@ -164,7 +150,12 @@ const Content: React.FC<IContent> = (props) => {
 
   return (
     <>
-      {editor && <SelectionToolbar editor={editor} />}
+      {editor && (
+        <SelectionToolbar
+          editor={editor}
+          mobileToolbarContainer={mobileToolbarContainer}
+        />
+      )}
       {editor && <SlashCommandMenu editor={editor} />}
       <DragHandle editor={editor}>
         <DndHandler />

@@ -95,7 +95,9 @@ export default function Page(props: EditPageProps) {
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
       </Head>
-      <AppLayout authRequired>{component}</AppLayout>
+      <AppLayout authRequired visualViewportSticky>
+        {component}
+      </AppLayout>
     </>
   )
 }

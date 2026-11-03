@@ -1,0 +1,24 @@
+span[data-wave] {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #3b82f6;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: none;
+}
+
+span[data-wave="green"] {
+  text-decoration-color: #22c55e;
+}
+
+span[data-wave="yellow"] {
+  text-decoration-color: #eab308;
+}
+
+span[data-wave="red"] {
+  text-decoration-color: #ef4444;
+}
+
+span[data-wave="purple"] {
+  text-decoration-color: #a855f7;
+}

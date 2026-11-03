@@ -15,6 +15,7 @@ import '../styles/code.css'
 import '../styles/globals.css'
 import '../styles/nprogress.css'
 import '../styles/tiptap.css'
+import '../styles/wavy-underline.css'
 import { registerToast } from '../utils/toast'
 
 interface CustomAppProps extends AppProps {
