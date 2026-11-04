@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import AppLayout from '@components/app-layout/AppLayout'
 import BlogCommon, { BlogMeta } from '@components/blog/edit/common'
 import { useUser } from '@hooks/useUser'
+import type { BlogDraftDto } from '@server/modules/blog/dto/draft.dto'
 import { http } from '@services/http'
 import { toast } from '@utils/toast'
 import { CircleSlash } from 'lucide-react'
@@ -15,10 +16,11 @@ interface EditPageProps {
   id?: string
   meta: BlogMeta | null
   content: string | null
+  draft: BlogDraftDto | null
 }
 
 export default function Page(props: EditPageProps) {
-  const { id, meta: initialMeta, content } = props
+  const { id, meta: initialMeta, content, draft } = props
 
   const [meta, setMeta] = useState<BlogMeta | null>(initialMeta)
 
@@ -47,10 +49,11 @@ export default function Page(props: EditPageProps) {
     const res = await http.post('PostBlogNew', meta)
     if (!res?.isSuccess || !res?.data?.key) {
       toast(t('blog.failToCreateBlog'), { type: 'error' })
-      return
+      return false
     }
     const id = res.data.key
     window.location.href = `/blog/edit?id=${id}`
+    return true
   }
 
   const component = (() => {
@@ -73,6 +76,7 @@ export default function Page(props: EditPageProps) {
       <BlogCommon
         meta={meta}
         content={content}
+        draft={draft}
         onRefreshMeta={handleRefreshMeta}
         onCreateNew={handleCreateNew}
       />
@@ -109,6 +113,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   let meta: any = null
   let content: any = null
+  let draft: BlogDraftDto | null = null
 
   if (id) {
     const [metaData, contentData] = await Promise.all([
@@ -133,6 +138,20 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
     ])
     meta = metaData?.data || null
     content = contentData?.data?.content || ''
+    const admin = await http.get('GetIsAdmin', undefined, {
+      serverSideCtx: context,
+      silentAuthError: true,
+    })
+    if (admin?.data?.isAdmin) {
+      const savedDraft = await http.get(
+        'GetBlogDraft',
+        { blogId: id as string },
+        {
+          serverSideCtx: context,
+        },
+      )
+      draft = savedDraft.data.draft
+    }
   }
 
   return {
@@ -142,6 +161,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       id: id ?? null,
       meta,
       content,
+      draft,
     },
   }
 }

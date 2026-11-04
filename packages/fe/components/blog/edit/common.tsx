@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ImagesV2 } from '@components/common/images-v2'
+import type { BlogDraftDto } from '@server/modules/blog/dto/draft.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { addHeadingAnchors } from '@utils/blog-toc'
@@ -30,6 +31,7 @@ const components = {
 }
 
 export type ActionLoading =
+  | 'exit'
   | 'save'
   | 'publish'
   | 'coverChange'
@@ -44,13 +46,14 @@ export type BlogMeta = BlogAPIS['GetBlogMeta']['responseData']
 interface IBlogCommon {
   meta?: BlogMeta
   content?: string
+  draft?: BlogDraftDto | null
   onRefreshMeta?: () => Promise<void>
   onCreateNew?: (meta: {
     title?: string
     coverImg?: string
     keywords?: string[]
     content?: string
-  }) => Promise<void>
+  }) => Promise<boolean>
 }
 
 interface DraftSnapshot {
@@ -66,21 +69,31 @@ interface SaveDraftOptions {
 }
 
 const BlogCommon: React.FC<IBlogCommon> = (props) => {
-  const { meta, content: initialContent, onRefreshMeta, onCreateNew } = props
+  const {
+    meta,
+    content: initialContent,
+    draft,
+    onRefreshMeta,
+    onCreateNew,
+  } = props
 
   const [actionLoading, setActionLoading] = useState<ActionLoading>(null)
 
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mode] = useState<'edit' | 'preview'>('edit')
   const [mobileToolbarContainer, setMobileToolbarContainer] =
     useState<HTMLDivElement | null>(null)
 
-  const [content, setContent] = useState(initialContent || '')
+  const [content, setContent] = useState(draft?.content ?? initialContent ?? '')
 
   const [previewContent, setPreviewContent] = useState<any>()
 
-  const [title, setTitle] = useState(meta?.blogTitle || '')
-  const [coverImg, setCoverImg] = useState(meta?.coverImg || '')
-  const [keywords, setKeywords] = useState<string[]>(meta?.keywords || [])
+  const [title, setTitle] = useState(draft?.title ?? meta?.blogTitle ?? '')
+  const [coverImg, setCoverImg] = useState(
+    draft?.coverImg ?? meta?.coverImg ?? '',
+  )
+  const [keywords, setKeywords] = useState<string[]>(
+    draft?.keywords ?? meta?.keywords ?? [],
+  )
 
   const draftRef = useRef<DraftSnapshot>({
     title,
@@ -89,6 +102,20 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     content,
   })
   draftRef.current = { title, coverImg, keywords, content }
+
+  const [draftSyncedAt, setDraftSyncedAt] = useState<number | null>(
+    draft?.savedAt ?? null,
+  )
+  const [draftSyncError, setDraftSyncError] = useState(false)
+  const bodyFlushRef = useRef<(() => boolean) | null>(null)
+  const lastSyncedSnapshotRef = useRef(JSON.stringify(draftRef.current))
+  const registerBodyFlush = useCallback((flush: (() => boolean) | null) => {
+    bodyFlushRef.current = flush
+  }, [])
+  const flushSnapshot = useCallback(() => {
+    if (bodyFlushRef.current?.() === false) return null
+    return { ...draftRef.current, keywords: [...draftRef.current.keywords] }
+  }, [])
 
   const { content: anchoredContent, tocItems } = useMemo(
     () => addHeadingAnchors(content),
@@ -107,69 +134,67 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   const router = useRouter()
 
-  const saveDraft = useCallback(
+  const persistSnapshot = useCallback(
     (
       snapshot: DraftSnapshot,
-      { quiet = false, manageLoading = true }: SaveDraftOptions = {},
+      target: 'draft' | 'official',
+      { quiet = true, manageLoading = false }: SaveDraftOptions = {},
     ): Promise<boolean> => {
+      const blogId = blogIdRef.current
+      const captured = { ...snapshot, keywords: [...snapshot.keywords] }
+      const key = JSON.stringify(captured)
       const save = async () => {
-        if (manageLoading) {
-          setActionLoading('save')
-        }
+        if (target === 'draft' && key === lastSyncedSnapshotRef.current)
+          return true
+        if (manageLoading) setActionLoading('save')
         try {
-          if (!blogIdRef.current) {
-            if (!snapshot.title) {
-              toast(t('blog.failToCreateBlogDue2EmptyTitle'), {
-                type: 'error',
-              })
+          if (!blogId) {
+            if (target === 'draft') return false
+            if (!captured.title) {
+              toast(t('blog.failToCreateBlogDue2EmptyTitle'), { type: 'error' })
               return false
             }
-            await onCreateNew?.({
-              title: snapshot.title,
-              coverImg: snapshot.coverImg,
-              keywords: snapshot.keywords,
-              content: snapshot.content,
-            })
-            return true
+            return (await onCreateNew?.(captured)) ?? false
           }
-
-          const blogId = blogIdRef.current
-          const [metaResponse, contentResponse] = await Promise.all([
-            http.put('PutBlogMeta', {
-              blogId,
-              blogTitle: snapshot.title,
-              coverImg: snapshot.coverImg,
-              keywords: snapshot.keywords,
-            }),
-            http.post('PostBlogContent', {
-              blogId,
-              content: snapshot.content,
-            }),
-          ])
-          const saved = metaResponse?.isSuccess && contentResponse?.isSuccess
-
-          if (!saved) {
+          const response = await http.put(
+            target === 'draft' ? 'PutBlogDraft' : 'PutBlogSave',
+            { blogId, ...captured },
+          )
+          if (!response?.isSuccess) {
+            if (target === 'draft') setDraftSyncError(true)
             return false
           }
-          if (!quiet) {
-            toast(t('blog.saveSuccess'), { type: 'success' })
+          lastSyncedSnapshotRef.current = key
+          setDraftSyncError(false)
+          setDraftSyncedAt(target === 'draft' ? response.data.savedAt : null)
+          if (target === 'official') {
+            if (!quiet) toast(t('blog.saveSuccess'), { type: 'success' })
+            await onRefreshMeta?.()
           }
-          await onRefreshMeta?.()
           return true
         } catch {
+          if (target === 'draft') setDraftSyncError(true)
           return false
         } finally {
-          if (manageLoading) {
+          if (manageLoading)
             setActionLoading((loading) => (loading === 'save' ? null : loading))
-          }
         }
       }
-
       const queuedSave = saveQueueRef.current.then(save, save)
       saveQueueRef.current = queuedSave
       return queuedSave
     },
     [onCreateNew, onRefreshMeta, t],
+  )
+  const saveDraft = useCallback(
+    (snapshot: DraftSnapshot, options?: SaveDraftOptions) =>
+      persistSnapshot(snapshot, 'draft', options),
+    [persistSnapshot],
+  )
+  const saveOfficial = useCallback(
+    (snapshot: DraftSnapshot, options?: SaveDraftOptions) =>
+      persistSnapshot(snapshot, 'official', options),
+    [persistSnapshot],
   )
 
   const saveDraftRef = useRef(saveDraft)
@@ -185,18 +210,39 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
   )
 
   const handleSave = useCallback(async () => {
+    const snapshot = flushSnapshot()
     debouncedSaveDraft.current.cancel()
-    await saveDraft(draftRef.current)
-  }, [saveDraft])
+    if (snapshot)
+      await saveOfficial(snapshot, { quiet: false, manageLoading: true })
+  }, [flushSnapshot, saveOfficial])
+
+  const handleReturn = useCallback(async () => {
+    const snapshot = flushSnapshot()
+    debouncedSaveDraft.current.cancel()
+    if (!snapshot || !meta?.blogId) return
+    setActionLoading('exit')
+    try {
+      const saved = await saveDraft(snapshot)
+      if (!saved) {
+        toast(t('edit.draftSyncFailed'), { type: 'error' })
+        return
+      }
+      await router.push(`/blog/id/${meta.blogId}`)
+    } finally {
+      setActionLoading(null)
+    }
+  }, [flushSnapshot, meta?.blogId, router, saveDraft, t])
 
   const handlePublish = useCallback(async () => {
     if (!meta?.blogId) {
       return
     }
+    const snapshot = flushSnapshot()
     debouncedSaveDraft.current.cancel()
+    if (!snapshot) return
     setActionLoading('publish')
     try {
-      const saved = await saveDraft(draftRef.current, {
+      const saved = await saveOfficial(snapshot, {
         quiet: true,
         manageLoading: false,
       })
@@ -214,7 +260,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
     } finally {
       setActionLoading(null)
     }
-  }, [onRefreshMeta, meta?.blogId, saveDraft])
+  }, [onRefreshMeta, meta?.blogId, saveOfficial, flushSnapshot])
 
   const handleHiddenChange = useCallback(async () => {
     setActionLoading('hidden')
@@ -244,7 +290,9 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
   const handleDelete = useCallback(async () => {
     setActionLoading('delete')
+    debouncedSaveDraft.current.cancel()
     try {
+      await saveQueueRef.current
       const res = await http.delete('DeleteBlog', {
         blogId: meta?.blogId,
       })
@@ -380,20 +428,15 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       <Actions
         mobileToolbarRef={setMobileToolbarContainer}
         meta={meta}
-        mode={mode}
+        onReturn={handleReturn}
+        draftSyncedAt={draftSyncedAt}
+        draftSyncError={draftSyncError}
         onPublish={handlePublish}
         onSave={handleSave}
         onHiddenChange={handleHiddenChange}
         onPinnedChange={handlePinnedChange}
         onDelete={handleDelete}
         loading={actionLoading}
-        onTogglePreview={() => {
-          if (mode === 'edit') {
-            setMode('preview')
-          } else {
-            setMode('edit')
-          }
-        }}
       />
       <Cover
         meta={meta}
@@ -435,6 +478,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
             <div className="blog-article-content overflow-x-hidden pt-2">
               <Content
                 value={content}
+                onFlushReady={registerBodyFlush}
                 onValueChange={handleValueChange}
                 mobileToolbarContainer={mobileToolbarContainer}
               />
@@ -442,11 +486,11 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
           </MdxLayout>
         ) : (
           <MdxLayout>
-            <h1 className="!mt-0 !mb-2 !text-4xl">{meta.blogTitle}</h1>
+            <h1 className="!mt-0 !mb-2 !text-4xl">{title}</h1>
             <figcaption className="m-0 !mt-1 text-sm flex items-center gap-x-1">
               {time.format(meta.time, 'datetimeShort')}
-              {!!meta.keywords?.length && <span> | </span>}
-              {meta.keywords?.map((k) => (
+              {!!keywords.length && <span> | </span>}
+              {keywords.map((k) => (
                 <span key={k}>{` #${k}`}</span>
               ))}
             </figcaption>

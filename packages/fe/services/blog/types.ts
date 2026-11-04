@@ -17,11 +17,27 @@ import {
   PostContentResponseDto,
 } from '@server/modules/blog/dto/content.dto'
 import { DeleteCommentDto } from '@server/modules/blog/dto/deleteComment.dto'
+import {
+  GetBlogDraftResponseDto,
+  SaveBlogDraftDto,
+  SaveBlogResponseDto,
+} from '@server/modules/blog/dto/draft.dto'
 import { MetaDto, MetaResponseDto } from '@server/modules/blog/dto/meta.dto'
 import { ViewDto, ViewResponseDto } from '@server/modules/blog/dto/view.dto'
 import { API } from '../types'
 
 export type BlogAPIS = {
+  GetBlogDraft: API<typeof MetaDto, undefined, typeof GetBlogDraftResponseDto>
+  PutBlogDraft: API<
+    undefined,
+    typeof SaveBlogDraftDto,
+    typeof SaveBlogResponseDto
+  >
+  PutBlogSave: API<
+    undefined,
+    typeof SaveBlogDraftDto,
+    typeof SaveBlogResponseDto
+  >
   PostBlogView: API<undefined, typeof ViewDto, typeof ViewResponseDto>
   GetBlogMeta: API<typeof MetaDto, undefined, typeof MetaResponseDto>
   PostBlogLike: API<undefined, typeof MetaDto, typeof MetaResponseDto>

@@ -8,7 +8,7 @@ import { toast } from '@utils/toast'
 import { debounce } from 'lodash'
 import { all, createLowlight } from 'lowlight'
 import { useTranslation } from 'next-i18next'
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { CodeBlockWithLanguage } from './editor/code-block-extension'
 import { DndHandler } from './editor/dnd'
 import { EmptyLineParagraphExtension } from './editor/empty-line-extension'
@@ -30,10 +30,11 @@ interface IContent {
   value: string
   onValueChange: (v: string) => void
   mobileToolbarContainer: HTMLDivElement | null
+  onFlushReady?: (flush: (() => boolean) | null) => void
 }
 
 const Content: React.FC<IContent> = (props) => {
-  const { value, onValueChange, mobileToolbarContainer } = props
+  const { value, onValueChange, mobileToolbarContainer, onFlushReady } = props
 
   const [initValue] = useState(value)
 
@@ -147,6 +148,21 @@ const Content: React.FC<IContent> = (props) => {
     },
     autofocus: initValue ? undefined : 'all',
   })
+
+  useEffect(() => {
+    if (!editor || !onFlushReady) return
+    onFlushReady(() => {
+      if (
+        saveBlockedRef.current ||
+        (Date.now() <= initializationDeadlineRef.current &&
+          !validateInitialContent(editor))
+      )
+        return false
+      handleUpdate.current.flush()
+      return true
+    })
+    return () => onFlushReady(null)
+  }, [editor, onFlushReady])
 
   return (
     <>

@@ -97,7 +97,11 @@
         "red": "Red",
         "purple": "Purple"
       }
-    }
+    },
+    "draftSync": "Draft sync: ",
+    "savedAt": "Saved: ",
+    "returnToPost": "Back to post",
+    "draftSyncFailed": "Draft sync failed"
   },
   "lastUpdate": "Update at"
 }

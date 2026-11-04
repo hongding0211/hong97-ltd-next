@@ -20,6 +20,7 @@ import { BlogDto, BlogNew2Dto, BlogsDto } from './dto/blog.dto'
 import { CommentDto, CommentsDto } from './dto/comment.dto'
 import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
+import { SaveBlogDraftDto } from './dto/draft.dto'
 import { MetaDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto } from './dto/view.dto'
 
@@ -96,6 +97,27 @@ export class BlogController {
   @HttpCode(HttpStatus.OK)
   async like(@Body() likeDto: MetaDto, @UserId() userId?: string) {
     return this.blogService.like(likeDto, userId)
+  }
+
+  @Get('draft')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async draft(@Query() query: MetaDto) {
+    return this.blogService.getDraft(query)
+  }
+
+  @Put('draft')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async saveDraft(@Body() body: SaveBlogDraftDto) {
+    return this.blogService.saveDraft(body)
+  }
+
+  @Put('save')
+  @RootOnly()
+  @HttpCode(HttpStatus.OK)
+  async saveOfficial(@Body() body: SaveBlogDraftDto) {
+    return this.blogService.saveOfficial(body)
   }
 
   @Post('comment')

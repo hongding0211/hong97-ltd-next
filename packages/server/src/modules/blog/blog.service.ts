@@ -24,6 +24,7 @@ import {
 import { CommentDto, CommentsDto, CommentsResponseDto } from './dto/comment.dto'
 import { GetContentDto, PostContentDto } from './dto/content.dto'
 import { DeleteCommentDto } from './dto/deleteComment.dto'
+import { SaveBlogDraftDto } from './dto/draft.dto'
 import { MetaDto, MetaResponseDto, UpdateMetaDto } from './dto/meta.dto'
 import { ViewDto, ViewResponseDto } from './dto/view.dto'
 import { Blog, BlogDocument } from './schema/blog.schema'
@@ -655,6 +656,57 @@ export class BlogService {
     return {
       blogId,
     }
+  }
+
+  async getDraft({ blogId }: MetaDto) {
+    const blog = await this.blogModel
+      .findOne({ blogId })
+      .select({ _id: 0, blogId: 1, draft: 1 })
+      .lean<Pick<Blog, 'blogId' | 'draft'> | null>()
+    if (!blog) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+    return { blogId, draft: blog.draft ?? null }
+  }
+
+  async saveDraft({
+    blogId,
+    title,
+    coverImg,
+    keywords,
+    content,
+  }: SaveBlogDraftDto) {
+    const savedAt = Date.now()
+    const result = await this.blogModel.updateOne(
+      { blogId },
+      { $set: { draft: { title, coverImg, keywords, content, savedAt } } },
+    )
+    if (!result.matchedCount) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+    return { blogId, savedAt }
+  }
+
+  async saveOfficial({
+    blogId,
+    title,
+    coverImg,
+    keywords,
+    content,
+  }: SaveBlogDraftDto) {
+    const savedAt = Date.now()
+    // Promote the complete snapshot and clear its draft in one document write.
+    const result = await this.blogModel.updateOne(
+      { blogId },
+      {
+        $set: { title, coverImg, keywords, content, lastUpdateTime: savedAt },
+        $unset: { draft: 1 },
+      },
+    )
+    if (!result.matchedCount) {
+      throw new GeneralException('blog.blogNotFound')
+    }
+    return { blogId, savedAt }
   }
 
   async deleteBlog(blogId: string) {

@@ -11,6 +11,7 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
         'text-neutral-900 dark:text-white leading-[26px]',
         'prose-p:my-2.5',
         'prose-img:my-2.5 prose-figure:my-2.5',
+        'min-[520px]:prose-img:max-w-[min(100%,480px)] min-[520px]:prose-img:mx-auto sm:prose-img:max-w-full',
         'prose-hr:my-5',
         'prose-headings:my-3 prose-headings:font-semibold',
         'prose-headings:text-black dark:prose-headings:text-white',

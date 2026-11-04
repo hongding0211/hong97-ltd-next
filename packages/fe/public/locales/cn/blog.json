@@ -97,7 +97,11 @@
         "red": "红色",
         "purple": "紫色"
       }
-    }
+    },
+    "draftSync": "Draft sync: ",
+    "savedAt": "Saved: ",
+    "returnToPost": "返回正文",
+    "draftSyncFailed": "草稿同步失败"
   },
   "lastUpdate": "编辑于"
 }

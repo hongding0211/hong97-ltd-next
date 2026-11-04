@@ -8,16 +8,15 @@ import { PopoverClose } from '@radix-ui/react-popover'
 import { time } from '@utils/time'
 import cx from 'classnames'
 import {
+  ArrowLeft,
   CloudUpload,
   Eye,
   EyeOff,
   ListPlus,
   Loader2,
-  Pencil,
   Pin,
   PinOff,
   Save,
-  SearchCheck,
   Trash,
 } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
@@ -26,13 +25,14 @@ import { ActionLoading, BlogMeta } from './common'
 
 interface IActions {
   meta?: BlogMeta
-  mode: 'edit' | 'preview'
+  onReturn?: () => void
+  draftSyncedAt?: number | null
+  draftSyncError?: boolean
   onSave?: () => void
   onPublish?: () => void
   onHiddenChange?: () => void
   onPinnedChange?: () => void
   onDelete?: () => void
-  onTogglePreview?: () => void
   loading?: ActionLoading
   mobileToolbarRef?: React.Ref<HTMLDivElement>
 }
@@ -40,13 +40,14 @@ interface IActions {
 const Actions: React.FC<IActions> = (props) => {
   const {
     meta,
-    mode,
+    onReturn,
+    draftSyncedAt,
+    draftSyncError,
     onSave,
     onPublish,
     onHiddenChange,
     onPinnedChange,
     onDelete,
-    onTogglePreview,
     loading,
     mobileToolbarRef,
   } = props
@@ -60,26 +61,25 @@ const Actions: React.FC<IActions> = (props) => {
   const { t } = useTranslation('blog')
 
   const lastUpdateTime = (() => {
-    if (!meta?.lastUpdateAt) {
+    if (draftSyncError)
+      return <span role="status">{t('edit.draftSyncFailed')}</span>
+    const timestamp = draftSyncedAt ?? meta?.lastUpdateAt
+    if (!timestamp) {
       return ''
     }
     return (
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-x-1">
-        <span>{t('edit.lastUpdate')}</span>
-        <span>{`${time.formatDynamic(meta.lastUpdateAt)}`}</span>
+        <span>{t(draftSyncedAt ? 'edit.draftSync' : 'edit.savedAt')}</span>
+        <span>{`${time.formatDynamic(timestamp)}`}</span>
       </div>
     )
   })()
 
   useEffect(() => {
-    setTimeout(() => {
-      timeRef.current = setInterval(() => {
-        setForceUpdate((v) => v + 1)
-      }, 60 * 1000)
-    })
-    return () => {
-      clearInterval(timeRef.current)
-    }
+    timeRef.current = setInterval(() => {
+      setForceUpdate((v) => v + 1)
+    }, 60 * 1000)
+    return () => clearInterval(timeRef.current)
   }, [])
 
   useEffect(() => {
@@ -110,12 +110,33 @@ const Actions: React.FC<IActions> = (props) => {
           </div>
           <div className="flex items-center gap-x-1 sm:gap-x-2 ml-0 sm:ml-2">
             {meta && (
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={Boolean(loading)}
+                aria-label={t('edit.returnToPost')}
+                title={t('edit.returnToPost')}
+                onClick={onReturn}
+              >
+                {loading === 'exit' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowLeft className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {t('edit.returnToPost')}
+                </span>
+              </Button>
+            )}
+            {meta && (
               <Popover open={showDelDialog} onOpenChange={setShowDelDialog}>
-                <PopoverTrigger>
+                <PopoverTrigger asChild>
                   <Button
                     size="xs"
                     variant="outline"
-                    disabled={loading === 'delete'}
+                    disabled={Boolean(loading)}
+                    aria-label={t('edit.delete')}
+                    title={t('edit.delete')}
                   >
                     {loading === 'delete' ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -152,26 +173,11 @@ const Actions: React.FC<IActions> = (props) => {
                 </PopoverContent>
               </Popover>
             )}
-            {meta && (
-              <Button
-                disabled={loading === 'publish'}
-                size="xs"
-                variant="outline"
-                onClick={onTogglePreview}
-              >
-                {mode === 'preview' ? (
-                  <Pencil className="w-4 h-4" />
-                ) : (
-                  <SearchCheck className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">
-                  {t(mode === 'preview' ? 'edit.edit' : 'edit.preview')}
-                </span>
-              </Button>
-            )}
             {meta?.hasPublished === false && (
               <Button
-                disabled={loading === 'publish'}
+                disabled={Boolean(loading)}
+                aria-label={t('edit.publish')}
+                title={t('edit.publish')}
                 size="xs"
                 variant="outline"
                 onClick={onPublish}
@@ -184,9 +190,13 @@ const Actions: React.FC<IActions> = (props) => {
                 <span className="hidden sm:inline">{t('edit.publish')}</span>
               </Button>
             )}
-            {meta?.hasPublished === true && (
+            {meta && meta.hasPublished !== false && (
               <Button
-                disabled={loading === 'hidden'}
+                disabled={Boolean(loading)}
+                aria-label={t(
+                  meta.hidden2Public ? 'edit.hidden' : 'edit.unHidden',
+                )}
+                title={t(meta.hidden2Public ? 'edit.hidden' : 'edit.unHidden')}
                 size="xs"
                 variant="outline"
                 onClick={onHiddenChange}
@@ -205,7 +215,9 @@ const Actions: React.FC<IActions> = (props) => {
             )}
             {meta && (
               <Button
-                disabled={loading === 'pinned'}
+                disabled={Boolean(loading)}
+                aria-label={t(meta.pinned ? 'edit.pinned' : 'edit.unpinned')}
+                title={t(meta.pinned ? 'edit.pinned' : 'edit.unpinned')}
                 size="xs"
                 variant="outline"
                 onClick={onPinnedChange}
@@ -222,7 +234,13 @@ const Actions: React.FC<IActions> = (props) => {
                 </span>
               </Button>
             )}
-            <Button disabled={loading === 'save'} size="xs" onClick={onSave}>
+            <Button
+              disabled={Boolean(loading)}
+              size="xs"
+              onClick={onSave}
+              aria-label={t(meta ? 'edit.save' : 'edit.create')}
+              title={t(meta ? 'edit.save' : 'edit.create')}
+            >
               {loading === 'save' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : meta ? (

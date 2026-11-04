@@ -3,6 +3,26 @@ import { Document } from 'mongoose'
 
 export type BlogDocument = Blog & Document
 
+@Schema({ _id: false })
+export class BlogDraft {
+  @Prop({ type: String })
+  title: string
+
+  @Prop({ type: String })
+  coverImg: string
+
+  @Prop({ required: true, type: [String] })
+  keywords: string[]
+
+  @Prop({ type: String })
+  content: string
+
+  @Prop({ required: true, type: Number })
+  savedAt: number
+}
+
+const BlogDraftSchema = SchemaFactory.createForClass(BlogDraft)
+
 @Schema({ timestamps: true })
 export class Blog {
   @Prop({ required: true, unique: true })
@@ -66,6 +86,9 @@ export class Blog {
 
   @Prop()
   lastUpdateTime?: number
+
+  @Prop({ type: BlogDraftSchema, required: false, select: false })
+  draft?: BlogDraft
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog)
