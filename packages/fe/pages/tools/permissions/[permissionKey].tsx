@@ -205,7 +205,7 @@ function PermissionUsers({
         <title>{permissionKey}</title>
       </Head>
       <AppLayout simplifiedFooter authRequired>
-        <div className="max-w-[640px] mx-auto md:mt-2 flex-col">
+        <div className="w-full max-w-site-content mx-auto md:mt-2 flex-col">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

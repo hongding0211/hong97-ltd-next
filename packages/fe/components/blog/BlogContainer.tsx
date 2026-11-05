@@ -541,7 +541,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             'm-auto mt-[-1.5rem]',
             hasToc
               ? 'blog-reading-shell--with-toc'
-              : 'flex max-w-[1000px] justify-center',
+              : 'flex w-full max-w-site-content justify-center',
           )}
         >
           {hasToc && (

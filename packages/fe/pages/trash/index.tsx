@@ -121,7 +121,7 @@ export default function TrashPage({ initialData }: TrashPageProps) {
         />
       </Head>
       <AppLayout>
-        <div className="container mx-auto mt-[-0.5rem] sm:mt-4 pb-12 max-w-2xl p-0">
+        <div className="w-full max-w-site-content mx-auto mt-[-0.5rem] sm:mt-4 pb-12">
           {isAdmin && <CreateTrashForm onSuccess={handleCreateSuccess} />}
 
           {items.length === 0 ? (

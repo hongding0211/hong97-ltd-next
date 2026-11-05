@@ -80,17 +80,13 @@ html {
 
   @media (min-width: 800px) {
     .blog-reading-shell--with-toc {
-      --blog-article-column: min(49rem, 68ch);
+      --blog-article-column: theme('maxWidth.site-content');
       --blog-toc-column: clamp(
         7rem,
         calc((100vw - var(--blog-article-column)) * 0.28),
         14rem
       );
-      --blog-balance-column: clamp(
-        3.5rem,
-        calc(var(--blog-toc-column) * 0.6),
-        8.5rem
-      );
+      --blog-balance-column: var(--blog-toc-column);
       --blog-toc-gap: clamp(
         1.75rem,
         calc(1.25rem + (100vw - 50rem) * 0.08),

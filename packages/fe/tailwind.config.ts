@@ -32,6 +32,9 @@ const config = {
       },
     },
     extend: {
+      maxWidth: {
+        'site-content': '672px',
+      },
       screens: {
         sm: '800px',
         md: '800px',

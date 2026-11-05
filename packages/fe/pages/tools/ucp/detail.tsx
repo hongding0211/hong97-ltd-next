@@ -204,7 +204,7 @@ export const UCPDetail: React.FC<{ locale: string; id: string }> = ({
         <title>{title}</title>
       </Head>
       <AppLayout authRequired simplifiedFooter>
-        <div className="max-w-[768px] mx-auto md:mt-2 flex-col">
+        <div className="w-full max-w-site-content mx-auto md:mt-2 flex-col">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

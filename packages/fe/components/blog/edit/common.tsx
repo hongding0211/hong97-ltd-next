@@ -451,7 +451,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
           'm-auto mt-[-1.5rem]',
           tocItems.length
             ? 'blog-reading-shell--with-toc'
-            : 'flex max-w-[1000px] justify-center',
+            : 'flex w-full max-w-site-content justify-center',
         )}
       >
         {!!tocItems.length && <EditToc items={tocItems} blogTitle={title} />}

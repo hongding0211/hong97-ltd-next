@@ -5,7 +5,7 @@ export default function MdxLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'mx-auto w-full pb-4',
+        'mx-auto w-full max-w-site-content pb-4',
         'text-md',
         'prose prose-neutral dark:prose-invert',
         'text-neutral-900 dark:text-white leading-[26px]',

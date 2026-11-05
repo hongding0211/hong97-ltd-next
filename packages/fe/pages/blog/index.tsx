@@ -146,7 +146,7 @@ export default function Blog(props: BlogProps) {
         />
       </Head>
       <AppLayout>
-        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg mb-6 mx-[-0.5rem] mt-[-0.5rem] sm:mx-auto sm:mb-12 sm:mt-2 max-w-[600px]">
+        <article className="prose prose-sm prose-neutral dark:prose-invert sm:prose-base lg:prose-lg w-full max-w-site-content mx-auto mb-6 mt-[-0.5rem] sm:mb-12 sm:mt-2">
           <div className="flex w-full mb-6 gap-x-2">
             <div className="flex-1 relative">
               <Input
@@ -175,7 +175,7 @@ export default function Blog(props: BlogProps) {
               </Link>
             )}
           </div>
-          <div className="mx-2 mt-2 sm:mt-8">
+          <div className="mt-2 sm:mt-8">
             {isEmpty && (
               <EmptyState
                 icon={BookOpen}

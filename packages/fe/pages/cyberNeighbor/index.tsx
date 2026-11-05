@@ -64,7 +64,7 @@ const CyberNeighbor: React.FC<{
         />
       </Head>
       <AppLayout>
-        <div className="max-w-[500px] mx-auto sm:mt-6 flex-col">
+        <div className="w-full max-w-site-content mx-auto sm:mt-6 flex-col">
           {links.length === 0 ? (
             <EmptyState
               icon={UsersRound}

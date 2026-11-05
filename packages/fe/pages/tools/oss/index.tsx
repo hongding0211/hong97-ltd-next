@@ -172,7 +172,7 @@ function OSS({ locale }: { locale: string }) {
           onChange={handleFileChange}
           className="hidden"
         />
-        <div className="max-w-[768px] mx-auto md:mt-2 flex-col">
+        <div className="w-full max-w-site-content mx-auto md:mt-2 flex-col">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
