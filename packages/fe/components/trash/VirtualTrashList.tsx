@@ -1,4 +1,5 @@
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
+import { SITE_TIME_ZONE } from '@utils/time'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -16,13 +17,12 @@ interface VirtualTrashListProps {
   onCommentUpdate: (itemId: string, newItem: TrashResponseDto) => void
 }
 
-const TRASH_TIME_ZONE = 'Asia/Shanghai'
 const ESTIMATED_ITEM_HEIGHT = 360
 const LOADER_HEIGHT = 52
 
 function getTrashYear(timestamp: number) {
   return new Intl.DateTimeFormat('en-US', {
-    timeZone: TRASH_TIME_ZONE,
+    timeZone: SITE_TIME_ZONE,
     year: 'numeric',
   }).format(new Date(timestamp))
 }
@@ -31,7 +31,7 @@ function formatTrashYear(timestamp: number, locale: string) {
   return new Intl.DateTimeFormat(
     locale.startsWith('cn') || locale.startsWith('zh') ? 'zh-CN' : 'en-US',
     {
-      timeZone: TRASH_TIME_ZONE,
+      timeZone: SITE_TIME_ZONE,
       year: 'numeric',
     },
   ).format(new Date(timestamp))

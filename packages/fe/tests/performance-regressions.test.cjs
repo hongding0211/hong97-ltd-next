@@ -82,6 +82,35 @@ function session(respond) {
 
 const user = { userId: 'test-user', profile: { name: 'Test' } }
 
+test('site dates agree across server and browser timezones, including midnight', () => {
+  const previousTimezone = process.env.TZ
+  const { time } = makeLoader({ 'next-i18next': { i18n: { language: 'en' } } })(
+    'utils/time.ts',
+  )
+  test.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 0, 1, 16, 30) })
+  try {
+    for (const timezone of ['UTC', 'Asia/Shanghai', 'America/Los_Angeles']) {
+      process.env.TZ = timezone
+      assert.equal(
+        time.format(Date.UTC(2026, 0, 1, 16, 30), 'datetimeShort'),
+        'Jan 2, 2026 00:30',
+      )
+      assert.equal(
+        time.formatDynamic(Date.UTC(2026, 0, 1, 15, 30)),
+        'Yesterday, 23:30',
+      )
+      assert.equal(
+        time.formatDateGroupTitle(Date.UTC(2025, 11, 31, 18)),
+        'Jan 1',
+      )
+    }
+  } finally {
+    test.mock.timers.reset()
+    if (previousTimezone === undefined) delete process.env.TZ
+    else process.env.TZ = previousTimezone
+  }
+})
+
 test('anonymous initialization attempts refresh once, then finishes silently', async () => {
   const s = session(() => [401, {}])
   await s.store.getState().init()

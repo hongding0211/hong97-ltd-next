@@ -1,5 +1,12 @@
 import dayjs from 'dayjs'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
 import { i18n } from 'next-i18next'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+export const SITE_TIME_ZONE = 'Asia/Shanghai'
 
 const TIME_FORMAT_STR = {
   cn: {
@@ -46,12 +53,14 @@ class Time {
   }
 
   format(date: number | Date, type: FormatType = 'date') {
-    return dayjs(date).format(TIME_FORMAT_STR[this.getLocale()][type])
+    return dayjs(date)
+      .tz(SITE_TIME_ZONE)
+      .format(TIME_FORMAT_STR[this.getLocale()][type])
   }
 
   formatDynamic(date: number | Date) {
-    const d = dayjs(date)
-    const now = dayjs()
+    const d = dayjs(date).tz(SITE_TIME_ZONE)
+    const now = dayjs().tz(SITE_TIME_ZONE)
     if (now.diff(d, 'minute') < 1) {
       return TIME_DYNAMIC_FORMAT_STR[this.getLocale()].justNow
     }
@@ -79,8 +88,8 @@ class Time {
   }
 
   formatDateGroupTitle(date: number | Date) {
-    const d = dayjs(date)
-    const now = dayjs()
+    const d = dayjs(date).tz(SITE_TIME_ZONE)
+    const now = dayjs().tz(SITE_TIME_ZONE)
 
     // same year - only show month and day
     if (d.isSame(now, 'year')) {
