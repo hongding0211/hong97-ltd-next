@@ -14,7 +14,7 @@ import { uploadFile2Oss } from '@utils/oss'
 import { executePromisesWithLimit } from '@utils/promise'
 import { toast } from '@utils/toast'
 import { Check, Loader2, Paperclip, Plus, Upload, X } from 'lucide-react'
-import { GetStaticPropsContext } from 'next'
+import { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
@@ -260,7 +260,7 @@ function OSS({ locale }: { locale: string }) {
 
 export default OSS
 
-export async function getStaticProps(context: GetStaticPropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { locale = 'cn' } = context
   return {
     props: {

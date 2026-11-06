@@ -82,6 +82,67 @@ function session(respond) {
 
 const user = { userId: 'test-user', profile: { name: 'Test' } }
 
+test('pages with the authenticated site navigation render per request', () => {
+  function check(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const filename = path.join(directory, entry.name)
+      if (entry.isDirectory()) {
+        check(filename)
+      } else if (/\.(tsx|jsx|mdx)$/.test(entry.name)) {
+        const source = fs.readFileSync(filename, 'utf8')
+        if (/import\s+AppLayout\s+from/.test(source)) {
+          assert.doesNotMatch(
+            source,
+            /export\s+(?:async\s+)?(?:function|const)\s+getStaticProps\b/,
+            `${path.relative(
+              root,
+              filename,
+            )} must include the user's session in its initial HTML`,
+          )
+        }
+      }
+    }
+  }
+  check(path.join(root, 'pages'))
+})
+
+test('server render uses the prefetched user before the browser store initializes', () => {
+  const React = req('react')
+  const { renderToStaticMarkup } = req('react-dom/server')
+  const s = session(() => assert.fail('unexpected browser auth request'))
+  const load = makeLoader({
+    '@stores/general': { useAppStore: s.store },
+    'next-themes': { ThemeProvider: ({ children }) => children },
+  })
+  const { GeneralProvider } = load(
+    'components/hoc/general-context/GeneralProvider.tsx',
+  )
+  const { GeneralContext } = load(
+    'components/hoc/general-context/GeneralContext.ts',
+  )
+  function Navigation() {
+    return React.createElement(
+      'span',
+      null,
+      React.useContext(GeneralContext).user?.profile.name ?? 'Login',
+    )
+  }
+  assert.equal(s.store.getState().user, null)
+  const html = renderToStaticMarkup(
+    React.createElement(
+      GeneralProvider,
+      {
+        router: {},
+        prefetchedUser: user,
+      },
+      React.createElement(Navigation),
+    ),
+  )
+  assert.equal(html, '<span>Test</span>')
+  assert.equal(s.store.getState().user, null)
+  assert.equal(s.calls.length, 0)
+})
+
 test('site dates agree across server and browser timezones, including midnight', () => {
   const previousTimezone = process.env.TZ
   const { time } = makeLoader({ 'next-i18next': { i18n: { language: 'en' } } })(
