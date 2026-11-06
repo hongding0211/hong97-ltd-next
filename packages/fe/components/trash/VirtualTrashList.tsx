@@ -139,6 +139,7 @@ export function VirtualTrashList({
                   onCommentUpdate={onCommentUpdate}
                   isAdmin={isAdmin}
                   isLast={virtualRow.index === items.length - 1}
+                  eagerImages={virtualRow.index < 2}
                   loadedImageUrls={loadedImageUrlsRef.current}
                 />
               </>

@@ -8,6 +8,7 @@ import { APIs, HttpResponse } from './types'
 import { BASE_URL, PATHS } from './urls'
 
 export interface HttpOptions {
+  headers?: Record<string, string>
   locale?: string
   silentAuthError?: boolean
   ignoreUnauthorized?: boolean
@@ -205,6 +206,7 @@ class Http {
   private getCustomHeaders(opts?: HttpOptions) {
     return {
       ...(isClient ? {} : opts?.serverSideCtx?.req?.headers ?? {}),
+      ...opts?.headers,
       'X-Locale':
         opts?.locale || opts?.serverSideCtx?.locale || i18n.language || 'en',
     }

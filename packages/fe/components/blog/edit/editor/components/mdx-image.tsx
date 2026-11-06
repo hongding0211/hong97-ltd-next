@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Toggle } from '@/components/ui/toggle'
 import { ImagesV2 } from '@components/common/images-v2'
-import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
 import { toast } from '@utils/toast'
 import cx from 'classnames'
 import { CloudUpload, Loader2, Plus, Repeat, Trash } from 'lucide-react'
@@ -61,18 +61,15 @@ const MdxImage: ReactMdxComponent<IMdxImage> = ({
 
     try {
       setLoading(true)
-      const compressedImg = await Promise.all(
-        selectedFiles.map((file) => convertImageToWebP(file, 0.85, 1920)),
+      const uploadedFiles = await Promise.all(
+        selectedFiles.map((file) => uploadImage(file, 'blog', 'body')),
       )
-      const uploadedFiles = (
-        await Promise.all(
-          compressedImg.map((file) => uploadFile2Oss(file, 'blog')),
-        )
-      ).filter(Boolean)
       onPropsUpdate({
         ...props,
-        urls: [...url, ...uploadedFiles].join(','),
+        urls: [...url, ...uploadedFiles.filter(Boolean)].join(','),
       })
+      if (uploadedFiles.some((file) => !file))
+        throw new Error('Image upload failed')
       if (toastOnSuccessRef.current) {
         toast('blog.uploadSuccess', { type: 'success' })
       }

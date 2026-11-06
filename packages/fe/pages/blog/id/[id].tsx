@@ -6,6 +6,7 @@ import { useUser } from '@hooks/useUser'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { BlogTocItem, addHeadingAnchors } from '@utils/blog-toc'
+import remarkImages from '@utils/remark-images.cjs'
 import { remarkUnderline } from '@utils/remark-underline'
 import { Meh } from 'lucide-react'
 import { GetServerSidePropsContext } from 'next'
@@ -110,7 +111,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   const source = await serialize(anchoredContent, {
     mdxOptions: {
-      remarkPlugins: [remarkUnderline],
+      remarkPlugins: [remarkUnderline, remarkImages],
       rehypePlugins: [rehypeHighlight],
     },
   })

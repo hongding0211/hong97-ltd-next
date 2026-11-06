@@ -9,7 +9,7 @@ import {
 import { useLogin } from '@hooks/useLogin'
 import { http } from '@services/http'
 import { TrashResponseDto } from '@services/trash/types'
-import { getCompressImage, getImageUrlMeta } from '@utils/oss'
+import { getImageUrlMeta, policy } from '@utils/image-core.cjs'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { Heart } from 'lucide-react'
@@ -17,7 +17,7 @@ import { useTranslation } from 'next-i18next'
 import photoswipe from 'photoswipe'
 import PhotoSwipeLightbox from 'photoswipe/lightbox'
 import { useEffect, useRef, useState } from 'react'
-import { thumbHashToRGBA } from 'thumbhash'
+import { SiteImage } from '../common/SiteImage'
 import { CommentTrashForm } from './CommentTrashForm'
 import { TrashCommentAction, TrashComments } from './TrashComments'
 
@@ -28,17 +28,11 @@ interface TrashItemProps {
   onCommentUpdate?: (itemId: string, newItem: TrashResponseDto) => void
   isAdmin?: boolean
   isLast?: boolean
+  eagerImages?: boolean
   loadedImageUrls: Set<string>
 }
 
-const base64UrlToBytes = (value: string) => {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
-  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0))
-}
-
 const ImageWithThumbHash: React.FC<{
-  src: string
   originSrc: string
   alt: string
   className?: string
@@ -46,8 +40,8 @@ const ImageWithThumbHash: React.FC<{
   galleryId: string
   idx: number
   loadedImageUrls: Set<string>
+  eager?: boolean
 }> = ({
-  src,
   originSrc,
   alt,
   className,
@@ -55,27 +49,13 @@ const ImageWithThumbHash: React.FC<{
   galleryId,
   idx,
   loadedImageUrls,
+  eager = false,
 }) => {
-  const hasLoadedBefore = useRef(loadedImageUrls.has(src)).current
+  const hasLoadedBefore = useRef(loadedImageUrls.has(originSrc)).current
   const containerRef = useRef<HTMLDivElement>(null)
-  const thumbHashCanvasRef = useRef<HTMLCanvasElement>(null)
-  const [shouldLoad, setShouldLoad] = useState(hasLoadedBefore)
-  const [loading, setLoading] = useState(true)
+  const [shouldLoad, setShouldLoad] = useState(eager || hasLoadedBefore)
   const [error, setError] = useState(false)
-  const imageMeta = getImageUrlMeta(originSrc)!
-
-  useEffect(() => {
-    const canvas = thumbHashCanvasRef.current
-    const context = canvas?.getContext('2d')
-    if (!canvas || !context) return
-
-    const { w, h, rgba } = thumbHashToRGBA(
-      base64UrlToBytes(imageMeta.thumbHash),
-    )
-    canvas.width = w
-    canvas.height = h
-    context.putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0)
-  }, [imageMeta.thumbHash])
+  const imageMeta = getImageUrlMeta(originSrc)
 
   useEffect(() => {
     const container = containerRef.current
@@ -107,42 +87,29 @@ const ImageWithThumbHash: React.FC<{
       }`}
       onClick={onClick}
     >
-      <canvas
-        ref={thumbHashCanvasRef}
-        className={`pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg transition-opacity ${
-          hasLoadedBefore ? 'duration-0' : 'duration-200'
-        } ${loading ? 'opacity-100' : 'opacity-0'}`}
-      />
       <a
         data-pswp-src={originSrc}
-        data-pswp-width={imageMeta.width}
-        data-pswp-height={imageMeta.height}
+        data-pswp-width={imageMeta?.width}
+        data-pswp-height={imageMeta?.height}
         key={galleryId + '-' + idx}
         target="_blank"
         rel="noreferrer"
         className="block h-full w-full cursor-pointer"
       >
-        <img
-          src={shouldLoad ? src : undefined}
+        <SiteImage
+          src={originSrc}
           alt={alt}
-          className={`${className} ${
-            loading ? 'opacity-0' : 'opacity-100'
-          } transition-opacity ${
-            hasLoadedBefore ? 'duration-0' : 'duration-200'
-          }`}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => {
-            loadedImageUrls.add(src)
-            setLoading(false)
-          }}
-          onError={() => {
-            setLoading(false)
-            setError(true)
-          }}
+          fill
+          sizes={policy.sizes.thumbnail}
+          shouldLoad={shouldLoad}
+          className={className}
+          loading={eager ? 'eager' : 'lazy'}
+          fetchPriority={eager && idx === 0 ? 'high' : undefined}
+          onLoad={() => loadedImageUrls.add(originSrc)}
+          onError={() => setError(true)}
         />
       </a>
-      {error && !loading && (
+      {error && (
         <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-700 rounded-md flex items-center justify-center">
           <span className="text-neutral-500 text-xs">Failed to load</span>
         </div>
@@ -158,6 +125,7 @@ export function TrashItem({
   onCommentUpdate,
   isAdmin = false,
   isLast = false,
+  eagerImages = false,
   loadedImageUrls,
 }: TrashItemProps) {
   const { t } = useTranslation('trash')
@@ -326,11 +294,11 @@ export function TrashItem({
                   idx={index}
                   galleryId={galleryId}
                   key={`${media.imageUrl}-${index}`}
-                  src={getCompressImage(media.imageUrl, 180)}
                   originSrc={media.imageUrl}
                   alt={`Media ${index + 1}`}
                   className="w-full h-full object-cover rounded-md bg-neutral-100 dark:bg-neutral-800"
                   loadedImageUrls={loadedImageUrls}
+                  eager={eagerImages}
                 />
               ))}
             </div>

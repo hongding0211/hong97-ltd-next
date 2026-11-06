@@ -5,7 +5,8 @@ import type { BlogDraftDto } from '@server/modules/blog/dto/draft.dto'
 import { BlogAPIS } from '@services/blog/types'
 import { http } from '@services/http'
 import { addHeadingAnchors } from '@utils/blog-toc'
-import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
+import remarkImages from '@utils/remark-images.cjs'
 import { remarkUnderline } from '@utils/remark-underline'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
@@ -317,8 +318,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
 
       setActionLoading('coverChange')
       try {
-        const file = await convertImageToWebP(selectedFile, 0.9, 2500)
-        const p = await uploadFile2Oss(file, 'blog')
+        const p = await uploadImage(selectedFile, 'blog', 'cover')
         if (!p) {
           return
         }
@@ -406,7 +406,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
       serialize(anchoredContent, {
         mdxOptions: {
           development: process.env.NODE_ENV === 'development',
-          remarkPlugins: [remarkUnderline],
+          remarkPlugins: [remarkUnderline, remarkImages],
           rehypePlugins: [rehypeHighlight],
         },
       }).then(setPreviewContent)

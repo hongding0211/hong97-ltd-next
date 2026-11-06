@@ -1,7 +1,9 @@
 'use client'
 
+import { SiteImage } from './SiteImage'
+
 import { formatFileSize } from '@utils/file'
-import { uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
 import { executePromisesWithLimit } from '@utils/promise'
 import { toast } from '@utils/toast'
 import { Loader2, Plus, X } from 'lucide-react'
@@ -82,17 +84,23 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
 
           return new Promise((resolve, _reject) => {
             const uploadedUrls: string[] = []
+            let failed = false
 
             executePromisesWithLimit(
               imagesToUpload.map((imageItem) => ({
-                promise: uploadFile2Oss(imageItem.file!, 'trash', {
-                  compress2Webp: true,
-                  compress2WebpOpt: {
-                    quality: 0.9,
-                    maxWidth: 2500,
-                  },
-                }),
+                promise: uploadImage(imageItem.file!, 'trash', 'trash'),
                 onFulfilled: (url: string) => {
+                  if (!url) {
+                    failed = true
+                    setImages((prev) =>
+                      prev.map((img) =>
+                        img.id === imageItem.id
+                          ? { ...img, uploading: false }
+                          : img,
+                      ),
+                    )
+                    return
+                  }
                   uploadedUrls.push(url)
                   setImages((prev) =>
                     prev.map((img) =>
@@ -103,6 +111,7 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
                   )
                 },
                 onRejected: () => {
+                  failed = true
                   setImages((prev) =>
                     prev.map((img) =>
                       img.id === imageItem.id
@@ -125,7 +134,8 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
                     .map((img) => img.url),
                   ...uploadedUrls,
                 ]
-                resolve(allUploadedUrls)
+                if (failed) _reject(new Error('Image upload failed'))
+                else resolve(allUploadedUrls)
               },
             )
           })
@@ -228,7 +238,8 @@ export const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
           {images.map((image) => (
             <div key={image.id} className="relative flex-shrink-0">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-md bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
-                <img
+                <SiteImage
+                  preserveOriginal
                   src={image.preview}
                   alt={t('preview')}
                   className="w-full h-full object-cover"

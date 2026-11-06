@@ -1,5 +1,6 @@
 import { BadRequestException, PayloadTooLargeException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { imageMetadataHeaders, parseImageMetadata } from './image-metadata'
 import { OssService } from './oss.service'
 
 const config = {
@@ -100,5 +101,66 @@ describe('OssService', () => {
     await expect(
       service.requestUpload({ fileName: 'post.webp', app: 'blog' }),
     ).rejects.toBeInstanceOf(BadRequestException)
+  })
+
+  it('signs image metadata headers into root PUT uploads', async () => {
+    const metadata = {
+      width: 1200,
+      height: 800,
+      thumbHash: 'GPiBC4IOM2AFmwQ22DAOHGCGg3aotog',
+    }
+    const body = {
+      fileName: 'cover.webp',
+      contentType: 'image/webp',
+      app: 'blog',
+    }
+    const withMeta = await service.requestUpload(body, 'root-user', metadata)
+    const legacy = await service.requestUpload(body, 'root-user')
+    if (withMeta.uploadMethod !== 'PUT') throw new Error('Expected PUT')
+    expect(withMeta.headers).toMatchObject(imageMetadataHeaders(metadata))
+    expect(new URL(withMeta.url).searchParams.get('Signature')).not.toBe(
+      new URL(legacy.url).searchParams.get('Signature'),
+    )
+  })
+
+  it('enforces every image metadata field in the standard POST policy', async () => {
+    const metadata = {
+      width: 48,
+      height: 48,
+      thumbHash: 'GPiBC4IOM2AFmwQ22DAOHGCGg3aotog',
+    }
+    const result = await service.requestUpload(
+      { fileName: 'avatar.webp', app: 'sso', contentType: 'image/webp' },
+      'standard',
+      metadata,
+    )
+    if (result.uploadMethod !== 'POST') throw new Error('Expected POST')
+    expect(result.fields).toMatchObject(imageMetadataHeaders(metadata))
+    const policy = JSON.parse(
+      Buffer.from(result.fields?.policy ?? '', 'base64').toString(),
+    )
+    for (const [key, value] of Object.entries(imageMetadataHeaders(metadata)))
+      expect(policy.conditions).toContainEqual(['eq', `$${key}`, value])
+  })
+
+  it('validates optional image metadata without weakening legacy upload validation', () => {
+    const metadata = {
+      width: 600,
+      height: 400,
+      thumbHash: 'GPiBC4IOM2AFmwQ22DAOHGCGg3aotog',
+    }
+    expect(parseImageMetadata()).toBeUndefined()
+    expect(parseImageMetadata(JSON.stringify(metadata))).toEqual(metadata)
+    for (const invalid of [
+      'null',
+      '[]',
+      '{}',
+      '{',
+      JSON.stringify({ ...metadata, width: 0 }),
+      JSON.stringify({ ...metadata, height: '400' }),
+      JSON.stringify({ ...metadata, thumbHash: 'bad' }),
+      JSON.stringify({ ...metadata, arbitraryHeader: 'no' }),
+    ])
+      expect(() => parseImageMetadata(invalid)).toThrow(BadRequestException)
   })
 })

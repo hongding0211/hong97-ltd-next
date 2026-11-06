@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
+import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { SiteImage } from '@components/common/SiteImage'
 import { Label } from '@radix-ui/react-label'
 import { recoverFoodSession } from '@services/sso/food-session-recovery'
 import {
@@ -17,7 +18,7 @@ import {
   resolveSsoSourceConfig,
 } from '@services/sso/source-config'
 import { useLoginStore } from '@stores/sso'
-import { uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
 import {
   AlertCircle,
   ArrowUpRight,
@@ -87,13 +88,7 @@ const Uploader: React.FC = () => {
       return
     }
     setLoading(true)
-    uploadFile2Oss(croppedImgFile.current, 'sso', {
-      compress2Webp: true,
-      compress2WebpOpt: {
-        quality: 0.9,
-        maxWidth: 1024,
-      },
-    })
+    uploadImage(croppedImgFile.current, 'sso', 'avatar')
       .then((p) => {
         if (!p) {
           return
@@ -146,7 +141,13 @@ const Uploader: React.FC = () => {
               onClick={setAvatar.bind(null, '')}
             >
               <Avatar className="border-2 border-neutral-200 dark:border-neutral-800">
-                <AvatarImage src={avatar} className="object-cover" />
+                <SiteImage
+                  src={avatar}
+                  alt=""
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
               </Avatar>
               <Avatar className="opacity-0 hover:opacity-100 border-2 border-neutral-200 dark:border-neutral-800 absolute right-0 bottom-0 items-center justify-center hover:backdrop-brightness-50 hover:backdrop-blur-sm hidden md:flex">
                 <Trash2 className="h-3.5 w-3.5 text-neutral-200" />

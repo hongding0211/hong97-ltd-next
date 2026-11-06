@@ -30,21 +30,7 @@ export const useAppStore = create<AppStore & AppStoreAction>((set) => {
         if (initialUser) {
           set({ user: initialUser })
         } else {
-          try {
-            const response = await http.get('GetInfo', undefined, {
-              ignoreUnauthorized: true,
-            })
-            if (response.isSuccess) {
-              set({ user: response.data })
-              return
-            }
-          } catch {
-            // Try to restore the session with the refresh cookie below.
-          }
-
-          await http.post('PostRefreshToken', undefined, undefined, {
-            ignoreUnauthorized: true,
-          })
+          // The HTTP interceptor refreshes once on 401 and retries GetInfo.
           const response = await http.get('GetInfo', undefined, {
             ignoreUnauthorized: true,
           })

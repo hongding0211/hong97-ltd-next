@@ -4,6 +4,7 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import Autoplay from 'embla-carousel-autoplay'
+import { SiteImage } from './SiteImage'
 
 export const Images: React.FC<{
   imgs: Array<{
@@ -30,7 +31,11 @@ export const Images: React.FC<{
         <CarouselContent>
           {imgs.map((img) => (
             <CarouselItem key={img.src}>
-              <img src={img.src} alt={img.alt} className="!my-0 rounded" />
+              <SiteImage
+                src={img.src}
+                alt={img.alt}
+                className="!my-0 rounded"
+              />
             </CarouselItem>
           ))}
         </CarouselContent>

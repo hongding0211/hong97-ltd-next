@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { getCompressImage } from '../../utils/oss'
+import { SiteImage } from '../common/SiteImage'
 import { useWalkcalcI18n } from './i18n'
 import styles from './walkcalc.module.css'
 
@@ -145,12 +145,14 @@ export function Initials({
   return (
     <span
       className={styles.avatar}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, position: 'relative' }}
       aria-label={name}
     >
       {imageUrl && failedUrl !== imageUrl ? (
-        <img
-          src={getCompressImage(imageUrl, size * 2)}
+        <SiteImage
+          fill
+          sizes={`${size}px`}
+          src={imageUrl}
           alt=""
           onError={() => setFailedUrl(imageUrl)}
         />

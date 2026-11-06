@@ -1,0 +1,43 @@
+{
+  "metadataMaxEdge": 100,
+  "deliveryQuality": 90,
+  "cacheControl": "public, max-age=31536000, immutable",
+  "ossHost": "ltd-hong97-imgs.oss-cn-shanghai.aliyuncs.com",
+  "metadataHeaders": {
+    "width": "x-oss-meta-width",
+    "height": "x-oss-meta-height",
+    "thumbHash": "x-oss-meta-thumbhash"
+  },
+  "presets": {
+    "cover": {
+      "quality": 90,
+      "maxWidth": 2500
+    },
+    "body": {
+      "quality": 85,
+      "maxWidth": 1920
+    },
+    "trash": {
+      "quality": 90,
+      "maxWidth": 2500
+    },
+    "avatar": {
+      "quality": 90,
+      "maxWidth": 1024
+    }
+  },
+  "sizes": {
+    "cover": "100vw",
+    "body": "(min-width: 712px) 672px, calc(100vw - 40px)",
+    "thumbnail": "(min-width: 712px) 120px, (min-width: 640px) calc(20vw - 22.4px), calc(33.333vw - 33.333px)"
+  },
+  "extensions": {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/bmp": "bmp",
+    "image/svg+xml": "svg"
+  },
+  "preserveTypes": ["image/gif", "image/svg+xml"]
+}

@@ -34,7 +34,7 @@ import {
   resolveSsoSourceConfig,
 } from '@services/sso/source-config'
 import { useAppStore } from '@stores/general'
-import { uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
 import { time } from '@utils/time'
 import { toast } from '@utils/toast'
 import { enUS, zhCN } from 'date-fns/locale'
@@ -165,13 +165,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
 
     setUploadLoading(true)
     try {
-      const avatar = await uploadFile2Oss(croppedImgFile.current, 'sso', {
-        compress2Webp: true,
-        compress2WebpOpt: {
-          quality: 0.9,
-          maxWidth: 1024,
-        },
-      })
+      const avatar = await uploadImage(croppedImgFile.current, 'sso', 'avatar')
 
       if (!avatar) {
         return

@@ -6,9 +6,11 @@ import {
 import { ConfigService } from '@nestjs/config'
 import OSS from 'ali-oss'
 import dayjs from 'dayjs'
-import { RequestUploadDto } from './dto/request-upload'
+import imagePolicy from '../../config/image-policy.json'
+import { ImageMetadataDto, RequestUploadDto } from './dto/request-upload'
+import { imageMetadataHeaders } from './image-metadata'
 
-const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+const IMMUTABLE_CACHE_CONTROL = imagePolicy.cacheControl
 
 @Injectable()
 export class OssService {
@@ -37,7 +39,11 @@ export class OssService {
     }
   }
 
-  async requestUpload(requestUploadDto: RequestUploadDto, userId?: string) {
+  async requestUpload(
+    requestUploadDto: RequestUploadDto,
+    userId?: string,
+    imageMeta?: ImageMetadataDto,
+  ) {
     const {
       fileName,
       contentType,
@@ -51,6 +57,7 @@ export class OssService {
 
     const { path, name } = this.genFilePath(fileName, app)
     const uploadContentType = contentType || 'application/octet-stream'
+    const metadata = imageMetadataHeaders(imageMeta)
 
     if (!this.isRootUser(userId)) {
       return this.standardUploadResponse({
@@ -58,6 +65,7 @@ export class OssService {
         name,
         contentType: uploadContentType,
         fileSize,
+        metadata,
       })
     }
 
@@ -67,6 +75,7 @@ export class OssService {
           method: 'PUT',
           process: compress ? `image/quality,q_${quality}` : undefined,
           'Content-Type': uploadContentType,
+          ...metadata,
         })
         .replace('http', 'https'),
       filePath: this.oss.generateObjectUrl(path).replace('http', 'https'),
@@ -75,6 +84,7 @@ export class OssService {
       headers: {
         'Content-Type': uploadContentType,
         'Cache-Control': IMMUTABLE_CACHE_CONTROL,
+        ...metadata,
       },
     }
   }
@@ -84,11 +94,13 @@ export class OssService {
     name,
     contentType,
     fileSize,
+    metadata,
   }: {
     path: string
     name: string
     contentType: string
     fileSize?: number
+    metadata: Record<string, string>
   }) {
     const maxBytes =
       this.configService.get<number>('oss.standardUploadMaxBytes') ??
@@ -114,6 +126,11 @@ export class OssService {
         ['eq', '$Cache-Control', IMMUTABLE_CACHE_CONTROL],
         ['eq', '$success_action_status', '200'],
         ['content-length-range', 1, maxBytes],
+        ...Object.entries(metadata).map(([key, value]) => [
+          'eq',
+          `$${key}`,
+          value,
+        ]),
       ],
     }
     const signature = this.oss.calculatePostSignature(policy)
@@ -131,6 +148,7 @@ export class OssService {
         'Content-Type': contentType,
         'Cache-Control': IMMUTABLE_CACHE_CONTROL,
         success_action_status: '200',
+        ...metadata,
       },
     }
   }

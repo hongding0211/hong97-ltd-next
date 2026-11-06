@@ -28,6 +28,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import AppLayout from '../app-layout/AppLayout'
+import { BlogCoverImage } from './BlogCoverImage'
 import { BlogToc } from './BlogToc'
 import { CommentAction, Comments } from './common/comment/comments'
 import { CommentEdit } from './common/comment/edit'
@@ -502,13 +503,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             className="pointer-events-none absolute inset-0"
           />
           {meta?.coverImg ? (
-            <img
-              src={meta.coverImg}
-              alt={meta.blogTitle}
-              fetchPriority="high"
-              decoding="async"
-              className="absolute left-0 top-0 h-full w-full rounded-sm object-cover sm:rounded-none"
-            />
+            <BlogCoverImage src={meta.coverImg} alt={meta.blogTitle} />
           ) : (
             <div
               className={cn(

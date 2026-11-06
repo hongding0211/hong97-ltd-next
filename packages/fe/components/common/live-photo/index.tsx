@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import type * as LivePhotosKit from 'livephotoskit'
 import React, { useEffect, useId, useRef } from 'react'
+import { SiteImage } from '../SiteImage'
 
 let livePhotosKit: typeof LivePhotosKit
 
@@ -17,91 +18,71 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
   const id = useId()
 
   const player = useRef<LivePhotosKit.Player | null>(null)
-  const exposed = useRef(false)
-
-  const ratio = useRef(1)
 
   useEffect(() => {
-    if (!autoPlay) {
-      return
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !exposed.current) {
-            player.current?.play()
-            exposed.current = true
-          }
-        })
-      },
-      {
-        threshold: 0.8,
-      },
-    )
-    observer.observe(document.getElementById(id))
+    let disposed = false
+    let resizeObserver: ResizeObserver | undefined
+    let visibilityObserver: IntersectionObserver | undefined
+    let instance: LivePhotosKit.Player | undefined
+    const controller = new AbortController()
 
-    return () => {
-      observer.disconnect()
-    }
-  }, [autoPlay, id])
-
-  useEffect(() => {
-    const fn = async () => {
-      if (!livePhotosKit) {
-        livePhotosKit = await import('livephotoskit')
-      }
+    const initialize = async () => {
+      livePhotosKit ??= await import('livephotoskit')
+      if (disposed) return
       const container = document.getElementById(id)
-      const img = document.getElementById(id + 'img')
+      const img = document.getElementById(id + 'img') as HTMLImageElement | null
+      if (!container || !img) return
 
-      if (!container || !img) {
-        return
-      }
-
-      const waitImgLoad = new Promise((r) => {
-        img.addEventListener('load', r)
-      })
-
-      const videoArrayBuff = await fetch(videoSrc).then((res) =>
-        res.arrayBuffer(),
-      )
-
-      // measure the size of the img
-      let { width, height } = img.getBoundingClientRect()
-      if (width === 0 || height === 0) {
-        await waitImgLoad
-        ;({ width, height } = img.getBoundingClientRect())
-      }
-      ratio.current = width / height
-      // hide img
-      // img.style.opacity = '0'
-      // set the width and height of the container
+      const [video] = await Promise.all([
+        fetch(videoSrc, { signal: controller.signal }).then((response) => {
+          if (!response.ok) throw new Error('Live Photo video unavailable')
+          return response.arrayBuffer()
+        }),
+        img.complete ? Promise.resolve() : img.decode(),
+      ])
+      if (disposed || !img.naturalWidth) return
+      const { width, height } = img.getBoundingClientRect()
+      if (!width || !height) return
+      const ratio = width / height
       container.style.width = `${width}px`
       container.style.height = `${height}px`
-
-      player.current = livePhotosKit.augmentElementAsPlayer(
-        document.getElementById(id),
-        {
-          photoSrc: imgSrc,
-          videoMimeType: 'video/mp4',
-          videoSrc: videoArrayBuff,
-        },
-      )
-
-      // measure the width of measure elem when it's size changes, set the size of player
-      const observer = new ResizeObserver((entries) => {
-        entries.forEach((entry) => {
-          const { width } = entry.contentRect
-          player.current.updateSize(width, width / ratio.current)
-        })
+      instance = livePhotosKit.augmentElementAsPlayer(container, {
+        photoSrc: imgSrc,
+        videoMimeType: 'video/mp4',
+        videoSrc: video,
       })
-      observer.observe(img)
-
-      return () => {
-        observer.disconnect()
+      player.current = instance
+      resizeObserver = new ResizeObserver(([entry]) => {
+        const width = entry.contentRect.width
+        if (disposed || !width) return
+        container.style.width = `${width}px`
+        container.style.height = `${width / ratio}px`
+        instance?.updateSize(width, width / ratio)
+      })
+      resizeObserver.observe(img)
+      if (autoPlay) {
+        visibilityObserver = new IntersectionObserver(
+          ([entry]) => {
+            if (!entry.isIntersecting) return
+            instance?.play()
+            visibilityObserver?.disconnect()
+          },
+          { threshold: 0.8 },
+        )
+        visibilityObserver.observe(container)
       }
     }
-    fn()
-  }, [id, imgSrc, videoSrc])
+    // Keep the original still image usable if the video cannot be loaded.
+    void initialize().catch(() => {})
+    return () => {
+      disposed = true
+      controller.abort()
+      resizeObserver?.disconnect()
+      visibilityObserver?.disconnect()
+      instance?.stop()
+      if (player.current === instance) player.current = null
+    }
+  }, [id, imgSrc, videoSrc, autoPlay])
 
   return (
     <div className="relative">
@@ -112,7 +93,9 @@ export const LivePhoto: React.FC<LivePhotoProps> = (props) => {
           className,
         )}
       />
-      <img
+      <SiteImage
+        preserveOriginal
+        loading="eager"
         src={imgSrc}
         alt="live"
         className={cn('rounded-sm !m-0 relative z-1', className)}

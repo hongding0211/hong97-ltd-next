@@ -11,5 +11,9 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "src/config/image-policy.json"
+  ]
 }

@@ -1,9 +1,9 @@
 import { GridPattern } from '@/components/ui/grid-pattern'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { Loader2, Pencil, Trash } from 'lucide-react'
 import { useTranslation } from 'next-i18next'
 import React from 'react'
+import { BlogCoverImage } from '../BlogCoverImage'
 import { ActionLoading, BlogMeta } from './common'
 
 interface ICover {
@@ -66,12 +66,7 @@ const Cover: React.FC<ICover> = (props) => {
 
   return (
     <div className="relative w-dvw mx-[-1.25rem] aspect-[2/1] md:aspect-[3/1] lg:aspect-[4/1] mb-8 md:mb-12 lg:mb-16">
-      <Skeleton className="w-full h-full absolute rounded-sm sm:rounded-none" />
-      {/* biome-ignore lint/a11y/useAltText: <explanation> */}
-      <img
-        src={coverImg ?? meta.coverImg}
-        className="w-full h-full object-cover rounded-sm sm:rounded-none absolute top-0 left-0"
-      />
+      <BlogCoverImage src={coverImg ?? meta.coverImg} alt="" />
 
       {mode === 'edit' && (
         <div className="flex items-center gap-x-1 sm:gap-x-2 absolute left-3 bottom-3 sm:left-6 sm:bottom-4">

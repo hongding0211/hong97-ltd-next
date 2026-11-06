@@ -1,13 +1,13 @@
 import {
   Avatar as AvatarComponent,
   AvatarFallback,
-  AvatarImage,
 } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { UserResponseDto } from '@server/modules/user/dto/user.response.dto'
-import { getCompressImage } from '@utils/oss'
+import { getImageUrlMeta } from '@utils/image-core.cjs'
 import { UserRound } from 'lucide-react'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
+import { SiteImage } from './SiteImage'
 
 interface IAvatar {
   user?: InstanceType<typeof UserResponseDto>
@@ -28,6 +28,29 @@ const COLOR_PALLETTE = [
   '#c2d11b',
 ]
 
+function AvatarPhoto({ src, width }: { src: string; width: number }) {
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  return (
+    <>
+      <SiteImage
+        src={src}
+        alt=""
+        fill
+        sizes={`${width}px`}
+        className="object-cover !m-0"
+        onLoad={() => setLoadedSrc(src)}
+        onError={() => setFailedSrc(src)}
+      />
+      {(failedSrc === src || (loadedSrc !== src && !getImageUrlMeta(src))) && (
+        <AvatarFallback delayMs={300} className="animate-pulse">
+          <div className="w-full h-full bg-neutral-200 dark:bg-neutral-800" />
+        </AvatarFallback>
+      )}
+    </>
+  )
+}
+
 const getIdxFromString = (str: string) => {
   return (
     str.split('').reduce((acc, char) => {
@@ -41,17 +64,7 @@ const Avatar: React.FC<IAvatar> = (props) => {
 
   const subComponent = useMemo(() => {
     if (user?.profile.avatar) {
-      return (
-        <>
-          <AvatarImage
-            className="object-cover !m-0"
-            src={getCompressImage(user.profile.avatar, width * 2)}
-          />
-          <AvatarFallback delayMs={300} className="animate-pulse">
-            <div className="w-full h-full bg-neutral-200 dark:bg-neutral-800" />
-          </AvatarFallback>
-        </>
-      )
+      return <AvatarPhoto src={user.profile.avatar} width={width} />
     }
 
     if (user && !user.profile.avatar) {

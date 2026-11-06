@@ -5,7 +5,25 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
+  Max,
 } from 'class-validator'
+
+export class ImageMetadataDto {
+  @IsInt()
+  @IsPositive()
+  @Max(Number.MAX_SAFE_INTEGER)
+  width: number
+
+  @IsInt()
+  @IsPositive()
+  @Max(Number.MAX_SAFE_INTEGER)
+  height: number
+
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{7,128}$/)
+  thumbHash: string
+}
 
 export class RequestUploadDto {
   @IsString()

@@ -1,9 +1,12 @@
+'use client'
+
 import { useUser } from '@hooks/useUser'
 import { useAppStore } from '@stores/general'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { SiteImage } from '../common/SiteImage'
 import { type Page, type WalkcalcGroupSummaryDto, walkcalcApi } from './api'
 import { useWalkcalcI18n } from './i18n'
 import { Dialog, Empty, ErrorNote, Initials, styles } from './ui'
@@ -83,12 +86,14 @@ export default function WalkcalcLayout({
                 href="/walkcalc"
                 aria-label="Walking Calculator"
               >
-                <img
+                <SiteImage
+                  preserveOriginal
                   className={styles.brandLight}
                   src="/walkcalc/mark-light.png"
                   alt=""
                 />
-                <img
+                <SiteImage
+                  preserveOriginal
                   className={styles.brandDark}
                   src="/walkcalc/mark-dark.png"
                   alt=""

@@ -1,5 +1,5 @@
 import type { Editor } from '@tiptap/react'
-import { convertImageToWebP, uploadFile2Oss } from '@utils/oss'
+import { uploadImage } from '@utils/oss'
 import { toast } from '@utils/toast'
 
 export async function handleImagePaste(
@@ -8,9 +8,7 @@ export async function handleImagePaste(
   initialPos: number,
 ) {
   try {
-    const webpFile = await convertImageToWebP(imageFile, 0.85, 1920)
-
-    const filePath = await uploadFile2Oss(webpFile, 'blog')
+    const filePath = await uploadImage(imageFile, 'blog', 'body')
 
     if (!filePath) {
       throw new Error('Upload failed')

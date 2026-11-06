@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   ExecutionContext,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
@@ -9,6 +10,7 @@ import {
 import { Throttle } from '@nestjs/throttler'
 import { UserId } from '../../decorators/user-id.decorator'
 import { RequestUploadDto } from './dto/request-upload'
+import { parseImageMetadata } from './image-metadata'
 import { OssService } from './oss.service'
 
 @Controller('oss')
@@ -28,7 +30,12 @@ export class OssController {
   async requestUpload(
     @Body() requestUploadDto: RequestUploadDto,
     @UserId() userId?: string,
+    @Headers('x-image-metadata') imageMetadata?: string,
   ) {
-    return this.ossService.requestUpload(requestUploadDto, userId)
+    return this.ossService.requestUpload(
+      requestUploadDto,
+      userId,
+      parseImageMetadata(imageMetadata),
+    )
   }
 }

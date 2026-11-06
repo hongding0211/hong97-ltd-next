@@ -123,13 +123,19 @@ function OSS({ locale }: { locale: string }) {
       return
     }
     setUploading(true)
+    let failed = false
     executePromisesWithLimit(
       fileToBeUploaded.map((f) => ({
         promise: uploadFile2Oss(f, 'uploader'),
         onFulfilled: (url) => {
+          if (!url) {
+            failed = true
+            return
+          }
           setUploadedFiles((pre) => [...pre, { name: f.name, url }])
         },
         onRejected: () => {
+          failed = true
           toast('uploadFailed', {
             type: 'error',
           })
@@ -137,8 +143,8 @@ function OSS({ locale }: { locale: string }) {
       })),
       3,
       () => {
-        toast('uploadSuccess', {
-          type: 'success',
+        toast(failed ? 'uploadFailed' : 'uploadSuccess', {
+          type: failed ? 'error' : 'success',
         })
         setUploading(false)
       },

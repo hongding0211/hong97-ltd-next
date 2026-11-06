@@ -1,6 +1,16 @@
 'use client'
+
 import axios from 'axios'
 import { rgbaToThumbHash } from 'thumbhash'
+import {
+  type ImagePreset,
+  appendImageUrlMeta,
+  imageMetaFromRgba,
+  imageMimeFromBytes,
+  policy,
+} from './image-core.cjs'
+export { appendImageUrlMeta, getImageUrlMeta } from './image-core.cjs'
+export type { ImageUrlMeta } from './image-core.cjs'
 import { http } from '../services/http'
 import { toast } from './toast'
 
@@ -8,22 +18,10 @@ const axiosInstance = axios.create()
 
 type UploadMethod = 'POST' | 'PUT'
 
-export type ImageUrlMeta = {
-  width: number
-  height: number
-  thumbHash: string
-}
+import type { ImageUrlMeta } from './image-core.cjs'
 
-const IMAGE_META_MAX_EDGE = 100
-const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
-
-const bytesToBase64Url = (bytes: Uint8Array) => {
-  let value = ''
-  bytes.forEach((byte) => {
-    value += String.fromCharCode(byte)
-  })
-  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-}
+const IMAGE_META_MAX_EDGE = policy.metadataMaxEdge
+const IMMUTABLE_CACHE_CONTROL = policy.cacheControl
 
 const loadImage = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -61,43 +59,14 @@ export async function createImageUrlMeta(file: File): Promise<ImageUrlMeta> {
 
   context.drawImage(image, 0, 0, thumbWidth, thumbHeight)
   const pixels = context.getImageData(0, 0, thumbWidth, thumbHeight).data
-  const thumbHash = bytesToBase64Url(
-    rgbaToThumbHash(thumbWidth, thumbHeight, pixels),
+  return imageMetaFromRgba(
+    width,
+    height,
+    thumbWidth,
+    thumbHeight,
+    pixels,
+    rgbaToThumbHash,
   )
-
-  return { width, height, thumbHash }
-}
-
-export function appendImageUrlMeta(path: string, meta: ImageUrlMeta) {
-  const [basePath, existingFragment = ''] = path.split('#', 2)
-  const params = new URLSearchParams(existingFragment)
-  params.set('w', String(meta.width))
-  params.set('h', String(meta.height))
-  params.set('th', meta.thumbHash)
-  return `${basePath}#${params.toString()}`
-}
-
-export function getImageUrlMeta(path: string): ImageUrlMeta | null {
-  const fragment = path.split('#', 2)[1]
-  if (!fragment) {
-    return null
-  }
-
-  const params = new URLSearchParams(fragment)
-  const width = Number(params.get('w'))
-  const height = Number(params.get('h'))
-  const thumbHash = params.get('th') ?? ''
-  if (
-    !Number.isInteger(width) ||
-    width <= 0 ||
-    !Number.isInteger(height) ||
-    height <= 0 ||
-    !/^[A-Za-z0-9_-]+$/.test(thumbHash)
-  ) {
-    return null
-  }
-
-  return { width, height, thumbHash }
 }
 
 const uploadViaDevProxy = async (
@@ -159,53 +128,66 @@ const uploadFile = async (
   }
 }
 
+/** Keep browser and CLI upload presets in config/image-policy.json. */
 export async function convertImageToWebP(
   file: File,
   quality = 0.9,
   maxWidth?: number,
 ): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
+  if (policy.preserveTypes.includes(file.type)) return file
+  const image = await loadImage(file)
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Canvas unavailable')
+  const width = maxWidth
+    ? Math.min(maxWidth, image.naturalWidth)
+    : image.naturalWidth
+  canvas.width = width
+  canvas.height = Math.max(
+    1,
+    Math.round((width * image.naturalHeight) / image.naturalWidth),
+  )
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (value) =>
+        value ? resolve(value) : reject(new Error('Image conversion failed')),
+      'image/webp',
+      quality,
+    )
+  })
+  // Browsers may fall back to PNG when WebP encoding is unsupported.
+  const outputMime = imageMimeFromBytes(
+    new Uint8Array(await blob.slice(0, 16).arrayBuffer()),
+  )
+  if (!outputMime || outputMime !== blob.type)
+    throw new Error('Image output format mismatch')
+  if (!['image/webp', 'image/png', 'image/jpeg'].includes(outputMime))
+    throw new Error('Unsupported image output')
+  const extension =
+    blob.type === 'image/webp'
+      ? 'webp'
+      : blob.type === 'image/png'
+        ? 'png'
+        : 'jpg'
+  return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.' + extension, {
+    type: blob.type,
+  })
+}
 
-    img.onload = () => {
-      const ratio = (() => {
-        const r = img.width / (img.height || 0)
-        return r ?? 1
-      })()
-      const newWidth = (() => {
-        if (!maxWidth) {
-          return img.width
-        }
-        return Math.min(maxWidth, img.width)
-      })()
-      const newHeight = newWidth / ratio
-
-      canvas.width = newWidth
-      canvas.height = newHeight
-      ctx?.drawImage(img, 0, 0, newWidth, newHeight)
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const webpFile = new File(
-              [blob],
-              file.name.replace(/\.(jpg|jpeg|png)$/i, '.webp'),
-              { type: 'image/webp' },
-            )
-            resolve(webpFile)
-          } else {
-            reject(new Error('Failed to convert image'))
-          }
-        },
-        'image/webp',
-        quality,
-      )
-    }
-
-    img.onerror = reject
-    img.src = URL.createObjectURL(file)
+export async function uploadImage(
+  file: File,
+  app: string,
+  preset: ImagePreset,
+) {
+  const config = policy.presets[preset]
+  return uploadFile2Oss(file, app, {
+    compress2Webp: true,
+    requireImageMeta: true,
+    compress2WebpOpt: {
+      quality: config.quality / 100,
+      maxWidth: config.maxWidth,
+    },
   })
 }
 
@@ -214,6 +196,7 @@ export async function uploadFile2Oss(
   app?: string,
   opts?: {
     compress2Webp?: boolean
+    requireImageMeta?: boolean
     compress2WebpOpt?: {
       quality?: number
       maxWidth?: number
@@ -221,33 +204,55 @@ export async function uploadFile2Oss(
   },
 ) {
   try {
-    let file = _file
+    const actualMime = imageMimeFromBytes(
+      new Uint8Array(await _file.slice(0, 16).arrayBuffer()),
+    )
+    const extensions = policy.extensions
+    let file =
+      actualMime &&
+      (actualMime !== _file.type ||
+        !_file.name.toLowerCase().endsWith('.' + extensions[actualMime]))
+        ? new File(
+            [_file],
+            _file.name.replace(/\.[^.]+$/, '') + '.' + extensions[actualMime],
+            { type: actualMime },
+          )
+        : _file
     if (opts?.compress2Webp) {
       file = await convertImageToWebP(
-        _file,
+        file,
         opts?.compress2WebpOpt?.quality,
         opts?.compress2WebpOpt?.maxWidth,
       )
     }
     const imageMeta = await (async () => {
-      if (
-        (app ?? 'general') === 'uploader' ||
-        !file.type.startsWith('image/')
-      ) {
+      if (!file.type.startsWith('image/')) {
         return null
       }
       try {
         return await createImageUrlMeta(file)
       } catch {
+        if (file.type.startsWith('image/') || opts?.requireImageMeta) {
+          throw new Error('Failed to generate image placeholder')
+        }
         return null
       }
     })()
-    const preUpload = await http.post('PostRequestUpload', {
-      fileName: file.name,
-      contentType: file.type || 'application/octet-stream',
-      fileSize: file.size,
-      app: app ?? 'general',
-    })
+    const preUpload = await http.post(
+      'PostRequestUpload',
+      {
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        app: app ?? 'general',
+      },
+      undefined,
+      {
+        headers: imageMeta
+          ? { 'X-Image-Metadata': JSON.stringify(imageMeta) }
+          : {},
+      },
+    )
 
     const {
       url,
@@ -276,9 +281,5 @@ export async function uploadFile2Oss(
   }
 }
 
-export function getCompressImage(path: string, width: number) {
-  const [basePath, fragment] = path.split('#', 2)
-  const separator = basePath.includes('?') ? '&' : '?'
-  const resizedPath = `${basePath}${separator}x-oss-process=image/resize,w_${width}`
-  return fragment ? `${resizedPath}#${fragment}` : resizedPath
-}
+/** Compatibility entry point; no separate resize rules. */
+export { getOssImageVariant as getCompressImage } from './image-core.cjs'

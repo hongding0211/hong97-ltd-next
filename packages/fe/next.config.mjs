@@ -1,6 +1,7 @@
 import createMDX from '@next/mdx'
 import rehypeHighlight from 'rehype-highlight'
 import { devNextConfig } from './next.config.dev.mjs'
+import remarkImages from './utils/remark-images.cjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -9,13 +10,12 @@ const nextConfig = {
     locales: ['cn', 'en'],
   },
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-  ...(
-    process.env.NODE_ENV === 'development' ? devNextConfig : {}
-  )
+  ...(process.env.NODE_ENV === 'development' ? devNextConfig : {}),
 }
 
 const withMDX = createMDX({
   options: {
+    remarkPlugins: [remarkImages],
     rehypePlugins: [rehypeHighlight],
   },
 })

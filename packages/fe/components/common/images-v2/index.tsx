@@ -5,14 +5,14 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import { cn } from '@/lib/utils'
-import { getImageUrlMeta } from '@utils/oss'
+import { getImageUrlMeta } from '@utils/image-core.cjs'
 import Autoplay from 'embla-carousel-autoplay'
 import { Circle } from 'lucide-react'
 import photoswipe from 'photoswipe'
 import PhotoSwipeLightbox from 'photoswipe/lightbox'
 import React, { useEffect, useId, useRef, useState } from 'react'
+import { SiteImage } from '../SiteImage'
 import { LivePhoto } from '../live-photo'
-import { ThumbHashImage } from '../thumbhash-image'
 
 type Image = {
   img: string
@@ -42,20 +42,8 @@ const MonoImage: React.FC<{
   } | null>(null)
 
   const id = useId()
-  const imageMeta = optimizeLoading ? getImageUrlMeta(img.img)! : null
-
-  useEffect(() => {
-    if (optimizeLoading) return
-
-    const i = new Image()
-    i.src = img.img
-    i.onload = () => {
-      setImgMeta({
-        width: i.width,
-        height: i.height,
-      })
-    }
-  }, [img, optimizeLoading])
+  const imageMeta = React.useMemo(() => getImageUrlMeta(img.img), [img.img])
+  const reserveSpace = optimizeLoading && Boolean(imageMeta)
 
   if (isLivePhoto(img)) {
     return (
@@ -85,17 +73,26 @@ const MonoImage: React.FC<{
           : undefined
       }
     >
-      {optimizeLoading ? (
-        <ThumbHashImage
-          src={img.img}
-          alt={id}
-          shouldLoad={shouldLoad}
-          showThumbHash={showThumbHash}
-          className="relative z-2 !my-0 h-full w-full rounded-sm object-cover"
-        />
-      ) : (
-        <img src={img.img} className="relative z-2 !my-0 rounded-sm" alt={id} />
-      )}
+      <SiteImage
+        src={img.img}
+        alt={id}
+        shouldLoad={shouldLoad}
+        showPlaceholder={showThumbHash}
+        fill={reserveSpace}
+        onLoad={(event) => {
+          if (imageMeta) return
+          const image = event.currentTarget
+          setImgMeta({
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+          })
+        }}
+        preserveOriginal={!optimizeLoading}
+        className={cn(
+          'relative z-2 !my-0 rounded-sm',
+          optimizeLoading && 'h-full w-full object-cover',
+        )}
+      />
     </a>
   )
 }
@@ -245,7 +242,7 @@ export const ImagesV2: React.FC<ImagesV2Props> = (props) => {
             'w-full min-[520px]:max-w-[480px] sm:w-[75%] sm:max-w-none mx-auto my-5',
         )}
       >
-        <div className="relative">
+        <div className="relative w-full">
           <Carousel
             opts={{
               loop: true,
