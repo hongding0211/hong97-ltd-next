@@ -15,6 +15,18 @@ export const ComponentMap: Record<string, ComponentMapEntry> = {
       loop: false,
     },
   },
+  'lazy.summary24': {
+    lazy: true,
+    displayName: '2024 Summary',
+    defaultProps: { type: 'TLDR' },
+    lazyLoader: () => import('./lazy/summary24'),
+  },
+  'lazy.livePhoto': {
+    lazy: true,
+    displayName: 'Live Photo',
+    defaultProps: { images: [] },
+    lazyLoader: () => import('./lazy/livePhoto'),
+  },
   'lazy.wrapped25': {
     lazy: true,
     displayName: 'Wrapped25',

@@ -53,6 +53,17 @@ export async function getServerSideProps(context) {
   const meta = await http.get('GetBlogMeta', {
     blogId
   }, { locale })
+  // Keep existing links while serving migrated posts from the online editor.
+  const content = await http.get('GetBlogContent', { blogId }, { locale })
+  if (content?.isSuccess && content.data?.content) {
+    const prefix = locale !== context.defaultLocale ? `/${locale}` : ''
+    return {
+      redirect: {
+        destination: `${prefix}/blog/id/${encodeURIComponent(blogId)}`,
+        permanent: false,
+      },
+    }
+  }
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common', 'blog', 'toast'])),
