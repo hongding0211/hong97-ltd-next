@@ -11,14 +11,23 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { SiteImage } from '@components/common/SiteImage'
+import { useSsoPasskey } from '@hooks/useSsoPasskey'
 import { Label } from '@radix-ui/react-label'
 import { recoverFoodSession } from '@services/sso/food-session-recovery'
+import {
+  PasskeyRequestError,
+  claimPasskeyInvite,
+  createPasskey,
+  isPasskeyCancelled,
+  passkeyCreationError,
+} from '@services/sso/passkeys'
 import {
   readSsoSourceQuery,
   resolveSsoSourceConfig,
 } from '@services/sso/source-config'
 import { useLoginStore } from '@stores/sso'
 import { uploadImage } from '@utils/oss'
+import { toast } from '@utils/toast'
 import {
   AlertCircle,
   ArrowUpRight,
@@ -26,6 +35,7 @@ import {
   Eye,
   EyeClosed,
   Github,
+  KeyRound,
   Loader2,
   Trash2,
   Upload,
@@ -188,9 +198,17 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [firstRender, setFirstRender] = useState(true)
   const [githubLoading, setGithubLoading] = useState(false)
+  const [passkeyInvite, setPasskeyInvite] = useState<{ finish: () => void }>()
+  const [creatingPasskey, setCreatingPasskey] = useState(false)
+  const [finishingPasskeyInvite, setFinishingPasskeyInvite] = useState<
+    'create' | 'skip'
+  >()
+  const inviteHeading = useRef<HTMLHeadingElement>(null)
+  const accountInput = useRef<HTMLInputElement>(null)
 
   const { t } = useTranslation('login')
   const { t: tCommon } = useTranslation('common')
+  const { t: tPasskey } = useTranslation('passkeys')
 
   const router = useRouter()
   const userId = useGeneralContext().user?.userId
@@ -204,6 +222,7 @@ function Login() {
     setPassword,
     setName,
     login,
+    completeLogin,
     tab,
     changeTab,
     loading,
@@ -220,6 +239,7 @@ function Login() {
     setPassword: state.setPassword,
     setName: state.setName,
     login: state.login,
+    completeLogin: state.completeLogin,
     tab: state.tab,
     changeTab: state.changeTab,
     loading: state.loading,
@@ -230,19 +250,82 @@ function Login() {
     cleanUp: state.cleanUp,
   }))
 
+  const passkey = useSsoPasskey(
+    router.isReady &&
+      tab === 'login' &&
+      !loading &&
+      !passkeyInvite &&
+      !showRedirecting &&
+      !githubLoading,
+    readRedirectQuery(router.query.redirect),
+    completeLogin,
+  )
+
+  const handlePasswordLogin = useCallback(() => {
+    if (passkey.busy || passkeyInvite || showRedirecting) return
+    passkey.clearError()
+    void login(async (finish) => {
+      if (!passkey.supported || !(await claimPasskeyInvite())) return false
+      setPassword('')
+      setFinishingPasskeyInvite(undefined)
+      const profile =
+        router.locale === 'cn' ? '/cn/sso/profile' : '/sso/profile'
+      setPasskeyInvite({ finish: () => finish(profile) })
+      return true
+    })
+  }, [
+    login,
+    passkey.busy,
+    passkey.clearError,
+    passkey.supported,
+    passkeyInvite,
+    router.locale,
+    setPassword,
+    showRedirecting,
+  ])
+
+  useEffect(() => {
+    if (passkeyInvite) inviteHeading.current?.focus()
+  }, [passkeyInvite])
+
+  const finishPasskeyInvite = (action: 'create' | 'skip') => {
+    if (!passkeyInvite || finishingPasskeyInvite) return
+    setFinishingPasskeyInvite(action)
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(passkeyInvite.finish)
+    })
+  }
+
+  const createInvitedPasskey = async () => {
+    setCreatingPasskey(true)
+    try {
+      await createPasskey()
+      toast(tPasskey('created'), { type: 'success' })
+      finishPasskeyInvite('create')
+    } catch (error) {
+      if (error instanceof PasskeyRequestError && error.status === 409) {
+        finishPasskeyInvite('create')
+      } else if (!isPasskeyCancelled(error)) {
+        toast(tPasskey(passkeyCreationError(error)), { type: 'error' })
+      }
+    } finally {
+      setCreatingPasskey(false)
+    }
+  }
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== 'Enter') {
         return
       }
       if (tab === 'login') {
-        login()
+        handlePasswordLogin()
       }
       if (tab === 'signup') {
         signUp()
       }
     },
-    [tab, login, signUp],
+    [tab, handlePasswordLogin, signUp],
   )
 
   const githubError = useMemo(() => {
@@ -316,7 +399,11 @@ function Login() {
           onInput={(e) => setAccount(e.currentTarget.value)}
           label={t('account')}
           placeholder={t('email') + ''}
-          disabled={showRedirecting}
+          name="username"
+          inputRef={accountInput}
+          onFocus={passkey.startAutofill}
+          autoComplete={passkey.supported ? 'username webauthn' : 'username'}
+          disabled={showRedirecting || passkey.busy}
         />
         <InputWithLabel
           value={password}
@@ -325,7 +412,9 @@ function Login() {
           type={showPassword ? 'text' : 'password'}
           placeholder={t('password') + ''}
           onKeyDown={handleKeyDown}
-          disabled={showRedirecting}
+          name="password"
+          autoComplete="current-password"
+          disabled={showRedirecting || passkey.busy}
           right={
             !showRedirecting && (
               <div
@@ -340,8 +429,10 @@ function Login() {
         <div className="mt-2 flex gap-2">
           <Button
             size="sm"
-            onClick={login}
-            disabled={loading || showRedirecting}
+            onClick={handlePasswordLogin}
+            disabled={
+              loading || showRedirecting || passkey.busy || githubLoading
+            }
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('login')}
@@ -350,18 +441,42 @@ function Login() {
             size="sm"
             variant="ghost"
             onClick={() => changeTab('signup')}
-            disabled={loading || showRedirecting}
+            disabled={
+              loading || showRedirecting || passkey.busy || githubLoading
+            }
           >
             {t('signup')}
           </Button>
         </div>
-        <div className="mt-1 -mb-1">
+        <div className="mt-1 -mb-1 flex flex-col gap-2">
+          {passkey.supported && !showRedirecting && (
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="w-full gap-1"
+              onClick={passkey.busy ? passkey.cancel : passkey.start}
+              disabled={loading || githubLoading}
+            >
+              {passkey.busy ? (
+                <Loader2
+                  aria-hidden="true"
+                  className="!h-3 !w-3 animate-spin"
+                />
+              ) : (
+                <KeyRound aria-hidden="true" className="!h-3 !w-3" />
+              )}
+              {tPasskey(passkey.busy ? 'cancel' : 'signIn')}
+            </Button>
+          )}
           <Button
             size="xs"
             variant="outline"
-            className="h-8 w-full gap-1 text-xs font-medium"
+            className="w-full gap-1"
             onClick={handleGithubLogin}
-            disabled={loading || showRedirecting || githubLoading}
+            disabled={
+              loading || showRedirecting || githubLoading || passkey.busy
+            }
             aria-label={t('githubLogin')}
             title={t('githubLogin')}
           >
@@ -381,7 +496,9 @@ function Login() {
     setAccount,
     setPassword,
     t,
-    login,
+    tPasskey,
+    passkey,
+    handlePasswordLogin,
     changeTab,
     handleKeyDown,
     loading,
@@ -459,6 +576,15 @@ function Login() {
     Uploader,
   ])
 
+  const step = passkeyInvite ? 'passkey' : tab
+  const inviteBusy = creatingPasskey || Boolean(finishingPasskeyInvite)
+  const inviteCreating = creatingPasskey || finishingPasskeyInvite === 'create'
+  const passkeyError = step === 'login' && !showRedirecting && passkey.failed
+
+  useEffect(() => {
+    if (router.isReady && step === 'login') accountInput.current?.focus()
+  }, [router.isReady, step])
+
   useEffect(() => {
     setFirstRender(false)
   }, [])
@@ -472,7 +598,7 @@ function Login() {
   }, [router.isReady, router.query.redirect, cleanUp, init])
 
   useEffect(() => {
-    if (!router.isReady || !userId) return
+    if (!router.isReady || !userId || loading || passkeyInvite) return
     const controller = new AbortController()
     try {
       void recoverFoodSession({
@@ -487,7 +613,7 @@ function Login() {
       // Login remains available if browser storage is disabled.
     }
     return () => controller.abort()
-  }, [router.isReady, router.query.redirect, userId])
+  }, [router.isReady, router.query.redirect, userId, loading, passkeyInvite])
 
   return (
     <>
@@ -519,17 +645,25 @@ function Login() {
               />
             </div>
             <CardHeader>
-              <CardTitle>{t(tab)}</CardTitle>
+              {passkeyInvite ? (
+                <CardTitle ref={inviteHeading} tabIndex={-1}>
+                  {tPasskey('title')}
+                </CardTitle>
+              ) : (
+                <CardTitle>{t(tab)}</CardTitle>
+              )}
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {!!msg && (
+              {!passkeyInvite && (msg || passkeyError) && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{tCommon('error')}</AlertTitle>
-                  <AlertDescription>{t(msg)}</AlertDescription>
+                  <AlertDescription>
+                    {passkeyError ? tPasskey('loginFailed') : t(msg)}
+                  </AlertDescription>
                 </Alert>
               )}
-              {!!githubError && (
+              {!passkeyInvite && !!githubError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{tCommon('error')}</AlertTitle>
@@ -538,14 +672,14 @@ function Login() {
               )}
               <motion.div
                 className="flex flex-col gap-4"
-                key={tab}
+                key={step}
                 layout={false}
                 initial={
                   firstRender
                     ? false
                     : {
                         opacity: 0,
-                        x: tab === 'login' ? -20 : 20,
+                        x: step === 'login' ? -20 : 20,
                         filter: 'blur(6px)',
                       }
                 }
@@ -556,14 +690,57 @@ function Login() {
                 }}
                 exit={{
                   opacity: 0,
-                  x: tab === 'login' ? -20 : 20,
+                  x: step === 'login' ? -20 : 20,
                   filter: 'blur(6px)',
                 }}
                 transition={{
                   type: 'tween',
                 }}
               >
-                {tab === 'login' ? loginComponent : signUpComponent}
+                {passkeyInvite ? (
+                  <>
+                    <CardDescription>
+                      {tPasskey('inviteDescription')}
+                    </CardDescription>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={createInvitedPasskey}
+                        aria-busy={inviteCreating}
+                        disabled={inviteBusy}
+                      >
+                        {inviteCreating && (
+                          <Loader2
+                            aria-hidden="true"
+                            className="mr-2 h-4 w-4 animate-spin"
+                          />
+                        )}
+                        {tPasskey('inviteCreate')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => finishPasskeyInvite('skip')}
+                        aria-busy={finishingPasskeyInvite === 'skip'}
+                        disabled={inviteBusy}
+                      >
+                        {finishingPasskeyInvite === 'skip' && (
+                          <Loader2
+                            aria-hidden="true"
+                            className="mr-2 h-4 w-4 animate-spin"
+                          />
+                        )}
+                        {tPasskey('skip')}
+                      </Button>
+                    </div>
+                  </>
+                ) : tab === 'login' ? (
+                  loginComponent
+                ) : (
+                  signUpComponent
+                )}
               </motion.div>
             </CardContent>
             <CardFooter>
@@ -599,7 +776,12 @@ export async function getStaticProps(context: GetStaticPropsContext) {
   const { locale = 'en' } = context
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common', 'login', 'toast'])),
+      ...(await serverSideTranslations(locale, [
+        'common',
+        'login',
+        'toast',
+        'passkeys',
+      ])),
     },
   }
 }

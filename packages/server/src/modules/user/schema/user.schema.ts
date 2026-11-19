@@ -1,5 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { Document } from 'mongoose'
+import {
+  PasskeyCredential,
+  PasskeyCredentialSchema,
+} from '../../auth/schema/passkey.schema'
 
 export type UserDocument = User & Document
 
@@ -70,11 +74,16 @@ export class User {
     }
   }
 
+  @Prop({ type: [PasskeyCredentialSchema], default: undefined, select: false })
+  passkeys?: PasskeyCredential[]
+
   @Prop({ type: Date, default: null })
   lastLoginAt: Date
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)
+
+UserSchema.index({ 'passkeys.id': 1 }, { unique: true, sparse: true })
 
 UserSchema.index(
   { 'authData.github.githubId': 1 },

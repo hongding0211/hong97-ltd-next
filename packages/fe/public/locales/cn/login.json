@@ -14,7 +14,7 @@
   "emptyName": "昵称不能为空",
   "redirectTitle": "欢迎回来，{{name}}！",
   "redirectDescription": "正在处理你的登录请求，请稍等片刻...",
-  "githubLogin": "Continue with GitHub",
+  "githubLogin": "使用 GitHub 登录",
   "githubLoginFailed": "GitHub 登录失败，请重试。",
   "privacyPolicy": "隐私政策",
   "walkcalcPrivacyPolicy": "WalkCalc 隐私政策",

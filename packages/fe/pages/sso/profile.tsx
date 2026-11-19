@@ -28,6 +28,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useGeneralContext } from '@components/hoc/general-context/GeneralContext'
+import { PasskeySettings } from '@components/sso/passkey-settings'
+import { useProfilePasskeys } from '@hooks/useProfilePasskeys'
 import { http } from '@services/http'
 import {
   readSsoSourceQuery,
@@ -125,6 +127,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
   const [profileEditing, setProfileEditing] = useState(false)
 
   const [showModifyPassword, setShowModifyPassword] = useState(false)
+  const [showPasskeys, setShowPasskeys] = useState(false)
   const [showImageCrop, setShowImageCrop] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false)
@@ -145,10 +148,18 @@ export const Profile: React.FC<IProfileProps> = (props) => {
   }, [router.query.source])
 
   const { t } = useTranslation('profile')
+  const { t: tPasskeys } = useTranslation('passkeys')
 
   const uid = useId()
 
   const { user } = useGeneralContext()
+  const {
+    passkeys,
+    busy: passkeyBusy,
+    create: createProfilePasskey,
+    revoke: revokeProfilePasskey,
+  } = useProfilePasskeys(user?.userId)
+  const hasPasskey = Boolean(passkeys?.length)
 
   const { isLoading, cleanUp, refresh, logout } = useAppStore((state) => ({
     user: state.user,
@@ -346,6 +357,25 @@ export const Profile: React.FC<IProfileProps> = (props) => {
     </Button>
   ) : null
 
+  const passkeyButton = passkeys ? (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className="w-full"
+      onClick={() => {
+        if (hasPasskey) setShowPasskeys(true)
+        else void createProfilePasskey()
+      }}
+      disabled={uploadLoading || profileEditing || passkeyBusy}
+    >
+      {passkeyBusy && !hasPasskey && (
+        <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+      )}
+      {tPasskeys(hasPasskey ? 'title' : 'create')}
+    </Button>
+  ) : null
+
   const logoutButton = (
     <Button
       size="sm"
@@ -450,6 +480,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
             <div className="flex flex-col w-full gap-y-4 mt-8">
               {editProfileButton}
               {changePasswordButton}
+              {passkeyButton}
               {deleteAccountButton}
               {!sourceConfig.hideLogout && logoutButton}
             </div>
@@ -693,6 +724,7 @@ export const Profile: React.FC<IProfileProps> = (props) => {
               <>
                 {editProfileButton}
                 {changePasswordButton}
+                {passkeyButton}
                 {deleteAccountButton}
                 {!sourceConfig.hideLogout && logoutButton}
               </>
@@ -715,6 +747,17 @@ export const Profile: React.FC<IProfileProps> = (props) => {
           show={showModifyPassword}
           onShowChange={setShowModifyPassword}
         />
+
+        {hasPasskey && user?.userId && (
+          <PasskeySettings
+            key={user.userId}
+            show={showPasskeys}
+            onShowChange={setShowPasskeys}
+            passkeys={passkeys}
+            busy={passkeyBusy}
+            onRevoke={revokeProfilePasskey}
+          />
+        )}
 
         <AlertDialog
           open={showDeleteAccount}
@@ -770,7 +813,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   }
   return {
     props: {
-      ...(await serverSideTranslations(locale, ['common', 'profile', 'toast'])),
+      ...(await serverSideTranslations(locale, [
+        'common',
+        'profile',
+        'toast',
+        'passkeys',
+      ])),
       canModifyPassword,
     },
   }

@@ -1,14 +1,15 @@
 import { Input, InputProps } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useId } from 'react'
+import { type Ref, useId } from 'react'
 
 export const InputWithLabel: React.FC<
   InputProps & {
     label: string
     right?: React.ReactNode
+    inputRef?: Ref<HTMLInputElement>
   }
 > = (props) => {
-  const { label, right, ...restProps } = props
+  const { label, right, inputRef, ...restProps } = props
 
   const uid = useId()
 
@@ -18,7 +19,7 @@ export const InputWithLabel: React.FC<
         {label}
       </Label>
       <div className="relative">
-        <Input id={uid} {...restProps} />
+        <Input id={uid} ref={inputRef} {...restProps} />
         {right && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2">
             {right}

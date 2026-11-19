@@ -17,7 +17,13 @@ import {
 } from '../walkcalc/schema/walkcalc-group.schema'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
+import { PasskeyController } from './passkey.controller'
+import { PasskeyService } from './passkey.service'
 import { ApiToken, ApiTokenSchema } from './schema/api-token.schema'
+import {
+  PasskeyChallenge,
+  PasskeyChallengeSchema,
+} from './schema/passkey.schema'
 import {
   RefreshSession,
   RefreshSessionSchema,
@@ -29,6 +35,7 @@ import {
     MongooseModule.forFeature([
       { name: ApiToken.name, schema: ApiTokenSchema },
       { name: User.name, schema: UserSchema },
+      { name: PasskeyChallenge.name, schema: PasskeyChallengeSchema },
       { name: RefreshSession.name, schema: RefreshSessionSchema },
       { name: PushDevice.name, schema: PushDeviceSchema },
       { name: WalkcalcGroup.name, schema: WalkcalcGroupSchema },
@@ -50,8 +57,8 @@ import {
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService],
+  controllers: [AuthController, PasskeyController],
+  providers: [AuthService, PasskeyService],
   exports: [AuthService],
 })
 export class AuthModule {}

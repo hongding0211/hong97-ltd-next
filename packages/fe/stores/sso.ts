@@ -1,5 +1,6 @@
 'use client'
 import { http } from '@services/http'
+import type { PasskeyLogin } from '@services/sso/passkeys'
 import { toast } from '@utils/toast'
 import { create } from 'zustand'
 
@@ -22,7 +23,12 @@ export type LoginStoreAction = {
   setPassword: (password: string) => void
   setName: (name: string) => void
   setAvatar: (avatar: string) => void
-  login: () => void
+  login: (
+    offerPasskey?: (
+      continueLogin: (fallbackRedirect?: string) => void,
+    ) => Promise<boolean>,
+  ) => Promise<void>
+  completeLogin: (session: PasskeyLogin) => void
   signUp: () => void
   changeTab: (tab: 'login' | 'signup') => void
   init: (props: { redirect: string }) => void
@@ -113,12 +119,39 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
       }
     }
 
+    const completeLogin = (
+      session: PasskeyLogin,
+      redirect = get().redirect,
+    ) => {
+      if (session.destination) {
+        window.location.href = session.destination
+      } else if (redirect) {
+        window.location.href = shouldPassTokenToRedirect(redirect)
+          ? withAuthTokenHash(redirect, {
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+            })
+          : redirect
+      } else {
+        const url = new URL(window.location.href)
+        url.hash = session.accessToken
+        window.location.href = url.href
+        set({
+          showRedirecting: true,
+          avatar: session.user.profile.avatar ?? '',
+          name: session.user.profile.name ?? '',
+        })
+      }
+    }
+
     return {
       ...initialState,
+      completeLogin,
       setAccount: (account: string) => set({ account }),
       setPassword: (password: string) => set({ password }),
       setName: (name: string) => set({ name }),
-      login: async () => {
+      login: async (offerPasskey) => {
+        if (get().loading) return
         set({
           msg: '',
         })
@@ -141,24 +174,10 @@ export const useLoginStore = create<LoginStoreState & LoginStoreAction>(
           })
           if (loginRes.isSuccess) {
             const { redirect } = get()
-            if (redirect) {
-              /** If a redirect url is provided, redirect to it */
-              window.location.href = shouldPassTokenToRedirect(redirect)
-                ? withAuthTokenHash(redirect, {
-                    accessToken: loginRes.data.accessToken,
-                    refreshToken: loginRes.data.refreshToken,
-                  })
-                : redirect
-            } else {
-              /** Otherwise, append the access token to the current url */
-              const url = new URL(window.location.href)
-              window.location.href = `${url}#${loginRes.data.accessToken}`
-              set({
-                showRedirecting: true,
-                avatar: loginRes.data.user.profile.avatar ?? '',
-                name: loginRes.data.user.profile.name ?? '',
-              })
-            }
+            const finish = (fallbackRedirect?: string) =>
+              completeLogin(loginRes.data, redirect || fallbackRedirect)
+            const invited = await offerPasskey?.(finish)
+            if (!invited) finish()
           } else {
             toast(loginRes.msg, {
               type: 'error',

@@ -33,11 +33,17 @@ export default registerAs('auth', () => ({
       .map((audience) => audience.trim())
       .filter(Boolean),
   },
+  passkeys: {
+    origin: process.env.AUTH_PASSKEY_ORIGIN,
+    inviteCooldownSeconds: 30 * 24 * 60 * 60,
+  },
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   allowedRedirectOrigins: process.env.AUTH_ALLOWED_REDIRECT_ORIGINS,
   allowedRedirectSchemes: process.env.AUTH_ALLOWED_REDIRECT_SCHEMES,
   ignore: [
     '/auth/login',
+    '/auth/passkeys/authenticate/options',
+    '/auth/passkeys/authenticate/verify',
     '/auth/register',
     '/auth/logout',
     '/auth/refreshToken',

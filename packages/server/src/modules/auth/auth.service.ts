@@ -297,10 +297,7 @@ export class AuthService {
       const githubProfile = await this.fetchGithubProfile(githubAccessToken)
       const user = await this.upsertGithubUser(githubProfile)
       const session = await this.issueLoginSession(user, res)
-      return this.withTokensForTokenRedirect(
-        this.resolveFrontendRedirect(state.redirect),
-        session,
-      )
+      return this.getLoginDestination(state.redirect, session)
     } catch {
       return this.getOAuthFailureRedirect('github')
     }
@@ -511,10 +508,11 @@ export class AuthService {
     return this.isAllowedAppRedirect(url) || isInternalCallback
   }
 
-  private withTokensForTokenRedirect(
-    redirect: string,
+  getLoginDestination(
+    requestedRedirect: string,
     session: { accessToken: string; refreshToken: string },
   ) {
+    const redirect = this.resolveFrontendRedirect(requestedRedirect)
     const redirectUrl = new URL(redirect)
     if (!this.shouldPassTokensToRedirect(redirectUrl)) {
       return redirect
@@ -868,7 +866,7 @@ export class AuthService {
     }
   }
 
-  private async issueLoginSession(user: UserDocument, res?: Response) {
+  async issueLoginSession(user: UserDocument, res?: Response) {
     user.lastLoginAt = new Date()
     await user.save()
 
