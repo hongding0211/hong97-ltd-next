@@ -1599,6 +1599,21 @@ describe('WalkcalcService normalized ledger', () => {
       { $skip: 3 },
       { $limit: 3 },
     ])
+
+    await ctx.service.groupRecords('u1', 'AB12', {
+      sortBy: 'amount',
+      amountBasis: 'perPerson',
+      page: 2,
+      pageSize: 3,
+    })
+
+    expect(aggregate).toHaveBeenLastCalledWith([
+      { $match: expect.objectContaining({ groupCode: 'AB12' }) },
+      { $set: { sortAmount: { $let: expect.any(Object) } } },
+      { $sort: { sortAmount: -1, occurredAt: -1, createdAt: -1, recordId: -1 } },
+      { $skip: 3 },
+      { $limit: 3 },
+    ])
   })
 
   it('filters uncategorized personal expenses and includes shares in mutation responses', async () => {

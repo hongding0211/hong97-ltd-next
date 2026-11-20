@@ -403,6 +403,11 @@ describe('WalkcalcController', () => {
     await expect(pipe.transform(sort, metadata)).resolves.toEqual(
       expect.objectContaining(sort),
     )
+    for (const amountBasis of ['total', 'perPerson']) {
+      await expect(pipe.transform({ ...sort, amountBasis }, metadata)).resolves.toEqual(
+        expect.objectContaining({ ...sort, amountBasis }),
+      )
+    }
     for (const timeZone of ['+0800', '+08:00', '-03:30', 'GMT+0530']) {
       await expect(
         pipe.transform({ ...sort, timeZone }, metadata),
@@ -411,6 +416,7 @@ describe('WalkcalcController', () => {
     for (const invalid of [
       { sortBy: 'amountValue' },
       { sortOrder: 'ascending' },
+      { amountBasis: 'myShare' },
       { timeZone: 'Mars/Olympus' },
       { timeZone: '+24:00' },
       { timeZone: '-0260' },

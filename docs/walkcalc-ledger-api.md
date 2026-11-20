@@ -840,7 +840,7 @@ Both group records and participant-record endpoints accept `sortBy` and `sortOrd
 
 - `sortBy=createdAt` sorts by entry creation time and is the default for existing callers.
 - `sortBy=occurredAt` sorts by the time the bill occurred, with creation time and record ID as tie-breakers in the same direction. The native group list should request this with `sortOrder=desc` for its default view.
-- `sortBy=amount` sorts the entire filtered list by each record's full original amount before pagination. Mixed currencies are compared by their original numeric amounts without exchange-rate conversion. Equal amounts are ordered by occurrence time, creation time, and record ID, newest first. Existing clients can still send the optional `timeZone` parameter.
+- `sortBy=amount` sorts the entire filtered list before pagination. `amountBasis=total` is the default. `amountBasis=perPerson` sorts multi-participant expenses by the total divided by the participant count and rounded half-up to two decimal places. Settlements and expenses with fewer than two participants use their total. Mixed currencies are compared by their original numeric amounts without exchange-rate conversion. Equal amounts are ordered by occurrence time, creation time, and record ID, newest first. Existing clients can still send the optional `timeZone` parameter.
 
 ### Record Filters
 

@@ -1724,7 +1724,13 @@ export class WalkcalcService {
     const offset = (page - 1) * pageSize
     const recordsQuery =
       query.sortBy === 'amount'
-        ? this.amountSortedRecords(finalFilter, direction, offset, pageSize)
+        ? this.amountSortedRecords(
+            finalFilter,
+            direction,
+            offset,
+            pageSize,
+            query.amountBasis,
+          )
         : this.walkcalcRecordModel
             .find(finalFilter)
             .sort(sort)
@@ -1750,11 +1756,37 @@ export class WalkcalcService {
     direction: 1 | -1,
     offset: number,
     pageSize: number,
+    amountBasis: QueryWalkcalcRecordsDto['amountBasis'],
   ) {
+    const totalAmount = { $toDecimal: '$amountValue' }
+    // Match the client's half-up rounding to the displayed cent.
+    const roundedShareInCents = {
+      $trunc: {
+        $add: [
+          { $divide: [{ $multiply: [totalAmount, 100] }, '$$count'] },
+          0.5,
+        ],
+      },
+    }
+    const sortAmount =
+      amountBasis === 'perPerson'
+        ? {
+            $let: {
+              vars: { count: { $size: { $ifNull: ['$participantIds', []] } } },
+              in: {
+                $cond: [
+                  { $and: [{ $eq: ['$type', 'expense'] }, { $gt: ['$$count', 1] }] },
+                  { $divide: [roundedShareInCents, 100] },
+                  totalAmount,
+                ],
+              },
+            },
+          }
+        : totalAmount
     return this.walkcalcRecordModel
       .aggregate<WalkcalcRecord>([
         { $match: filter },
-        { $set: { sortAmount: { $toDecimal: '$amountValue' } } },
+        { $set: { sortAmount } },
         {
           $sort: {
             sortAmount: direction,

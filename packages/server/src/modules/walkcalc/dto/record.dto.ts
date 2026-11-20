@@ -213,6 +213,10 @@ export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   sortOrder?: 'asc' | 'desc'
 
   @IsOptional()
+  @IsIn(['total', 'perPerson'])
+  amountBasis?: 'total' | 'perPerson'
+
+  @IsOptional()
   @ValidateIf(
     (_record, value) => normalizeFixedTimeZoneOffset(value) === undefined,
   )
