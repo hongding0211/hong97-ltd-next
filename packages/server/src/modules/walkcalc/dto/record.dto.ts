@@ -14,9 +14,18 @@ import {
   Matches,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator'
 
 const MONEY_AMOUNT_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/
+
+export function normalizeFixedTimeZoneOffset(
+  value: unknown,
+): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const match = /^(?:GMT)?([+-])([01]\d|2[0-3]):?([0-5]\d)$/.exec(value)
+  return match ? `${match[1]}${match[2]}:${match[3]}` : undefined
+}
 
 export class AddWalkcalcRecordDto {
   @IsString()
@@ -206,6 +215,9 @@ export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   sortOrder?: 'asc' | 'desc'
 
   @IsOptional()
+  @ValidateIf(
+    (_record, value) => normalizeFixedTimeZoneOffset(value) === undefined,
+  )
   @IsTimeZone()
   timeZone?: string
 }

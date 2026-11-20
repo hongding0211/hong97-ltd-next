@@ -13,6 +13,7 @@ import {
   QueryWalkcalcStatisticsDto,
   ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
+  normalizeFixedTimeZoneOffset,
 } from './dto/record.dto'
 import {
   WalkcalcBalanceDetailDto,
@@ -1758,9 +1759,9 @@ export class WalkcalcService {
     pageSize: number,
     timeZone = 'UTC',
   ) {
-    const timezone = new Intl.DateTimeFormat('en', {
-      timeZone,
-    }).resolvedOptions().timeZone
+    const timezone =
+      normalizeFixedTimeZoneOffset(timeZone) ??
+      new Intl.DateTimeFormat('en', { timeZone }).resolvedOptions().timeZone
     const startOf = (unit: 'day' | 'year', date: unknown) => ({
       $dateTrunc: { date, unit, timezone },
     })
