@@ -16,7 +16,6 @@ const nextConfig = {
       {
         source: '/.well-known/apple-app-site-association',
         destination: '/apple-app-site-association.json',
-        locale: false,
       },
       ...devRewrites,
     ]
