@@ -227,6 +227,12 @@ WalkcalcRecordSchema.index({ recordId: 1 }, { unique: true })
 WalkcalcRecordSchema.index({ groupCode: 1, createdAt: -1 })
 WalkcalcRecordSchema.index({
   groupCode: 1,
+  occurredAt: -1,
+  createdAt: -1,
+  recordId: -1,
+})
+WalkcalcRecordSchema.index({
+  groupCode: 1,
   involvedParticipantIds: 1,
   createdAt: -1,
 })

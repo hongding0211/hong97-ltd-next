@@ -10,6 +10,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsTimeZone,
   Matches,
   Max,
   Min,
@@ -197,6 +198,14 @@ export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   scope?: 'myExpense'
 
   @IsOptional()
-  @IsIn(['createdAt', 'occurredAt'])
-  sortBy?: 'createdAt' | 'occurredAt'
+  @IsIn(['createdAt', 'occurredAt', 'amount'])
+  sortBy?: 'createdAt' | 'occurredAt' | 'amount'
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc'
+
+  @IsOptional()
+  @IsTimeZone()
+  timeZone?: string
 }

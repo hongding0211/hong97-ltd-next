@@ -1716,17 +1716,28 @@ export class WalkcalcService {
     const searchFilter = this.recordSearchFilter(query.search)
     if (searchFilter) filters.push(searchFilter)
     const finalFilter = filters.length === 1 ? filters[0] : { $and: filters }
-    const sort: Record<string, -1> =
+    const direction = query.sortOrder === 'asc' ? 1 : -1
+    const sort: Record<string, 1 | -1> =
       query.sortBy === 'occurredAt'
-        ? { occurredAt: -1, createdAt: -1, recordId: -1 }
-        : { createdAt: -1 }
+        ? { occurredAt: direction, createdAt: direction, recordId: direction }
+        : { createdAt: direction }
+    const offset = (page - 1) * pageSize
+    const recordsQuery =
+      query.sortBy === 'amount'
+        ? this.amountSortedRecords(
+            finalFilter,
+            direction,
+            offset,
+            pageSize,
+            query.timeZone,
+          )
+        : this.walkcalcRecordModel
+            .find(finalFilter)
+            .sort(sort)
+            .skip(offset)
+            .limit(pageSize)
     const [records, total] = await Promise.all([
-      this.walkcalcRecordModel
-        .find(finalFilter)
-        .sort(sort)
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .exec(),
+      recordsQuery.exec(),
       this.walkcalcRecordModel.countDocuments(finalFilter).exec(),
     ])
 
@@ -1738,6 +1749,70 @@ export class WalkcalcService {
       page,
       pageSize,
     }
+  }
+
+  private amountSortedRecords(
+    filter: Record<string, unknown>,
+    direction: 1 | -1,
+    offset: number,
+    pageSize: number,
+    timeZone = 'UTC',
+  ) {
+    const timezone = new Intl.DateTimeFormat('en', {
+      timeZone,
+    }).resolvedOptions().timeZone
+    const startOf = (unit: 'day' | 'year', date: unknown) => ({
+      $dateTrunc: { date, unit, timezone },
+    })
+    const now = new Date(Date.now())
+    const yesterday = {
+      $dateSubtract: {
+        startDate: startOf('day', now),
+        unit: 'day',
+        amount: 1,
+        timezone,
+      },
+    }
+    const occurredAt = {
+      $convert: { input: '$occurredAt', to: 'date', onError: null },
+    }
+    const day = startOf('day', occurredAt)
+    const year = startOf('year', occurredAt)
+
+    return this.walkcalcRecordModel
+      .aggregate<WalkcalcRecord>([
+        { $match: filter },
+        {
+          $set: {
+            // Match the ledger's day sections, annual sections, and New Year's Day exception for yesterday.
+            sortSection: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: [year, startOf('year', now)] },
+                    { $eq: [day, yesterday] },
+                  ],
+                },
+                day,
+                year,
+              ],
+            },
+            sortAmount: { $toDecimal: '$amountValue' },
+          },
+        },
+        {
+          $sort: {
+            sortSection: -1,
+            sortAmount: direction,
+            occurredAt: -1,
+            createdAt: -1,
+            recordId: -1,
+          },
+        },
+        { $skip: offset },
+        { $limit: pageSize },
+      ])
+      .allowDiskUse(true)
   }
 
   private buildSpendingRecordFilter(

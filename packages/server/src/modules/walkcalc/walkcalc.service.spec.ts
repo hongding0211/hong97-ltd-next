@@ -1516,6 +1516,12 @@ describe('WalkcalcService normalized ledger', () => {
         currentUserExpenseShare: '0.51',
       }),
     ])
+    const ascending = await ctx.service.groupRecords('u1', 'AB12', {
+      ...query,
+      sortOrder: 'asc',
+    })
+    expect(ascending.total).toBe(2)
+    expect(ascending.data.map((record) => record.recordId)).toEqual(['shared'])
 
     await expect(
       ctx.service.groupStatistics('u1', 'AB12', {

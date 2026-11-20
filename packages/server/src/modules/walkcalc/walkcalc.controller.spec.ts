@@ -384,6 +384,34 @@ describe('WalkcalcController', () => {
     )
   })
 
+  it('accepts supported record sorts and rejects invalid options', async () => {
+    const pipe = new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    })
+    const metadata = {
+      type: 'query' as const,
+      metatype: QueryWalkcalcRecordsDto,
+    }
+    const sort = {
+      sortBy: 'amount',
+      sortOrder: 'asc',
+      timeZone: 'Asia/Shanghai',
+    }
+
+    await expect(pipe.transform(sort, metadata)).resolves.toEqual(
+      expect.objectContaining(sort),
+    )
+    for (const invalid of [
+      { sortBy: 'amountValue' },
+      { sortOrder: 'ascending' },
+      { timeZone: 'Mars/Olympus' },
+    ]) {
+      await expect(pipe.transform(invalid, metadata)).rejects.toThrow()
+    }
+  })
+
   it('uses the new semantic record contract and rejects legacy money fields through validation', async () => {
     const validationPipe = new ValidationPipe({
       transform: true,

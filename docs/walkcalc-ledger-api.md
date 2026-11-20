@@ -836,9 +836,13 @@ Response:
 
 Every record response, including unfiltered lists, single-record reads, participant-record lists, and mutation results, contains `currentUserExpenseShare`. It is the authenticated user's exact share of that expense in the record currency. It is `"0.00"` for settlements and expenses the user paid for but did not consume. `amount` remains the full record amount. Filters never change the record response shape.
 
-Sorting:
+Both group records and participant-record endpoints accept `sortBy` and `sortOrder`. `sortOrder=asc` returns the ascending sort and omission defaults to `desc`.
 
-- newest first by `createdAt desc`。
+- `sortBy=createdAt` sorts by entry creation time and is the default for existing callers.
+- `sortBy=occurredAt` sorts by the time the bill occurred, with creation time and record ID as tie-breakers in the same direction. The native group list should request this with `sortOrder=desc` for its default view.
+- `sortBy=amount` keeps date sections newest first and sorts records within each section by their full original amount. Mixed currencies are compared by their original numeric amounts without exchange-rate conversion. Equal amounts are ordered by occurrence time, creation time, and record ID, newest first.
+
+For amount sorting, `timeZone=Asia/Shanghai` sets the calendar used for section boundaries. The default is `UTC`. Records from the current year and yesterday use calendar-day sections. Other records use calendar-year sections, so December 31 still has a Yesterday section on January 1. Section order and amount order are applied before pagination. The response remains a flat list for clients to render as date sections.
 
 ### Record Filters
 
@@ -849,7 +853,7 @@ Combine `currencyCodes`, `participantId`, `scope`, `categoryIds`, occurrence tim
 
 `scope=myExpense` selects only expense records whose `participantIds` include the authenticated user. It excludes settlements and expenses the user only paid for. Omit `scope` to retain the existing all-record behavior. The server derives the user ID from authentication; clients cannot select another user's personal expense scope.
 
-`categoryIds=food,traffic` matches stored category IDs exactly. Category choices are maintained by clients (the native filter reuses the expense editor catalog). `includeSettlements=true` adds settlement records to the selected category set regardless of their stored category; alone it selects only settlements. Native clients use `categoryIds=transfer&includeSettlements=true` for the Transfer option. This OR applies only within the category selection; currency, participation, keyword, and time filters still combine with AND. Personal spending/statistics remain expense-only even with this flag. Omission preserves existing behavior. `includeUncategorized=true` adds records with missing, null, or empty category; by itself it selects only uncategorized records. `fromOccurredAt` is inclusive and `toOccurredAt` is exclusive, both Unix milliseconds. The start must be earlier than the end. `sortBy=occurredAt` sorts by bill occurrence time; omission retains `createdAt` ordering. Both sorts are descending.
+`categoryIds=food,traffic` matches stored category IDs exactly. Category choices are maintained by clients (the native filter reuses the expense editor catalog). `includeSettlements=true` adds settlement records to the selected category set regardless of their stored category; alone it selects only settlements. Native clients use `categoryIds=transfer&includeSettlements=true` for the Transfer option. This OR applies only within the category selection; currency, participation, keyword, and time filters still combine with AND. Personal spending/statistics remain expense-only even with this flag. Omission preserves existing behavior. `includeUncategorized=true` adds records with missing, null, or empty category; by itself it selects only uncategorized records. `fromOccurredAt` is inclusive and `toOccurredAt` is exclusive, both Unix milliseconds. The start must be earlier than the end.
 
 Legacy records with a missing or null currency match their group's default currency, consistent with the response mapping. Changing the record-query scope does not recalculate balances or settlement suggestions. Clients should restrict those currency-specific projections to the same selection, and preserve the existing personal suggestion scope.
 
