@@ -840,9 +840,7 @@ Both group records and participant-record endpoints accept `sortBy` and `sortOrd
 
 - `sortBy=createdAt` sorts by entry creation time and is the default for existing callers.
 - `sortBy=occurredAt` sorts by the time the bill occurred, with creation time and record ID as tie-breakers in the same direction. The native group list should request this with `sortOrder=desc` for its default view.
-- `sortBy=amount` keeps date sections newest first and sorts records within each section by their full original amount. Mixed currencies are compared by their original numeric amounts without exchange-rate conversion. Equal amounts are ordered by occurrence time, creation time, and record ID, newest first.
-
-For amount sorting, `timeZone` sets the calendar used for section boundaries. It accepts an IANA name such as `Asia/Shanghai` or a fixed UTC offset such as `+08:00`. The default is `UTC`. Records from the current year and yesterday use calendar-day sections. Other records use calendar-year sections, so December 31 still has a Yesterday section on January 1. Section order and amount order are applied before pagination. The response remains a flat list for clients to render as date sections.
+- `sortBy=amount` sorts the entire filtered list by each record's full original amount before pagination. Mixed currencies are compared by their original numeric amounts without exchange-rate conversion. Equal amounts are ordered by occurrence time, creation time, and record ID, newest first. Existing clients can still send the optional `timeZone` parameter.
 
 ### Record Filters
 

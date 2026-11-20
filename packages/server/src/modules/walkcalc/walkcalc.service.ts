@@ -13,7 +13,6 @@ import {
   QueryWalkcalcStatisticsDto,
   ResolveWalkcalcSettlementsDto,
   UpdateWalkcalcRecordDto,
-  normalizeFixedTimeZoneOffset,
 } from './dto/record.dto'
 import {
   WalkcalcBalanceDetailDto,
@@ -1725,13 +1724,7 @@ export class WalkcalcService {
     const offset = (page - 1) * pageSize
     const recordsQuery =
       query.sortBy === 'amount'
-        ? this.amountSortedRecords(
-            finalFilter,
-            direction,
-            offset,
-            pageSize,
-            query.timeZone,
-          )
+        ? this.amountSortedRecords(finalFilter, direction, offset, pageSize)
         : this.walkcalcRecordModel
             .find(finalFilter)
             .sort(sort)
@@ -1757,53 +1750,13 @@ export class WalkcalcService {
     direction: 1 | -1,
     offset: number,
     pageSize: number,
-    timeZone = 'UTC',
   ) {
-    const timezone =
-      normalizeFixedTimeZoneOffset(timeZone) ??
-      new Intl.DateTimeFormat('en', { timeZone }).resolvedOptions().timeZone
-    const startOf = (unit: 'day' | 'year', date: unknown) => ({
-      $dateTrunc: { date, unit, timezone },
-    })
-    const now = new Date(Date.now())
-    const yesterday = {
-      $dateSubtract: {
-        startDate: startOf('day', now),
-        unit: 'day',
-        amount: 1,
-        timezone,
-      },
-    }
-    const occurredAt = {
-      $convert: { input: '$occurredAt', to: 'date', onError: null },
-    }
-    const day = startOf('day', occurredAt)
-    const year = startOf('year', occurredAt)
-
     return this.walkcalcRecordModel
       .aggregate<WalkcalcRecord>([
         { $match: filter },
-        {
-          $set: {
-            // Match the ledger's day sections, annual sections, and New Year's Day exception for yesterday.
-            sortSection: {
-              $cond: [
-                {
-                  $or: [
-                    { $eq: [year, startOf('year', now)] },
-                    { $eq: [day, yesterday] },
-                  ],
-                },
-                day,
-                year,
-              ],
-            },
-            sortAmount: { $toDecimal: '$amountValue' },
-          },
-        },
+        { $set: { sortAmount: { $toDecimal: '$amountValue' } } },
         {
           $sort: {
-            sortSection: -1,
             sortAmount: direction,
             occurredAt: -1,
             createdAt: -1,

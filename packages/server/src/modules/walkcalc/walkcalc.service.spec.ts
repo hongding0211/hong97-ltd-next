@@ -1578,6 +1578,29 @@ describe('WalkcalcService normalized ledger', () => {
     )
   })
 
+  it('sorts the filtered record list by full paid amount before pagination', async () => {
+    const ctx = createSeededGroupContext()
+    const aggregate = jest.fn().mockReturnValue({
+      allowDiskUse: jest.fn().mockReturnValue({ exec: async () => [] }),
+    })
+    ctx.recordStore.Model.aggregate = aggregate
+
+    await ctx.service.groupRecords('u1', 'AB12', {
+      sortBy: 'amount',
+      sortOrder: 'asc',
+      page: 2,
+      pageSize: 3,
+    })
+
+    expect(aggregate).toHaveBeenCalledWith([
+      { $match: expect.objectContaining({ groupCode: 'AB12' }) },
+      { $set: { sortAmount: { $toDecimal: '$amountValue' } } },
+      { $sort: { sortAmount: 1, occurredAt: -1, createdAt: -1, recordId: -1 } },
+      { $skip: 3 },
+      { $limit: 3 },
+    ])
+  })
+
   it('filters uncategorized personal expenses and includes shares in mutation responses', async () => {
     const ctx = createSeededGroupContext()
     const added = await ctx.service.addRecord('u1', {
