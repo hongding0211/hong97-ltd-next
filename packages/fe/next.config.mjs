@@ -10,7 +10,17 @@ const nextConfig = {
     locales: ['cn', 'en'],
   },
   pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-  ...(process.env.NODE_ENV === 'development' ? devNextConfig : {}),
+  async rewrites() {
+    const devRewrites = process.env.NODE_ENV === 'development' ? await devNextConfig.rewrites() : []
+    return [
+      {
+        source: '/.well-known/apple-app-site-association',
+        destination: '/apple-app-site-association.json',
+        locale: false,
+      },
+      ...devRewrites,
+    ]
+  },
 }
 
 const withMDX = createMDX({
