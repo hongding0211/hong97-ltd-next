@@ -1609,7 +1609,26 @@ describe('WalkcalcService normalized ledger', () => {
 
     expect(aggregate).toHaveBeenLastCalledWith([
       { $match: expect.objectContaining({ groupCode: 'AB12' }) },
-      { $set: { sortAmount: { $let: expect.any(Object) } } },
+      {
+        $set: {
+          sortAmount: {
+            $let: {
+              vars: { count: { $size: { $ifNull: ['$participantIds', []] } } },
+              in: {
+                $cond: [
+                  { $and: [{ $eq: ['$type', 'expense'] }, { $gt: ['$$count', 1] }] },
+                  {
+                    $trunc: {
+                      $add: [{ $divide: [{ $toDecimal: '$amountValue' }, '$$count'] }, 0.5],
+                    },
+                  },
+                  { $toDecimal: '$amountValue' },
+                ],
+              },
+            },
+          },
+        },
+      },
       { $sort: { sortAmount: -1, occurredAt: -1, createdAt: -1, recordId: -1 } },
       { $skip: 3 },
       { $limit: 3 },

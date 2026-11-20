@@ -1758,14 +1758,11 @@ export class WalkcalcService {
     pageSize: number,
     amountBasis: QueryWalkcalcRecordsDto['amountBasis'],
   ) {
-    const totalAmount = { $toDecimal: '$amountValue' }
+    const totalInCents = { $toDecimal: '$amountValue' }
     // Match the client's half-up rounding to the displayed cent.
     const roundedShareInCents = {
       $trunc: {
-        $add: [
-          { $divide: [{ $multiply: [totalAmount, 100] }, '$$count'] },
-          0.5,
-        ],
+        $add: [{ $divide: [totalInCents, '$$count'] }, 0.5],
       },
     }
     const sortAmount =
@@ -1776,13 +1773,13 @@ export class WalkcalcService {
               in: {
                 $cond: [
                   { $and: [{ $eq: ['$type', 'expense'] }, { $gt: ['$$count', 1] }] },
-                  { $divide: [roundedShareInCents, 100] },
-                  totalAmount,
+                  roundedShareInCents,
+                  totalInCents,
                 ],
               },
             },
           }
-        : totalAmount
+        : totalInCents
     return this.walkcalcRecordModel
       .aggregate<WalkcalcRecord>([
         { $match: filter },
