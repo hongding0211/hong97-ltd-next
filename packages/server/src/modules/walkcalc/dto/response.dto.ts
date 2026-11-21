@@ -46,6 +46,7 @@ export interface WalkcalcRecordDto {
   type: WalkcalcRecordTypeDto
   amount: MoneyAmount
   currentUserExpenseShare: MoneyAmount
+  matchedExpenseShare?: MoneyAmount
   currencyCode: string
   payerId?: string
   participantIds?: string[]
@@ -113,6 +114,8 @@ export interface WalkcalcStatisticsDto {
   groupCode: string
   totals: WalkcalcStatisticsTotalDto[]
   byCategory: WalkcalcStatisticsCategoryDto[]
+  byMember?: WalkcalcStatisticsMemberDto[]
+  byPeriod?: WalkcalcStatisticsPeriodDto[]
 }
 
 export interface WalkcalcStatisticsTotalDto {
@@ -124,6 +127,17 @@ export interface WalkcalcStatisticsTotalDto {
 export interface WalkcalcStatisticsCategoryDto
   extends WalkcalcStatisticsTotalDto {
   categoryId: string | null
+}
+
+export interface WalkcalcStatisticsMemberDto
+  extends WalkcalcStatisticsTotalDto {
+  participantId: string
+}
+
+export interface WalkcalcStatisticsPeriodDto
+  extends WalkcalcStatisticsTotalDto {
+  fromOccurredAt: number
+  toOccurredAt: number
 }
 
 export interface WalkcalcCurrencyBalanceDto {

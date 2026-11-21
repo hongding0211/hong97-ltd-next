@@ -849,7 +849,9 @@ Codes are trimmed, uppercased, validated as ISO 4217 currencies, and combined as
 
 Combine `currencyCodes`, `participantId`, `scope`, `categoryIds`, occurrence time, and structured `search` with AND. Filtering happens before counting and pagination. The existing `participantId` filter covers payers, expense participants, and settlement senders/receivers.
 
-`scope=myExpense` selects only expense records whose `participantIds` include the authenticated user. It excludes settlements and expenses the user only paid for. Omit `scope` to retain the existing all-record behavior. The server derives the user ID from authentication; clients cannot select another user's personal expense scope.
+`scope=myExpense` selects only expense records whose `participantIds` include the authenticated user. `scope=groupExpense` selects expenses for the whole group. With no scope or `expenseParticipantIds`, the record list uses its existing all-record behavior. The server derives the personal user ID from authentication.
+
+`expenseParticipantIds=u1,u2` selects expenses in which at least one of those group participants shares the cost. The field combines with the other filters, excludes settlements, and is independent of `participantId`, which also includes payers and settlement endpoints. The response includes `matchedExpenseShare`, the sum of the selected participants' original shares. With `scope=myExpense`, `matchedExpenseShare` is the requester's share and the participant selection only narrows the matching bills. `amount` still represents the full bill.
 
 `categoryIds=food,traffic` matches stored category IDs exactly. Category choices are maintained by clients (the native filter reuses the expense editor catalog). `includeSettlements=true` adds settlement records to the selected category set regardless of their stored category; alone it selects only settlements. Native clients use `categoryIds=transfer&includeSettlements=true` for the Transfer option. This OR applies only within the category selection; currency, participation, keyword, and time filters still combine with AND. Personal spending/statistics remain expense-only even with this flag. Omission preserves existing behavior. `includeUncategorized=true` adds records with missing, null, or empty category; by itself it selects only uncategorized records. `fromOccurredAt` is inclusive and `toOccurredAt` is exclusive, both Unix milliseconds. The start must be earlier than the end.
 
@@ -859,11 +861,13 @@ Example: `GET /walkcalc/groups/:code/records?page=1&pageSize=10&currencyCodes=US
 
 Personal spending example: `GET /walkcalc/groups/:code/records?scope=myExpense&currencyCodes=USD&categoryIds=food&fromOccurredAt=1710000000000&toOccurredAt=1712678400000&sortBy=occurredAt`
 
-### Personal Spending Statistics
+### Spending Statistics
 
 `GET /walkcalc/groups/:code/statistics`
 
-This authenticated group-member endpoint always measures the requester's own expense share. It accepts `currencyCodes`, `categoryIds`, `includeUncategorized`, `fromOccurredAt`, and `toOccurredAt` with the same meanings as the record list. The response is grouped by currency and category without converting currencies:
+This authenticated group-member endpoint returns all matching aggregates in a single response. It accepts the record-list spending filters `currencyCodes`, `categoryIds`, `includeUncategorized`, `expenseParticipantIds`, `fromOccurredAt`, and `toOccurredAt`. Omit both dates for all history, or pass only `fromOccurredAt` for everything from that instant onward. To include a calendar end date, send the start of the following day in the user's time zone as `toOccurredAt`.
+
+The default scope is `myExpense`. Use `scope=groupExpense` for group spending. When the group scope has selected participants, it adds their original shares from each matching bill. Both scopes use expense records only. The response groups by currency and category without converting currencies:
 
 ```json
 {
@@ -877,6 +881,10 @@ This authenticated group-member endpoint always measures the requester's own exp
 ```
 
 `categoryId: null` means uncategorized. `recordCount` counts matched expense records, including a record whose exact share rounds to zero cents. The unfiltered all-time group amount is already available from the current user's `expenseShare` in the group summary and participant projections; filtered statistics read matching records through an index and apply the same exact cent-splitting rule as those projections.
+
+- `includeMembers=true` adds `byMember` with `participantId`, `currencyCode`, `expenseShare`, and `recordCount`. Select `scope=groupExpense` for the member ranking.
+- `timeBucket=day` or `month` adds `byPeriod` with `currencyCode`, `expenseShare`, `recordCount`, `fromOccurredAt`, and `toOccurredAt`. The optional `timeZone` is an IANA zone or fixed offset and defaults to UTC. Returned bounds are clipped to the query range and can be sent directly to `/records` to open a chart bucket. Only periods with matching expenses are returned.
+- Drill down from a member bucket using `scope=groupExpense&expenseParticipantIds=<participantId>`, along with the active currency, category and date filters. Drill down from a personal bucket using `scope=myExpense`.
 
 ### Record Search
 
@@ -1108,7 +1116,7 @@ Common WalkCalc business error keys:
 | `POST` | `/walkcalc/records/drop` | hard delete record |
 | `GET` | `/walkcalc/records/:recordId` | read record |
 | `GET` | `/walkcalc/groups/:code/records` | list/search group records |
-| `GET` | `/walkcalc/groups/:code/statistics` | filtered personal spending totals and categories |
+| `GET` | `/walkcalc/groups/:code/statistics` | filtered personal or group spending totals, categories, members, and periods |
 | `GET` | `/walkcalc/groups/:code/balances` | list participant balances |
 | `GET` | `/walkcalc/groups/:code/balances/:participantId/records` | participant balance detail and records |
 | `GET` | `/walkcalc/groups/:code/settlement-suggestion` | backend settlement suggestion |

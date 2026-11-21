@@ -16,14 +16,9 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator'
+import { normalizeFixedTimeZoneOffset } from '../utils/spending-period'
 
 const MONEY_AMOUNT_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/
-
-function normalizeFixedTimeZoneOffset(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  const match = /^(?:GMT)?([+-])([01]\d|2[0-3]):?([0-5]\d)$/.exec(value)
-  return match ? `${match[1]}${match[2]}:${match[3]}` : undefined
-}
 
 export class AddWalkcalcRecordDto {
   @IsString()
@@ -121,6 +116,23 @@ export class QueryWalkcalcSettlementDto {
 }
 
 export class QueryWalkcalcSpendingFiltersDto {
+  @IsOptional()
+  @IsIn(['myExpense', 'groupExpense'])
+  scope?: 'myExpense' | 'groupExpense'
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.split(',').map((id: string) => id.trim())
+      : value,
+  )
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  expenseParticipantIds?: string[]
+
   // Inclusive start and exclusive end, in Unix milliseconds.
   @IsOptional()
   @Type(() => Number)
@@ -176,7 +188,25 @@ export class QueryWalkcalcSpendingFiltersDto {
   currencyCodes?: string[]
 }
 
-export class QueryWalkcalcStatisticsDto extends QueryWalkcalcSpendingFiltersDto {}
+export class QueryWalkcalcStatisticsDto extends QueryWalkcalcSpendingFiltersDto {
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  includeMembers?: boolean
+
+  @IsOptional()
+  @IsIn(['day', 'month'])
+  timeBucket?: 'day' | 'month'
+
+  @IsOptional()
+  @ValidateIf(
+    (_record, value) => normalizeFixedTimeZoneOffset(value) === undefined,
+  )
+  @IsTimeZone()
+  timeZone?: string
+}
 
 export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   @IsOptional()
@@ -199,10 +229,6 @@ export class QueryWalkcalcRecordsDto extends QueryWalkcalcSpendingFiltersDto {
   @IsOptional()
   @IsString()
   participantId?: string
-
-  @IsOptional()
-  @IsIn(['myExpense'])
-  scope?: 'myExpense'
 
   @IsOptional()
   @IsIn(['createdAt', 'occurredAt', 'amount'])

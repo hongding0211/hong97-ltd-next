@@ -373,13 +373,26 @@ describe('WalkcalcController', () => {
 
     await expect(
       pipe.transform(
-        { currencyCodes: 'usd', categoryIds: 'food' },
+        {
+          currencyCodes: 'usd',
+          categoryIds: 'food',
+          scope: 'groupExpense',
+          expenseParticipantIds: 'u1, u2',
+          includeMembers: 'true',
+          timeBucket: 'month',
+          timeZone: 'Asia/Shanghai',
+        },
         { type: 'query', metatype: QueryWalkcalcStatisticsDto },
       ),
     ).resolves.toEqual(
       expect.objectContaining({
         currencyCodes: ['USD'],
         categoryIds: ['food'],
+        scope: 'groupExpense',
+        expenseParticipantIds: ['u1', 'u2'],
+        includeMembers: true,
+        timeBucket: 'month',
+        timeZone: 'Asia/Shanghai',
       }),
     )
   })
@@ -404,9 +417,9 @@ describe('WalkcalcController', () => {
       expect.objectContaining(sort),
     )
     for (const amountBasis of ['total', 'perPerson']) {
-      await expect(pipe.transform({ ...sort, amountBasis }, metadata)).resolves.toEqual(
-        expect.objectContaining({ ...sort, amountBasis }),
-      )
+      await expect(
+        pipe.transform({ ...sort, amountBasis }, metadata),
+      ).resolves.toEqual(expect.objectContaining({ ...sort, amountBasis }))
     }
     for (const timeZone of ['+0800', '+08:00', '-03:30', 'GMT+0530']) {
       await expect(

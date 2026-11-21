@@ -55,7 +55,10 @@ export function fromMoneyValueBigInt(value: bigint): MoneyValue {
 }
 
 export function formatMoneyAmount(value: unknown): string {
-  const cents = toMoneyValueBigInt(assertMoneyValue(value))
+  return formatMoneyTotal(toMoneyValueBigInt(assertMoneyValue(value)))
+}
+
+export function formatMoneyTotal(cents: bigint): string {
   const negative = cents < 0n
   const abs = negative ? -cents : cents
   const integerPart = abs / 100n

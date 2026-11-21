@@ -1523,6 +1523,83 @@ describe('WalkcalcService normalized ledger', () => {
     expect(ascending.total).toBe(2)
     expect(ascending.data.map((record) => record.recordId)).toEqual(['shared'])
 
+    const memberQuery = {
+      scope: 'groupExpense' as const,
+      expenseParticipantIds: ['u2'],
+      currencyCodes: ['USD'],
+      categoryIds: ['food'],
+      fromOccurredAt: 100,
+      toOccurredAt: 500,
+    }
+    const memberStats = await ctx.service.groupStatistics('u1', 'AB12', {
+      ...memberQuery,
+      includeMembers: true,
+      timeBucket: 'day',
+    })
+    expect(memberStats.totals).toEqual([
+      { currencyCode: 'USD', expenseShare: '2.50', recordCount: 2 },
+    ])
+    expect(memberStats.byMember).toEqual([
+      {
+        currencyCode: 'USD',
+        participantId: 'u2',
+        expenseShare: '2.50',
+        recordCount: 2,
+      },
+    ])
+    expect(memberStats.byPeriod).toEqual([
+      {
+        currencyCode: 'USD',
+        fromOccurredAt: 100,
+        toOccurredAt: 500,
+        expenseShare: '2.50',
+        recordCount: 2,
+      },
+    ])
+    const details = await Promise.all(
+      [1, 2].map((page) =>
+        ctx.service.groupRecords('u1', 'AB12', {
+          ...memberQuery,
+          page,
+          pageSize: 1,
+          sortBy: 'occurredAt',
+          sortOrder: 'asc',
+        }),
+      ),
+    )
+    expect(details.map((page) => page.total)).toEqual([2, 2])
+    expect(details.flatMap((page) => page.data)).toEqual([
+      expect.objectContaining({
+        recordId: 'shared',
+        amount: '1.01',
+        currentUserExpenseShare: '0.51',
+        matchedExpenseShare: '0.50',
+      }),
+      expect.objectContaining({
+        recordId: 'paid-only',
+        matchedExpenseShare: '2.00',
+      }),
+    ])
+    await expect(
+      ctx.service.groupRecords('u1', 'AB12', {
+        ...memberQuery,
+        expenseParticipantIds: ['outside-group'],
+      }),
+    ).rejects.toThrow('walkcalc.invalidParticipant')
+    await expect(
+      ctx.service.groupStatistics('u1', 'AB12', {
+        scope: 'groupExpense',
+        includeMembers: true,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        totals: [
+          { currencyCode: 'CNY', expenseShare: '4.00', recordCount: 1 },
+          { currencyCode: 'USD', expenseShare: '7.01', recordCount: 4 },
+        ],
+      }),
+    )
+
     await expect(
       ctx.service.groupStatistics('u1', 'AB12', {
         currencyCodes: ['USD'],
@@ -1616,10 +1693,20 @@ describe('WalkcalcService normalized ledger', () => {
               vars: { count: { $size: { $ifNull: ['$participantIds', []] } } },
               in: {
                 $cond: [
-                  { $and: [{ $eq: ['$type', 'expense'] }, { $gt: ['$$count', 1] }] },
+                  {
+                    $and: [
+                      { $eq: ['$type', 'expense'] },
+                      { $gt: ['$$count', 1] },
+                    ],
+                  },
                   {
                     $trunc: {
-                      $add: [{ $divide: [{ $toDecimal: '$amountValue' }, '$$count'] }, 0.5],
+                      $add: [
+                        {
+                          $divide: [{ $toDecimal: '$amountValue' }, '$$count'],
+                        },
+                        0.5,
+                      ],
                     },
                   },
                   { $toDecimal: '$amountValue' },
@@ -1629,7 +1716,9 @@ describe('WalkcalcService normalized ledger', () => {
           },
         },
       },
-      { $sort: { sortAmount: -1, occurredAt: -1, createdAt: -1, recordId: -1 } },
+      {
+        $sort: { sortAmount: -1, occurredAt: -1, createdAt: -1, recordId: -1 },
+      },
       { $skip: 3 },
       { $limit: 3 },
     ])
