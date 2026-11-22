@@ -334,13 +334,15 @@ function Login() {
       : ''
   }, [router.query.github_error])
 
-  const sourcePrivacyLink = useMemo(() => {
+  const sourceConfig = useMemo(() => {
     if (!router.isReady) {
       return undefined
     }
     return resolveSsoSourceConfig(readSsoSourceQuery(router.query.source))
-      .privacyLink
   }, [router.isReady, router.query.source])
+  const sourcePrivacyLink = sourceConfig?.privacyLink
+  const showGithubLogin =
+    sourceConfig !== undefined && !sourceConfig.hideGithubLogin
 
   const handleGithubLogin = useCallback(() => {
     setGithubLoading(true)
@@ -469,24 +471,26 @@ function Login() {
               {tPasskey(passkey.busy ? 'cancel' : 'signIn')}
             </Button>
           )}
-          <Button
-            size="xs"
-            variant="outline"
-            className="w-full gap-1"
-            onClick={handleGithubLogin}
-            disabled={
-              loading || showRedirecting || githubLoading || passkey.busy
-            }
-            aria-label={t('githubLogin')}
-            title={t('githubLogin')}
-          >
-            {githubLoading ? (
-              <Loader2 className="!h-3 !w-3 animate-spin" />
-            ) : (
-              <Github className="!h-3 !w-3" />
-            )}
-            {t('githubLogin')}
-          </Button>
+          {showGithubLogin && (
+            <Button
+              size="xs"
+              variant="outline"
+              className="w-full gap-1"
+              onClick={handleGithubLogin}
+              disabled={
+                loading || showRedirecting || githubLoading || passkey.busy
+              }
+              aria-label={t('githubLogin')}
+              title={t('githubLogin')}
+            >
+              {githubLoading ? (
+                <Loader2 className="!h-3 !w-3 animate-spin" />
+              ) : (
+                <Github className="!h-3 !w-3" />
+              )}
+              {t('githubLogin')}
+            </Button>
+          )}
         </div>
       </>
     )
@@ -503,6 +507,7 @@ function Login() {
     handleKeyDown,
     loading,
     githubLoading,
+    showGithubLogin,
     showRedirecting,
     showPassword,
     name,
@@ -663,7 +668,7 @@ function Login() {
                   </AlertDescription>
                 </Alert>
               )}
-              {!passkeyInvite && !!githubError && (
+              {!passkeyInvite && showGithubLogin && !!githubError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{tCommon('error')}</AlertTitle>

@@ -6,6 +6,7 @@ export type SourcePrivacyLink = {
 export type SsoSourceConfig = {
   hideNavBar: boolean
   hideLogout: boolean
+  hideGithubLogin: boolean
   stayOnAccountDeleted: boolean
   privacyLink?: SourcePrivacyLink
 }
@@ -13,6 +14,7 @@ export type SsoSourceConfig = {
 const DEFAULT_SOURCE_CONFIG: SsoSourceConfig = {
   hideNavBar: false,
   hideLogout: false,
+  hideGithubLogin: false,
   stayOnAccountDeleted: false,
 }
 
@@ -20,6 +22,7 @@ const SOURCE_CONFIGS: Partial<Record<string, SsoSourceConfig>> = {
   walkcalc: {
     hideNavBar: true,
     hideLogout: true,
+    hideGithubLogin: true,
     stayOnAccountDeleted: true,
     privacyLink: {
       href: '/privacy/walkcalc',
