@@ -12,11 +12,10 @@ export const ContextToggle: React.FC = () => {
   const { theme, setTheme, themes } = useTheme()
 
   const handleChangeLanguage = () => {
-    router
-      .push({ pathname, query }, asPath, {
-        locale: locale === 'cn' ? 'en' : 'cn',
-      })
-      .then()
+    const nextLocale = locale === 'cn' ? 'en' : 'cn'
+    const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+    document.cookie = `NEXT_LOCALE=${nextLocale}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`
+    void router.push({ pathname, query }, asPath, { locale: nextLocale })
   }
 
   const ThemeIcon = (() => {

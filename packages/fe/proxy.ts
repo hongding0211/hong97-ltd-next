@@ -4,11 +4,7 @@ import { NextRequest } from 'next/server'
 export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
 
-  if (
-    url.pathname === '/sso/login' &&
-    url.locale === 'en' &&
-    url.searchParams.get('source') === 'walkcalc'
-  ) {
+  if (url.pathname === '/sso/login' && url.locale === 'en') {
     const headers = {
       'Cache-Control': 'private, no-store',
       Vary: 'Accept-Language, Cookie',
