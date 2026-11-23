@@ -4,23 +4,6 @@ import { NextRequest } from 'next/server'
 export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
 
-  if (url.pathname === '/sso/login' && url.locale === 'en') {
-    const headers = {
-      'Cache-Control': 'private, no-store',
-      Vary: 'Accept-Language, Cookie',
-    }
-    const savedLocale = request.cookies.get('NEXT_LOCALE')?.value
-    if (
-      savedLocale === 'cn' ||
-      (savedLocale !== 'en' &&
-        prefersChinese(request.headers.get('accept-language')))
-    ) {
-      url.locale = 'cn'
-      return NextResponse.redirect(url, { headers })
-    }
-    return NextResponse.next({ headers })
-  }
-
   if (url.pathname === '/') {
     url.pathname = '/about'
     return NextResponse.redirect(url)
@@ -39,28 +22,6 @@ export function proxy(request: NextRequest) {
     const shortCode = shortLinkMatch[1]
     return handleShortLinkRedirect(shortCode, request)
   }
-}
-
-function prefersChinese(acceptLanguage: string | null): boolean {
-  let bestLanguage = 'en'
-  let bestQuality = 0
-
-  for (const preference of acceptLanguage?.split(',') ?? []) {
-    const [tag, weight] = preference.trim().toLowerCase().split(';')
-    const language = tag.trim().split('-')[0]
-    if (language !== 'en' && language !== 'zh' && language !== 'cn') {
-      continue
-    }
-
-    const quality =
-      weight === undefined ? 1 : Number(weight.trim().replace(/^q\s*=\s*/, ''))
-    if (quality > bestQuality && quality <= 1) {
-      bestLanguage = language
-      bestQuality = quality
-    }
-  }
-
-  return bestLanguage !== 'en'
 }
 
 async function handleShortLinkRedirect(
