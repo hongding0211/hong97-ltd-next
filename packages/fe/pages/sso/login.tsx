@@ -43,7 +43,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import * as motion from 'motion/react-client'
-import { GetStaticPropsContext } from 'next'
+import type { GetServerSidePropsContext } from 'next'
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import Head from 'next/head'
@@ -777,8 +777,50 @@ function Login() {
 
 export default Login
 
-export async function getStaticProps(context: GetStaticPropsContext) {
-  const { locale = 'en' } = context
+function prefersChinese(acceptLanguage: string | undefined): boolean {
+  let bestLanguage = 'en'
+  let bestQuality = 0
+
+  for (const preference of acceptLanguage?.split(',') ?? []) {
+    const [tag, weight] = preference.trim().toLowerCase().split(';')
+    const language = tag.trim().split('-')[0]
+    if (language !== 'en' && language !== 'zh' && language !== 'cn') {
+      continue
+    }
+
+    const quality =
+      weight === undefined ? 1 : Number(weight.trim().replace(/^q\s*=\s*/, ''))
+    if (quality > bestQuality && quality <= 1) {
+      bestLanguage = language
+      bestQuality = quality
+    }
+  }
+
+  return bestLanguage !== 'en'
+}
+
+export async function getServerSideProps({
+  locale = 'en',
+  req,
+  res,
+  resolvedUrl,
+}: GetServerSidePropsContext) {
+  res.setHeader('Cache-Control', 'private, no-store')
+  res.setHeader('Vary', 'Accept-Language, Cookie')
+
+  // Next.js only negotiates the browser language on the site root.
+  const savedLocale = req.cookies.NEXT_LOCALE
+  if (
+    locale === 'en' &&
+    (savedLocale === 'cn' ||
+      (savedLocale !== 'en' && prefersChinese(req.headers['accept-language'])))
+  ) {
+    const { search } = new URL(resolvedUrl, 'http://localhost')
+    return {
+      redirect: { destination: `/cn/sso/login${search}`, permanent: false },
+    }
+  }
+
   return {
     props: {
       ...(await serverSideTranslations(locale, [
