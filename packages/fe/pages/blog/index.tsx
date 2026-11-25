@@ -194,7 +194,7 @@ export default function Blog(props: BlogProps) {
             {pinnedBlogs.length > 0 && (
               <div className="flex mb-8 sm:mb-12">
                 <span className="w-[8.5rem] sm:w-[12.5rem] shrink-0 relative top-0 text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-                  Pined
+                  Pinned
                 </span>
                 <div className="flex flex-col gap-y-3 sm:gap-y-4">
                   {pinnedBlogs.map((blog) => (

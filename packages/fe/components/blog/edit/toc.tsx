@@ -32,21 +32,21 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
   }, [firstItemId])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 799px)')
+    const desktopToc = window.matchMedia('(min-width: 1024px)')
 
     const updateViewport = () => {
-      setIsNarrowViewport(mediaQuery.matches)
+      setIsNarrowViewport(!desktopToc.matches)
 
-      if (!mediaQuery.matches) {
+      if (desktopToc.matches) {
         setIsMobileOpen(false)
       }
     }
 
     updateViewport()
-    mediaQuery.addEventListener('change', updateViewport)
+    desktopToc.addEventListener('change', updateViewport)
 
     return () => {
-      mediaQuery.removeEventListener('change', updateViewport)
+      desktopToc.removeEventListener('change', updateViewport)
     }
   }, [])
 
@@ -160,7 +160,7 @@ const EditToc: React.FC<EditTocProps> = ({ items, blogTitle }) => {
 
   return (
     <>
-      <aside className="blog-reading-toc hidden pt-[7rem] min-[800px]:block">
+      <aside className="blog-reading-toc hidden pt-[7rem] lg:block">
         <div className="sticky top-[8.5rem]">
           <BlogToc
             items={items}

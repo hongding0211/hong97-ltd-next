@@ -26,7 +26,7 @@ function About() {
             'flex flex-col max-w-2xl mx-auto flex-1',
             'text-[1.5rem] sm:text-[2rem]',
             'font-bold sm:font-semibold',
-            'hyphens-auto break-words',
+            'break-words',
           )}
         >
           <div className={cx('mt-[28svh] sm:mt-[35svh]')}>

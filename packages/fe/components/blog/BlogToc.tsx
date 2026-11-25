@@ -47,18 +47,19 @@ export function BlogToc({
             <li key={item.id}>
               <a
                 href={`#${item.id}`}
+                title={item.title}
                 onClick={(event) => {
                   event.preventDefault()
                   onSelect?.(item.id)
                 }}
                 className={cn(
-                  'block rounded-sm py-1.5 text-sm leading-5 text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300',
+                  'block rounded-sm py-1 text-[13px] leading-snug text-neutral-400 transition-colors hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300',
                   item.level === 2 && 'pl-2.5',
                   active &&
                     'font-medium text-neutral-700 dark:text-neutral-300',
                 )}
               >
-                <span className="block truncate">{item.title}</span>
+                <span className="line-clamp-2 break-words">{item.title}</span>
               </a>
             </li>
           )

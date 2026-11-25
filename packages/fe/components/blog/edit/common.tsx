@@ -504,7 +504,7 @@ const BlogCommon: React.FC<IBlogCommon> = (props) => {
           </MdxLayout>
         )}
         {!!tocItems.length && (
-          <div className="blog-reading-balance hidden min-[800px]:block" />
+          <div className="blog-reading-balance hidden lg:block" />
         )}
       </div>
     </>

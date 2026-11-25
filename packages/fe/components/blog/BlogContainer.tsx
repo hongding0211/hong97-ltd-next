@@ -479,11 +479,21 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
       return
     }
 
+    const desktopToc = window.matchMedia('(min-width: 1024px)')
+    const closeOnDesktop = () => {
+      if (desktopToc.matches) {
+        setIsMobileTocOpen(false)
+      }
+    }
+
     const originalBodyOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    desktopToc.addEventListener('change', closeOnDesktop)
+    closeOnDesktop()
 
     return () => {
       document.body.style.overflow = originalBodyOverflow
+      desktopToc.removeEventListener('change', closeOnDesktop)
     }
   }, [isMobileTocOpen])
 
@@ -540,7 +550,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
           )}
         >
           {hasToc && (
-            <aside className="blog-reading-toc hidden pt-[7rem] min-[800px]:block">
+            <aside className="blog-reading-toc hidden pt-[7rem] lg:block">
               <div className="sticky top-[8.5rem]">
                 <BlogToc
                   items={effectiveTocItems}
@@ -664,15 +674,13 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
               />
             </div>
           </MdxLayout>
-          {hasToc && (
-            <div className="blog-reading-balance hidden min-[800px]:block" />
-          )}
+          {hasToc && <div className="blog-reading-balance hidden lg:block" />}
         </div>
         {showMobileToc && (
           <div
             aria-hidden={!isMobileTocOpen}
             className={cn(
-              'fixed inset-0 z-40 min-[800px]:hidden',
+              'fixed inset-0 z-40 lg:hidden',
               isMobileTocOpen ? 'pointer-events-auto' : 'pointer-events-none',
             )}
             onClick={() => setIsMobileTocOpen(false)}
@@ -795,7 +803,7 @@ export const BlogContainer: React.FC<IBlogContainer> = (props) => {
             aria-expanded={isMobileTocOpen}
             onClick={() => setIsMobileTocOpen((open) => !open)}
             className={cn(
-              'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-50 min-[800px]:hidden',
+              'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-4 z-50 lg:hidden',
               'flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300/90',
               'bg-white/70 text-neutral-800 backdrop-blur',
               'transition active:scale-95 dark:border-neutral-700/90 dark:bg-neutral-950/70 dark:text-neutral-100',
